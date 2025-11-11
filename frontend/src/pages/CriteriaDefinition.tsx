@@ -36,10 +36,12 @@ const CriteriaDefinition: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
-  // Load existing criteria
+  // Load existing criteria with retry logic
   useEffect(() => {
-    const loadCriteria = async () => {
+    const loadCriteria = async (retryCount = 0) => {
       if (!projectId) {
         setIsLoading(false);
         return;
@@ -61,7 +63,14 @@ const CriteriaDefinition: React.FC = () => {
         if (transformedCriteria.length > 0) {
           setCriteria(transformedCriteria);
         } else {
-          // Default criterion if none exist
+          // If no criteria and we just came from a template, wait a bit and retry
+          if (retryCount < 2) {
+            setTimeout(() => {
+              loadCriteria(retryCount + 1);
+            }, 1000);
+            return;
+          }
+          // Default criterion if none exist after retries
           setCriteria([
             {
               name: "Cost",
@@ -75,7 +84,14 @@ const CriteriaDefinition: React.FC = () => {
         }
       } catch (error) {
         console.error("Failed to load criteria:", error);
-        // Default criterion on error
+        // Retry on error if we haven't retried too many times
+        if (retryCount < 2) {
+          setTimeout(() => {
+            loadCriteria(retryCount + 1);
+          }, 1000);
+          return;
+        }
+        // Default criterion on error after retries
         setCriteria([
           {
             name: "Cost",
@@ -173,15 +189,43 @@ const CriteriaDefinition: React.FC = () => {
   const isFormValid = criteria.every((c) => c.name.trim() && c.weight > 0);
 
   const handleContinue = useCallback(async () => {
+    if (!isFormValid || isSaving || !projectId) return;
+
     // Clear any pending auto-save
     if (saveTimeout) {
       clearTimeout(saveTimeout);
       setSaveTimeout(null);
     }
-    // Save criteria before navigating
-    await saveCriteria(criteria);
-    navigate(`/project/${projectId}/discovery`);
-  }, [criteria, navigate, projectId, saveCriteria, saveTimeout]);
+
+    try {
+      setIsSaving(true);
+      // Save criteria before navigating
+      await saveCriteria(criteria);
+      // Small delay to ensure save completes
+      await new Promise((resolve) => setTimeout(resolve, 300));
+
+      // Navigate to component discovery page
+      const discoveryPath = `/project/${projectId}/discovery`;
+      console.log("Navigating to:", discoveryPath);
+      navigate(discoveryPath);
+    } catch (error: any) {
+      console.error("Failed to save criteria:", error);
+      alert(
+        `Failed to save criteria: ${
+          error.response?.data?.detail || error.message
+        }`
+      );
+      setIsSaving(false);
+    }
+  }, [
+    criteria,
+    navigate,
+    projectId,
+    saveCriteria,
+    saveTimeout,
+    isFormValid,
+    isSaving,
+  ]);
 
   // Allow Enter key to continue when valid
   useEffect(() => {
@@ -208,10 +252,65 @@ const CriteriaDefinition: React.FC = () => {
     };
   }, [criteria, saveCriteria, saveTimeout]);
 
-  if (isLoading) {
+  const handleExportExcel = async () => {
+    if (!projectId) return;
+    try {
+      const response = await criteriaApi.exportExcel(projectId);
+      const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `criteria_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error: any) {
+      console.error('Failed to export criteria:', error);
+      alert(`Failed to export criteria: ${error.response?.data?.detail || error.message}`);
+    }
+  };
+
+  const handleImportExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !projectId) return;
+
+    try {
+      setIsUploading(true);
+      await criteriaApi.uploadExcel(projectId, file);
+      // Reload criteria after import
+      const response = await criteriaApi.getByProject(projectId);
+      const transformedCriteria = response.data.map((crit: any) => ({
+        name: crit.name,
+        description: crit.description,
+        weight: crit.weight,
+        unit: crit.unit,
+        higherIsBetter: crit.higher_is_better,
+        minimumRequirement: crit.minimum_requirement,
+        maximumRequirement: crit.maximum_requirement,
+        id: crit.id,
+        isCustom: false,
+      }));
+      setCriteria(transformedCriteria);
+      alert('Criteria imported successfully!');
+    } catch (error: any) {
+      console.error('Failed to import criteria:', error);
+      alert(`Failed to import criteria: ${error.response?.data?.detail || error.message}`);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  if (isLoading && criteria.length === 0) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-gray-500">Loading criteria...</div>
+        <div className="text-center">
+          <div className="text-gray-500 mb-2">Loading criteria...</div>
+          <div className="text-xs text-gray-400">This may take a moment</div>
+        </div>
       </div>
     );
   }
@@ -260,6 +359,37 @@ const CriteriaDefinition: React.FC = () => {
         </div>
       </div>
 
+      {/* Import/Export Actions */}
+      <div className="flex gap-3 mb-6">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".xlsx,.xls"
+          onChange={handleImportExcel}
+          className="hidden"
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading}
+          className="btn-secondary flex items-center gap-2"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+          {isUploading ? 'Uploading...' : 'Import from Excel'}
+        </button>
+        <button
+          onClick={handleExportExcel}
+          disabled={criteria.length === 0}
+          className="btn-secondary flex items-center gap-2 disabled:opacity-50"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+          </svg>
+          Export to Excel
+        </button>
+      </div>
+
       {/* Main Card */}
       <div className="card p-8">
         {/* Weight Summary */}
@@ -291,7 +421,7 @@ const CriteriaDefinition: React.FC = () => {
             >
               <div className="grid grid-cols-12 gap-4">
                 {/* Criterion Name */}
-                <div className="col-span-12 md:col-span-3">
+                <div className="col-span-12 md:col-span-4">
                   <label className="label">Criterion Name *</label>
                   <select
                     value={criterion.isCustom ? "Other" : criterion.name || ""}
@@ -334,8 +464,8 @@ const CriteriaDefinition: React.FC = () => {
                   )}
                 </div>
 
-                {/* Description */}
-                <div className="col-span-12 md:col-span-3">
+                {/* Description - Full width on its own row on mobile */}
+                <div className="col-span-12 md:col-span-8">
                   <label className="label">Description</label>
                   <input
                     type="text"
@@ -343,27 +473,51 @@ const CriteriaDefinition: React.FC = () => {
                     onChange={(e) =>
                       updateCriterion(index, { description: e.target.value })
                     }
-                    placeholder="e.g., Antenna gain"
+                    placeholder="e.g., Antenna gain in dBi, important for signal strength"
                     className="input-field"
                   />
                 </div>
 
-                {/* Weight */}
+                {/* Weight with Slider */}
                 <div className="col-span-6 md:col-span-2">
                   <label className="label">Weight *</label>
-                  <input
-                    type="number"
-                    min="1"
-                    max="10"
-                    value={criterion.weight}
-                    onChange={(e) =>
-                      updateCriterion(index, {
-                        weight: parseInt(e.target.value) || 0,
-                      })
-                    }
-                    className="input-field"
-                    required
-                  />
+                  <div className="flex items-center gap-3">
+                    <input
+                      type="range"
+                      min="1"
+                      max="10"
+                      value={criterion.weight}
+                      onChange={(e) =>
+                        updateCriterion(index, {
+                          weight: parseInt(e.target.value) || 0,
+                        })
+                      }
+                      className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
+                      style={{
+                        background: `linear-gradient(to right, #10b981 0%, #10b981 ${
+                          ((criterion.weight - 1) / 9) * 100
+                        }%, #e5e7eb ${
+                          ((criterion.weight - 1) / 9) * 100
+                        }%, #e5e7eb 100%)`,
+                      }}
+                    />
+                    <input
+                      type="number"
+                      min="1"
+                      max="10"
+                      value={criterion.weight}
+                      onChange={(e) =>
+                        updateCriterion(index, {
+                          weight: parseInt(e.target.value) || 0,
+                        })
+                      }
+                      className="w-16 input-field text-center"
+                      required
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Higher weight = more important
+                  </p>
                 </div>
 
                 {/* Unit */}
@@ -381,7 +535,7 @@ const CriteriaDefinition: React.FC = () => {
                 </div>
 
                 {/* Higher is Better */}
-                <div className="col-span-8 md:col-span-2 flex items-end">
+                <div className="col-span-12 md:col-span-3 flex items-end">
                   <label className="flex items-center cursor-pointer">
                     <input
                       type="checkbox"
@@ -393,18 +547,18 @@ const CriteriaDefinition: React.FC = () => {
                       }
                       className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
                     />
-                    <span className="ml-2 text-sm text-gray-700">
+                    <span className="ml-2 text-sm text-gray-700 whitespace-nowrap">
                       Higher is better
                     </span>
                   </label>
                 </div>
 
                 {/* Remove Button */}
-                <div className="col-span-4 flex items-end justify-end">
+                <div className="col-span-12 md:col-span-1 flex items-end justify-end">
                   {criteria.length > 1 && (
                     <button
                       onClick={() => removeCriterion(index)}
-                      className="text-red-600 hover:text-red-700 font-semibold text-sm"
+                      className="text-red-600 hover:text-red-700 font-semibold text-sm whitespace-nowrap"
                     >
                       Remove
                     </button>
