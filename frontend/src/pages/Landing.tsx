@@ -175,10 +175,18 @@ const Landing: React.FC = () => {
       {/* Hero Section */}
       <section className="relative z-10 h-screen flex items-center justify-center">
         <div className="max-w-5xl mx-auto px-6 lg:px-8 text-center w-full -mt-28">
-          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight tracking-tight px-4">
-            Trade Studies{" "}
+          <h1
+            className="text-white mb-6 leading-tight tracking-tight px-4"
+            style={{
+              fontFamily: "AllianceNo2, sans-serif",
+              fontWeight: 800,
+              fontSize: "clamp(40px, 8vw, 68px)",
+              lineHeight: "1.04",
+            }}
+          >
+            Supply Chain{" "}
             <span className="underline decoration-2 sm:decoration-4 underline-offset-4 sm:underline-offset-8 decoration-white/80">
-              Simplified
+              Streamlined
             </span>
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl text-white/95 mb-10 max-w-3xl mx-auto leading-relaxed px-4">
@@ -214,7 +222,10 @@ const Landing: React.FC = () => {
             </div>
 
             {/* Email Form */}
-            <form onSubmit={handleJoinWaitlist} className="max-w-md mx-auto px-4">
+            <form
+              onSubmit={handleJoinWaitlist}
+              className="max-w-md mx-auto px-4"
+            >
               <div className="flex flex-col sm:flex-row gap-2.5 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg px-2 py-1.5">
                 <input
                   type="email"
