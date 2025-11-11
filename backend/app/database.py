@@ -6,14 +6,18 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# Database URL from environment variable
-DATABASE_URL = os.getenv(
-    "DATABASE_URL",
-    "postgresql://user:password@localhost:5432/tradeform"
-)
+# Database URL - force SQLite for local development
+DATABASE_URL = "sqlite:///./tradeform.db"
 
-# Create engine
-engine = create_engine(DATABASE_URL)
+# You can override with environment variable for production
+if os.getenv("DATABASE_URL") and not os.getenv("DATABASE_URL").startswith("postgres://"):
+    DATABASE_URL = os.getenv("DATABASE_URL")
+
+# Create engine (add connect_args for SQLite)
+if DATABASE_URL.startswith("sqlite"):
+    engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False})
+else:
+    engine = create_engine(DATABASE_URL)
 
 # Create SessionLocal class
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
