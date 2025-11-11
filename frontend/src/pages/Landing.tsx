@@ -134,20 +134,21 @@ const Landing: React.FC = () => {
           <div className="flex justify-between items-center h-16">
             <Logo textColor="white" />
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               <button
                 onClick={() => navigate("/features")}
-                className="text-[14px] text-white font-medium hover:text-white/80 transition-colors px-2 py-1 font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]"
+                className="text-xs sm:text-[14px] text-white font-medium hover:text-white/80 transition-colors px-2 py-1 font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]"
               >
                 Features
               </button>
               <button
                 onClick={() => window.open("https://calendly.com", "_blank")}
-                className="text-[14px] text-white font-medium px-5 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif] flex items-center gap-2"
+                className="text-xs sm:text-[14px] text-white font-medium px-3 sm:px-5 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif] flex items-center gap-1.5 sm:gap-2"
               >
-                Schedule Demo
+                <span className="hidden sm:inline">Schedule Demo</span>
+                <span className="sm:hidden">Demo</span>
                 <svg
-                  className="w-4 h-4"
+                  className="w-3.5 h-3.5 sm:w-4 sm:h-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -162,7 +163,7 @@ const Landing: React.FC = () => {
               </button>
               <button
                 onClick={() => navigate("/login")}
-                className="text-[14px] text-white font-medium px-5 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]"
+                className="text-xs sm:text-[14px] text-white font-medium px-3 sm:px-5 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]"
               >
                 Log In
               </button>
@@ -174,13 +175,13 @@ const Landing: React.FC = () => {
       {/* Hero Section */}
       <section className="relative z-10 h-screen flex items-center justify-center">
         <div className="max-w-5xl mx-auto px-6 lg:px-8 text-center w-full -mt-28">
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight tracking-tight">
+          <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight tracking-tight px-4">
             Trade Studies{" "}
-            <span className="underline decoration-4 underline-offset-8 decoration-white/80">
+            <span className="underline decoration-2 sm:decoration-4 underline-offset-4 sm:underline-offset-8 decoration-white/80">
               Simplified
             </span>
           </h1>
-          <p className="text-xl md:text-2xl text-white/95 mb-10 max-w-3xl mx-auto leading-relaxed">
+          <p className="text-lg sm:text-xl md:text-2xl text-white/95 mb-10 max-w-3xl mx-auto leading-relaxed px-4">
             <span className="font-bold">Automate</span> component evaluation and
             scoring.
             <br />
@@ -190,14 +191,14 @@ const Landing: React.FC = () => {
           {/* CTA Buttons and Email Form */}
           <div className="max-w-2xl mx-auto space-y-4">
             {/* Button */}
-            <div className="flex justify-center -mt-6 mb-4">
+            <div className="flex justify-center -mt-6 mb-4 px-4">
               <button
                 onClick={() => window.open("https://calendly.com", "_blank")}
-                className="text-base text-white font-bold px-8 py-3 rounded-lg bg-white/15 hover:bg-white/25 transition-all backdrop-blur-sm whitespace-nowrap font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif] flex items-center gap-2"
+                className="text-sm sm:text-base text-white font-bold px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg bg-white/15 hover:bg-white/25 transition-all backdrop-blur-sm whitespace-nowrap font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif] flex items-center gap-2"
               >
                 Schedule Demo
                 <svg
-                  className="w-5 h-5"
+                  className="w-4 h-4 sm:w-5 sm:h-5"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -213,26 +214,26 @@ const Landing: React.FC = () => {
             </div>
 
             {/* Email Form */}
-            <form onSubmit={handleJoinWaitlist} className="max-w-md mx-auto">
-              <div className="flex gap-2.5 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg px-2 py-1.5">
+            <form onSubmit={handleJoinWaitlist} className="max-w-md mx-auto px-4">
+              <div className="flex flex-col sm:flex-row gap-2.5 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg px-2 py-1.5">
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
-                  className="flex-1 px-4 py-2.5 rounded-lg border-0 focus:ring-0 outline-none text-gray-900 placeholder-gray-500 bg-transparent"
+                  className="flex-1 px-4 py-2.5 rounded-lg border-0 focus:ring-0 outline-none text-gray-900 placeholder-gray-500 bg-transparent text-sm sm:text-base"
                   required
                 />
                 <button
                   type="submit"
-                  className="bg-black hover:bg-black/90 text-white px-9 py-2.5 rounded-lg font-semibold transition-colors whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="bg-black hover:bg-black/90 text-white px-6 sm:px-9 py-2.5 rounded-lg font-semibold transition-colors whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed text-sm sm:text-base"
                   disabled={isSubmitting}
                 >
                   Join Waitlist
                 </button>
               </div>
               {submissionMessage && (
-                <p className="mt-3 text-sm text-white/80">
+                <p className="mt-3 text-sm text-white/80 text-center">
                   {submissionMessage}
                 </p>
               )}

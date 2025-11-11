@@ -13,26 +13,27 @@ const Pricing: React.FC = () => {
           <div className="flex justify-between items-center h-16">
             <Logo />
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               <button
                 onClick={() => navigate("/features")}
-                className="text-sm text-gray-700 hover:text-gray-900 transition-colors px-2 py-1"
+                className="text-xs sm:text-sm text-gray-700 hover:text-gray-900 transition-colors px-2 py-1"
               >
                 Features
               </button>
               <button
                 onClick={() => navigate("/login")}
-                className="text-sm text-gray-700 hover:text-gray-900 font-medium px-5 py-2 rounded-lg border border-gray-300 hover:border-gray-400 bg-white hover:bg-gray-50 transition-all shadow-sm hover:shadow-md"
+                className="text-xs sm:text-sm text-gray-700 hover:text-gray-900 font-medium px-3 sm:px-5 py-2 rounded-lg border border-gray-300 hover:border-gray-400 bg-white hover:bg-gray-50 transition-all shadow-sm hover:shadow-md"
               >
                 Log In
               </button>
               <button
                 onClick={() => window.open("https://calendly.com", "_blank")}
-                className="text-sm text-gray-700 hover:text-gray-900 font-medium px-5 py-2 rounded-lg border border-gray-300 hover:border-gray-400 bg-white hover:bg-gray-50 transition-all shadow-sm hover:shadow-md flex items-center gap-2"
+                className="text-xs sm:text-sm text-gray-700 hover:text-gray-900 font-medium px-3 sm:px-5 py-2 rounded-lg border border-gray-300 hover:border-gray-400 bg-white hover:bg-gray-50 transition-all shadow-sm hover:shadow-md flex items-center gap-1.5 sm:gap-2"
               >
-                Schedule Demo
+                <span className="hidden sm:inline">Schedule Demo</span>
+                <span className="sm:hidden">Demo</span>
                 <svg
-                  className="w-4 h-4"
+                  className="w-3.5 h-3.5 sm:w-4 sm:h-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"

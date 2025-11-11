@@ -13,20 +13,21 @@ const Features: React.FC = () => {
           <div className="flex justify-between items-center h-16">
             <Logo />
 
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4">
               <button
                 onClick={() => navigate("/features")}
-                className="text-sm text-gray-700 hover:text-gray-900 transition-colors px-2 py-1 font-medium"
+                className="text-xs sm:text-sm text-gray-700 hover:text-gray-900 transition-colors px-2 py-1 font-medium"
               >
                 Features
               </button>
               <button
                 onClick={() => window.open("https://calendly.com", "_blank")}
-                className="text-sm text-gray-700 hover:text-gray-900 font-medium px-5 py-2 rounded-lg border border-gray-300 hover:border-gray-400 bg-white hover:bg-gray-50 transition-all shadow-sm hover:shadow-md flex items-center gap-2"
+                className="text-xs sm:text-sm text-gray-700 hover:text-gray-900 font-medium px-3 sm:px-5 py-2 rounded-lg border border-gray-300 hover:border-gray-400 bg-white hover:bg-gray-50 transition-all shadow-sm hover:shadow-md flex items-center gap-1.5 sm:gap-2"
               >
-                Schedule Demo
+                <span className="hidden sm:inline">Schedule Demo</span>
+                <span className="sm:hidden">Demo</span>
                 <svg
-                  className="w-4 h-4"
+                  className="w-3.5 h-3.5 sm:w-4 sm:h-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -41,7 +42,7 @@ const Features: React.FC = () => {
               </button>
               <button
                 onClick={() => navigate("/login")}
-                className="text-sm text-gray-700 hover:text-gray-900 font-medium px-5 py-2 rounded-lg border border-gray-300 hover:border-gray-400 bg-white hover:bg-gray-50 transition-all shadow-sm hover:shadow-md"
+                className="text-xs sm:text-sm text-gray-700 hover:text-gray-900 font-medium px-3 sm:px-5 py-2 rounded-lg border border-gray-300 hover:border-gray-400 bg-white hover:bg-gray-50 transition-all shadow-sm hover:shadow-md"
               >
                 Log In
               </button>
@@ -70,11 +71,11 @@ const Features: React.FC = () => {
                 </span>
                 Automated Scoring
               </h3>
-              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-12">
-                <li className="whitespace-nowrap">Score and rank components against weighted criteria</li>
-                <li className="whitespace-nowrap">Adjust weights in real-time, see instant ranking updates</li>
-                <li className="whitespace-nowrap">Multi-dimensional evaluation across performance, cost, reliability</li>
-                <li className="whitespace-nowrap">Objective, data-backed decision support</li>
+              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-4 sm:ml-12">
+                <li>Score and rank components against weighted criteria</li>
+                <li>Adjust weights in real-time, see instant ranking updates</li>
+                <li>Multi-dimensional evaluation across performance, cost, reliability</li>
+                <li>Objective, data-backed decision support</li>
               </ul>
             </div>
 
@@ -85,11 +86,11 @@ const Features: React.FC = () => {
                 </span>
                 Fast Results
               </h3>
-              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-12">
-                <li className="whitespace-nowrap">Complete trade studies in minutes instead of weeks</li>
-                <li className="whitespace-nowrap">Parallel AI-assisted component discovery</li>
-                <li className="whitespace-nowrap">Automated technical specification gathering</li>
-                <li className="whitespace-nowrap">Simultaneous scoring across all alternatives</li>
+              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-4 sm:ml-12">
+                <li>Complete trade studies in minutes instead of weeks</li>
+                <li>Parallel AI-assisted component discovery</li>
+                <li>Automated technical specification gathering</li>
+                <li>Simultaneous scoring across all alternatives</li>
               </ul>
             </div>
 
@@ -100,11 +101,11 @@ const Features: React.FC = () => {
                 </span>
                 Reports & Exports
               </h3>
-              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-12">
-                <li className="whitespace-nowrap">Presentation-ready reports with professional charts</li>
-                <li className="whitespace-nowrap">Sensitivity analysis and trade-off visualizations</li>
-                <li className="whitespace-nowrap">CSV/Excel export for further processing</li>
-                <li className="whitespace-nowrap">Tornado diagrams, spider charts, comparison matrices</li>
+              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-4 sm:ml-12">
+                <li>Presentation-ready reports with professional charts</li>
+                <li>Sensitivity analysis and trade-off visualizations</li>
+                <li>CSV/Excel export for further processing</li>
+                <li>Tornado diagrams, spider charts, comparison matrices</li>
               </ul>
             </div>
 
@@ -115,11 +116,11 @@ const Features: React.FC = () => {
                 </span>
                 Custom Criteria
               </h3>
-              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-12">
-                <li className="whitespace-nowrap">Define bespoke criteria tailored to your decisions</li>
-                <li className="whitespace-nowrap">Templates for common trade study types</li>
-                <li className="whitespace-nowrap">Custom scoring rubrics and thresholds</li>
-                <li className="whitespace-nowrap">Support for quantitative and qualitative assessments</li>
+              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-4 sm:ml-12">
+                <li>Define bespoke criteria tailored to your decisions</li>
+                <li>Templates for common trade study types</li>
+                <li>Custom scoring rubrics and thresholds</li>
+                <li>Support for quantitative and qualitative assessments</li>
               </ul>
             </div>
 
@@ -130,11 +131,11 @@ const Features: React.FC = () => {
                 </span>
                 Version History
               </h3>
-              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-12">
-                <li className="whitespace-nowrap">Track every design iteration and decision point</li>
-                <li className="whitespace-nowrap">Compare alternatives side-by-side with visual diffs</li>
-                <li className="whitespace-nowrap">Roll back to previous versions or explore branches</li>
-                <li className="whitespace-nowrap">Essential for design reviews and compliance audits</li>
+              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-4 sm:ml-12">
+                <li>Track every design iteration and decision point</li>
+                <li>Compare alternatives side-by-side with visual diffs</li>
+                <li>Roll back to previous versions or explore branches</li>
+                <li>Essential for design reviews and compliance audits</li>
               </ul>
             </div>
 
@@ -145,11 +146,11 @@ const Features: React.FC = () => {
                 </span>
                 Team Collaboration
               </h3>
-              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-12">
-                <li className="whitespace-nowrap">Share studies with team members and stakeholders</li>
-                <li className="whitespace-nowrap">Comment inline on specific criteria or components</li>
-                <li className="whitespace-nowrap">Capture decision rationale and approval trails</li>
-                <li className="whitespace-nowrap">Track who changed what and when</li>
+              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-4 sm:ml-12">
+                <li>Share studies with team members and stakeholders</li>
+                <li>Comment inline on specific criteria or components</li>
+                <li>Capture decision rationale and approval trails</li>
+                <li>Track who changed what and when</li>
               </ul>
             </div>
           </div>
