@@ -78,9 +78,9 @@ const Login: React.FC = () => {
                   />
                   <span className="ml-2 text-gray-700">Remember me</span>
                 </label>
-                <a href="#" className="text-emerald-600 hover:text-emerald-700">
+                <button type="button" className="text-emerald-600 hover:text-emerald-700">
                   Forgot password?
-                </a>
+                </button>
               </div>
 
               <button type="submit" className="w-full btn-primary">
