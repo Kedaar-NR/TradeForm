@@ -33,6 +33,11 @@ class User(UserBase):
     class Config:
         from_attributes = True
 
+class AuthResponse(BaseModel):
+    access_token: str
+    token_type: str
+    user: User
+
 # Project Schemas
 class ProjectBase(BaseModel):
     name: str
@@ -136,3 +141,73 @@ class ComponentWithScores(Component):
     scores: List[Score] = []
     total_score: Optional[float] = None
     rank: Optional[int] = None
+
+# Version History Schemas
+class ProjectVersionBase(BaseModel):
+    description: Optional[str] = None
+
+class ProjectVersionCreate(ProjectVersionBase):
+    pass
+
+class ProjectVersion(ProjectVersionBase):
+    id: UUID
+    project_id: UUID
+    version_number: int
+    snapshot_data: Optional[str] = None
+    created_by: Optional[UUID] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+# Team Collaboration Schemas
+class ProjectShareBase(BaseModel):
+    shared_with_user_id: UUID
+    permission: str = "view"  # view, edit, admin
+
+class ProjectShareCreate(ProjectShareBase):
+    pass
+
+class ProjectShare(ProjectShareBase):
+    id: UUID
+    project_id: UUID
+    shared_by_user_id: UUID
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class ProjectCommentBase(BaseModel):
+    content: str
+    component_id: Optional[UUID] = None
+    criterion_id: Optional[UUID] = None
+
+class ProjectCommentCreate(ProjectCommentBase):
+    pass
+
+class ProjectComment(ProjectCommentBase):
+    id: UUID
+    project_id: UUID
+    user_id: UUID
+    created_at: datetime
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class ProjectChangeBase(BaseModel):
+    change_type: str
+    change_description: str
+    entity_type: Optional[str] = None
+    entity_id: Optional[UUID] = None
+    old_value: Optional[str] = None
+    new_value: Optional[str] = None
+
+class ProjectChange(ProjectChangeBase):
+    id: UUID
+    project_id: UUID
+    user_id: UUID
+    created_at: datetime
+
+    class Config:
+        from_attributes = True

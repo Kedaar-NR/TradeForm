@@ -101,3 +101,72 @@ class Score(Base):
     component = relationship("Component", back_populates="scores")
     criterion = relationship("Criterion", back_populates="scores")
     adjuster = relationship("User")
+
+# Version History Models
+class ProjectVersion(Base):
+    __tablename__ = "project_versions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False)
+    version_number = Column(Integer, nullable=False)
+    snapshot_data = Column(Text)  # JSON snapshot of project state
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    description = Column(Text)
+
+    # Relationships
+    project = relationship("Project")
+    creator = relationship("User")
+
+# Team Collaboration Models
+class ProjectShare(Base):
+    __tablename__ = "project_shares"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False)
+    shared_with_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    shared_by_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    permission = Column(String, default="view")  # view, edit, admin
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    project = relationship("Project")
+    shared_with = relationship("User", foreign_keys=[shared_with_user_id])
+    shared_by = relationship("User", foreign_keys=[shared_by_user_id])
+
+class ProjectComment(Base):
+    __tablename__ = "project_comments"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    content = Column(Text, nullable=False)
+    # Optional: reference to specific component or criterion
+    component_id = Column(UUID(as_uuid=True), ForeignKey("components.id"), nullable=True)
+    criterion_id = Column(UUID(as_uuid=True), ForeignKey("criteria.id"), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    project = relationship("Project")
+    user = relationship("User")
+    component = relationship("Component")
+    criterion = relationship("Criterion")
+
+class ProjectChange(Base):
+    __tablename__ = "project_changes"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    change_type = Column(String, nullable=False)  # criterion_added, component_added, weight_changed, etc.
+    change_description = Column(Text, nullable=False)
+    entity_type = Column(String)  # criterion, component, score
+    entity_id = Column(UUID(as_uuid=True))
+    old_value = Column(Text)
+    new_value = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    project = relationship("Project")
+    user = relationship("User")
