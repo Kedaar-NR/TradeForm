@@ -1115,3 +1115,153 @@ def list_changes(project_id: UUID, db: Session = Depends(get_db)):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+# ============================================================================
+# AI OPTIMIZATION ENDPOINTS
+# ============================================================================
+
+@app.post("/api/ai/optimize-project")
+async def optimize_project_with_ai(request: dict):
+    """Use AI to suggest component type and description for a project"""
+    import os
+    from anthropic import Anthropic
+
+    project_name = request.get("name", "")
+    if not project_name:
+        raise HTTPException(status_code=400, detail="Project name is required")
+
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not configured")
+
+    try:
+        client = Anthropic(api_key=api_key)
+
+        prompt = f"""You are an expert systems engineer helping to set up a trade study.
+
+Project Name: {project_name}
+
+Based on this project name, suggest:
+1. The most likely component type being evaluated (be specific, e.g., "GPS Antenna" not just "Antenna")
+2. A detailed description of what this trade study should evaluate (2-3 sentences)
+
+Respond in JSON format:
+{{
+    "component_type": "<specific component type>",
+    "description": "<detailed description>"
+}}"""
+
+        message = client.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=500,
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        import json
+        response_text = message.content[0].text.strip()
+
+        # Remove markdown code blocks if present
+        if response_text.startswith("```"):
+            response_text = response_text.split("```")[1]
+            if response_text.startswith("json"):
+                response_text = response_text[4:]
+            response_text = response_text.strip()
+
+        result = json.loads(response_text)
+
+        return {
+            "component_type": result.get("component_type", ""),
+            "description": result.get("description", "")
+        }
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI optimization failed: {str(e)}")
+
+@app.post("/api/ai/optimize-criteria/{project_id}")
+async def optimize_criteria_with_ai(project_id: UUID, db: Session = Depends(get_db)):
+    """Use AI to suggest relevant criteria for a project"""
+    import os
+    from anthropic import Anthropic
+
+    # Get project details
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY not configured")
+
+    try:
+        client = Anthropic(api_key=api_key)
+
+        prompt = f"""You are an expert systems engineer creating criteria for a trade study.
+
+Project: {project.name}
+Component Type: {project.component_type}
+Description: {project.description or 'Not provided'}
+
+Suggest 5-7 relevant evaluation criteria for this trade study. For each criterion provide:
+- name: Clear, specific criterion name
+- description: What this criterion measures
+- weight: Importance (1-10, where 10 is most important)
+- unit: Unit of measurement (if applicable, otherwise empty string)
+- higher_is_better: true if higher values are better, false otherwise
+
+Respond in JSON format:
+{{
+    "criteria": [
+        {{
+            "name": "...",
+            "description": "...",
+            "weight": 8,
+            "unit": "dB",
+            "higher_is_better": true
+        }},
+        ...
+    ]
+}}"""
+
+        message = client.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=1500,
+            messages=[{"role": "user", "content": prompt}]
+        )
+
+        import json
+        response_text = message.content[0].text.strip()
+
+        # Remove markdown code blocks if present
+        if response_text.startswith("```"):
+            response_text = response_text.split("```")[1]
+            if response_text.startswith("json"):
+                response_text = response_text[4:]
+            response_text = response_text.strip()
+
+        result = json.loads(response_text)
+
+        # Create criteria in database
+        created_criteria = []
+        for criterion_data in result.get("criteria", []):
+            db_criterion = models.Criterion(
+                project_id=project_id,
+                name=criterion_data.get("name", ""),
+                description=criterion_data.get("description", ""),
+                weight=criterion_data.get("weight", 5),
+                unit=criterion_data.get("unit", ""),
+                higher_is_better=criterion_data.get("higher_is_better", True)
+            )
+            db.add(db_criterion)
+            created_criteria.append(db_criterion)
+
+        db.commit()
+
+        return {
+            "status": "success",
+            "criteria_count": len(created_criteria),
+            "message": f"Created {len(created_criteria)} AI-suggested criteria"
+        }
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"AI optimization failed: {str(e)}")
