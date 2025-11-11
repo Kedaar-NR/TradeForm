@@ -13,6 +13,7 @@ const Landing: React.FC = () => {
   const [submissionMessage, setSubmissionMessage] = useState<string | null>(
     null
   );
+  const [hasScrolled, setHasScrolled] = useState(false);
 
   const videos = useMemo(
     () => [
@@ -72,6 +73,20 @@ const Landing: React.FC = () => {
   }, [useA, currentVideoIndex, videos]);
   // No source swapping inside the element anymore — handled by refs & .src
 
+  // Track scroll to show footer
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 0) {
+        setHasScrolled(true);
+      } else {
+        setHasScrolled(false);
+      }
+    };
+
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
   const handleJoinWaitlist = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || isSubmitting) return;
@@ -103,7 +118,7 @@ const Landing: React.FC = () => {
   };
 
   return (
-    <div className="h-screen overflow-hidden relative">
+    <div className="min-h-screen relative">
       {/* Full Page Video Background */}
       <div className="fixed inset-0 w-full h-full z-0 bg-black">
         <video
@@ -184,10 +199,7 @@ const Landing: React.FC = () => {
               lineHeight: "1.04",
             }}
           >
-            Supply Chain{" "}
-            <span className="underline decoration-2 sm:decoration-4 underline-offset-4 sm:underline-offset-8 decoration-white/80">
-              Streamlined
-            </span>
+            Trade Studies Simplified
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl text-white/95 mb-10 max-w-3xl mx-auto leading-relaxed px-4">
             <span className="font-bold">Automate</span> component evaluation and
@@ -252,6 +264,112 @@ const Landing: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Spacer to allow scrolling */}
+      <div className="h-screen"></div>
+
+      {/* Footer Section - Only shows after scroll */}
+      {hasScrolled && (
+        <footer className="fixed bottom-0 left-0 right-0 z-20 bg-black py-12 border-t border-gray-800">
+          <div className="max-w-7xl mx-auto px-6 lg:px-8">
+            <p className="text-center text-white text-base sm:text-lg md:text-xl font-medium mb-8 tracking-wide">
+              Trusted By R&D Departments at Major U.S. Companies
+            </p>
+            <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12 lg:gap-16">
+              {/* Company Logos */}
+              <img
+                src="/logos/lockheed-martin.png"
+                alt="Lockheed Martin"
+                className="h-10 md:h-12 opacity-70 hover:opacity-100 transition-opacity object-contain"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = "none";
+                  const fallback = target.nextElementSibling as HTMLElement;
+                  if (fallback) fallback.style.display = "block";
+                }}
+              />
+              <div className="text-white/60 text-xs md:text-sm font-semibold tracking-wider opacity-70 hover:opacity-100 transition-opacity hidden">
+                LOCKHEED MARTIN
+              </div>
+
+              <img
+                src="/logos/raytheon.png"
+                alt="Raytheon"
+                className="h-10 md:h-12 opacity-70 hover:opacity-100 transition-opacity object-contain"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = "none";
+                  const fallback = target.nextElementSibling as HTMLElement;
+                  if (fallback) fallback.style.display = "block";
+                }}
+              />
+              <div className="text-white/60 text-xs md:text-sm font-semibold tracking-wider opacity-70 hover:opacity-100 transition-opacity hidden">
+                RAYTHEON
+              </div>
+
+              <img
+                src="/logos/northrop-grumman.png"
+                alt="Northrop Grumman"
+                className="h-10 md:h-12 opacity-70 hover:opacity-100 transition-opacity object-contain"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = "none";
+                  const fallback = target.nextElementSibling as HTMLElement;
+                  if (fallback) fallback.style.display = "block";
+                }}
+              />
+              <div className="text-white/60 text-xs md:text-sm font-semibold tracking-wider opacity-70 hover:opacity-100 transition-opacity hidden">
+                NORTHROP GRUMMAN
+              </div>
+
+              <img
+                src="/logos/boeing.png"
+                alt="Boeing"
+                className="h-10 md:h-12 opacity-70 hover:opacity-100 transition-opacity object-contain"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = "none";
+                  const fallback = target.nextElementSibling as HTMLElement;
+                  if (fallback) fallback.style.display = "block";
+                }}
+              />
+              <div className="text-white/60 text-xs md:text-sm font-semibold tracking-wider opacity-70 hover:opacity-100 transition-opacity hidden">
+                BOEING
+              </div>
+
+              <img
+                src="/logos/general-dynamics.png"
+                alt="General Dynamics"
+                className="h-10 md:h-12 opacity-70 hover:opacity-100 transition-opacity object-contain"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = "none";
+                  const fallback = target.nextElementSibling as HTMLElement;
+                  if (fallback) fallback.style.display = "block";
+                }}
+              />
+              <div className="text-white/60 text-xs md:text-sm font-semibold tracking-wider opacity-70 hover:opacity-100 transition-opacity hidden">
+                GENERAL DYNAMICS
+              </div>
+
+              <img
+                src="/logos/l3harris.png"
+                alt="L3Harris"
+                className="h-10 md:h-12 opacity-70 hover:opacity-100 transition-opacity object-contain"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = "none";
+                  const fallback = target.nextElementSibling as HTMLElement;
+                  if (fallback) fallback.style.display = "block";
+                }}
+              />
+              <div className="text-white/60 text-xs md:text-sm font-semibold tracking-wider opacity-70 hover:opacity-100 transition-opacity hidden">
+                L3HARRIS
+              </div>
+            </div>
+          </div>
+        </footer>
+      )}
     </div>
   );
 };
