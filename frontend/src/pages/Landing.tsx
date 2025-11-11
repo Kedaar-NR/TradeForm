@@ -269,107 +269,110 @@ const Landing: React.FC = () => {
       <div className="h-screen"></div>
 
       {/* Footer Section - Only shows after scroll */}
-      {hasScrolled && (
-        <footer className="fixed bottom-0 left-0 right-0 z-20 bg-black py-12 border-t border-gray-800">
-          <div className="max-w-7xl mx-auto px-6 lg:px-8">
-            <p className="text-center text-white text-base sm:text-lg md:text-xl font-medium mb-8 tracking-wide">
-              Trusted By R&D Departments at Major U.S. Companies
-            </p>
-            <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12 lg:gap-16">
-              {/* Company Logos */}
-              <img
-                src="/logos/lockheed-martin.png"
-                alt="Lockheed Martin"
-                className="h-10 md:h-12 opacity-70 hover:opacity-100 transition-opacity object-contain"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = "none";
-                  const fallback = target.nextElementSibling as HTMLElement;
-                  if (fallback) fallback.style.display = "block";
-                }}
-              />
-              <div className="text-white/60 text-xs md:text-sm font-semibold tracking-wider opacity-70 hover:opacity-100 transition-opacity hidden">
-                LOCKHEED MARTIN
-              </div>
+      <footer
+        className={`fixed bottom-0 left-0 right-0 z-20 bg-black py-12 border-t border-gray-800 ${
+          hasScrolled ? "opacity-100" : "opacity-0 pointer-events-none"
+        }`}
+        style={{ transition: "none" }}
+      >
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <p className="text-center text-white text-base sm:text-lg md:text-xl font-medium mb-8 tracking-wide">
+            Trusted By R&D Departments at Major U.S. Companies
+          </p>
+          <div className="flex flex-wrap justify-center items-center gap-8 md:gap-12 lg:gap-16">
+            {/* Company Logos */}
+            <img
+              src="/logos/lockheed-martin.png"
+              alt="Lockheed Martin"
+              className="h-10 md:h-12 opacity-70 hover:opacity-100 transition-opacity object-contain"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = "none";
+                const fallback = target.nextElementSibling as HTMLElement;
+                if (fallback) fallback.style.display = "block";
+              }}
+            />
+            <div className="text-white/60 text-xs md:text-sm font-semibold tracking-wider opacity-70 hover:opacity-100 transition-opacity hidden">
+              LOCKHEED MARTIN
+            </div>
 
-              <img
-                src="/logos/raytheon.png"
-                alt="Raytheon"
-                className="h-10 md:h-12 opacity-70 hover:opacity-100 transition-opacity object-contain"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = "none";
-                  const fallback = target.nextElementSibling as HTMLElement;
-                  if (fallback) fallback.style.display = "block";
-                }}
-              />
-              <div className="text-white/60 text-xs md:text-sm font-semibold tracking-wider opacity-70 hover:opacity-100 transition-opacity hidden">
-                RAYTHEON
-              </div>
+            <img
+              src="/logos/raytheon.png"
+              alt="Raytheon"
+              className="h-10 md:h-12 opacity-70 hover:opacity-100 transition-opacity object-contain"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = "none";
+                const fallback = target.nextElementSibling as HTMLElement;
+                if (fallback) fallback.style.display = "block";
+              }}
+            />
+            <div className="text-white/60 text-xs md:text-sm font-semibold tracking-wider opacity-70 hover:opacity-100 transition-opacity hidden">
+              RAYTHEON
+            </div>
 
-              <img
-                src="/logos/northrop-grumman.png"
-                alt="Northrop Grumman"
-                className="h-10 md:h-12 opacity-70 hover:opacity-100 transition-opacity object-contain"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = "none";
-                  const fallback = target.nextElementSibling as HTMLElement;
-                  if (fallback) fallback.style.display = "block";
-                }}
-              />
-              <div className="text-white/60 text-xs md:text-sm font-semibold tracking-wider opacity-70 hover:opacity-100 transition-opacity hidden">
-                NORTHROP GRUMMAN
-              </div>
+            <img
+              src="/logos/northrop-grumman.png"
+              alt="Northrop Grumman"
+              className="h-10 md:h-12 opacity-70 hover:opacity-100 transition-opacity object-contain"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = "none";
+                const fallback = target.nextElementSibling as HTMLElement;
+                if (fallback) fallback.style.display = "block";
+              }}
+            />
+            <div className="text-white/60 text-xs md:text-sm font-semibold tracking-wider opacity-70 hover:opacity-100 transition-opacity hidden">
+              NORTHROP GRUMMAN
+            </div>
 
-              <img
-                src="/logos/boeing.png"
-                alt="Boeing"
-                className="h-10 md:h-12 opacity-70 hover:opacity-100 transition-opacity object-contain"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = "none";
-                  const fallback = target.nextElementSibling as HTMLElement;
-                  if (fallback) fallback.style.display = "block";
-                }}
-              />
-              <div className="text-white/60 text-xs md:text-sm font-semibold tracking-wider opacity-70 hover:opacity-100 transition-opacity hidden">
-                BOEING
-              </div>
+            <img
+              src="/logos/boeing.png"
+              alt="Boeing"
+              className="h-10 md:h-12 opacity-70 hover:opacity-100 transition-opacity object-contain"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = "none";
+                const fallback = target.nextElementSibling as HTMLElement;
+                if (fallback) fallback.style.display = "block";
+              }}
+            />
+            <div className="text-white/60 text-xs md:text-sm font-semibold tracking-wider opacity-70 hover:opacity-100 transition-opacity hidden">
+              BOEING
+            </div>
 
-              <img
-                src="/logos/general-dynamics.png"
-                alt="General Dynamics"
-                className="h-10 md:h-12 opacity-70 hover:opacity-100 transition-opacity object-contain"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = "none";
-                  const fallback = target.nextElementSibling as HTMLElement;
-                  if (fallback) fallback.style.display = "block";
-                }}
-              />
-              <div className="text-white/60 text-xs md:text-sm font-semibold tracking-wider opacity-70 hover:opacity-100 transition-opacity hidden">
-                GENERAL DYNAMICS
-              </div>
+            <img
+              src="/logos/general-dynamics.png"
+              alt="General Dynamics"
+              className="h-10 md:h-12 opacity-70 hover:opacity-100 transition-opacity object-contain"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = "none";
+                const fallback = target.nextElementSibling as HTMLElement;
+                if (fallback) fallback.style.display = "block";
+              }}
+            />
+            <div className="text-white/60 text-xs md:text-sm font-semibold tracking-wider opacity-70 hover:opacity-100 transition-opacity hidden">
+              GENERAL DYNAMICS
+            </div>
 
-              <img
-                src="/logos/l3harris.png"
-                alt="L3Harris"
-                className="h-10 md:h-12 opacity-70 hover:opacity-100 transition-opacity object-contain"
-                onError={(e) => {
-                  const target = e.target as HTMLImageElement;
-                  target.style.display = "none";
-                  const fallback = target.nextElementSibling as HTMLElement;
-                  if (fallback) fallback.style.display = "block";
-                }}
-              />
-              <div className="text-white/60 text-xs md:text-sm font-semibold tracking-wider opacity-70 hover:opacity-100 transition-opacity hidden">
-                L3HARRIS
-              </div>
+            <img
+              src="/logos/l3harris.png"
+              alt="L3Harris"
+              className="h-10 md:h-12 opacity-70 hover:opacity-100 transition-opacity object-contain"
+              onError={(e) => {
+                const target = e.target as HTMLImageElement;
+                target.style.display = "none";
+                const fallback = target.nextElementSibling as HTMLElement;
+                if (fallback) fallback.style.display = "block";
+              }}
+            />
+            <div className="text-white/60 text-xs md:text-sm font-semibold tracking-wider opacity-70 hover:opacity-100 transition-opacity hidden">
+              L3HARRIS
             </div>
           </div>
-        </footer>
-      )}
+        </div>
+      </footer>
     </div>
   );
 };
