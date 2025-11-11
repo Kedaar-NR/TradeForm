@@ -1,101 +1,270 @@
-import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { resultsApi, criteriaApi } from "../services/api";
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  RadarChart,
+  PolarGrid,
+  PolarAngleAxis,
+  PolarRadiusAxis,
+  Radar,
+} from "recharts";
 
 interface ComponentScore {
   id: string;
   manufacturer: string;
   partNumber: string;
-  criteria: Record<string, { score: number; rationale: string }>;
+  criteria: Record<
+    string,
+    { score: number; rationale: string; weight: number }
+  >;
   totalScore: number;
+  rank: number;
 }
 
 const Results: React.FC = () => {
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const navigate = useNavigate();
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { projectId } = useParams<{ projectId: string }>();
+  const [components, setComponents] = useState<ComponentScore[]>([]);
+  const [criteria, setCriteria] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [viewMode, setViewMode] = useState<"table" | "heatmap" | "charts">(
+    "table"
+  );
+  const [selectedComponent, setSelectedComponent] =
+    useState<ComponentScore | null>(null);
+  const [chartType, setChartType] = useState<"bar" | "spider" | "tornado">(
+    "bar"
+  );
 
-  const handleExport = () => {
-    // Create CSV content
-    const headers = ['Rank', 'Manufacturer', 'Part Number', ...Object.keys(components[0].criteria), 'Total Score'];
-    const rows = sortedComponents.map((comp, idx) => [
-      idx + 1,
+  const loadResults = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      setIsLoading(true);
+      const [resultsRes, criteriaRes] = await Promise.all([
+        resultsApi.getByProject(projectId),
+        criteriaApi.getByProject(projectId),
+      ]);
+
+      const resultsData = resultsRes.data;
+      const criteriaData = criteriaRes.data;
+
+      // Transform results to match our interface
+      const transformedComponents: ComponentScore[] = resultsData.results.map(
+        (result: any) => {
+          const critMap: Record<
+            string,
+            { score: number; rationale: string; weight: number }
+          > = {};
+
+          criteriaData.forEach((criterion: any) => {
+            const score = result.scores.find(
+              (s: any) => s.criterion_id === criterion.id
+            );
+            critMap[criterion.name] = {
+              score: score?.score || 0,
+              rationale: score?.rationale || "No score available",
+              weight: criterion.weight,
+            };
+          });
+
+          return {
+            id: result.component.id,
+            manufacturer: result.component.manufacturer,
+            partNumber: result.component.part_number,
+            criteria: critMap,
+            totalScore: result.total_score,
+            rank: result.rank,
+          };
+        }
+      );
+
+      setComponents(transformedComponents);
+      setCriteria(criteriaData);
+    } catch (error) {
+      console.error("Failed to load results:", error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    if (projectId) {
+      loadResults();
+    }
+  }, [projectId, loadResults]);
+
+  const handleExportCSV = () => {
+    if (!components.length) return;
+
+    const headers = [
+      "Rank",
+      "Manufacturer",
+      "Part Number",
+      ...Object.keys(components[0].criteria),
+      "Total Score",
+    ];
+    const rows = components.map((comp) => [
+      comp.rank,
       comp.manufacturer,
       comp.partNumber,
-      ...Object.values(comp.criteria).map(c => c.score),
-      comp.totalScore.toFixed(1)
+      ...Object.values(comp.criteria).map((c) => c.score),
+      comp.totalScore.toFixed(2),
     ]);
 
     const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.join(','))
-    ].join('\n');
+      headers.join(","),
+      ...rows.map((row) => row.join(",")),
+    ].join("\n");
 
-    // Download CSV
-    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const blob = new Blob([csvContent], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
-    a.download = `trade-study-results-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `trade-study-results-${
+      new Date().toISOString().split("T")[0]
+    }.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   };
 
-  // Demo data
-  const [components] = useState<ComponentScore[]>([
-    {
-      id: '1',
-      manufacturer: 'Taoglas',
-      partNumber: 'FXP611',
-      criteria: {
-        'Gain': { score: 7, rationale: 'Gain of 5 dBi exceeds requirement' },
-        'Cost': { score: 8, rationale: 'Price of $15 is competitive' },
-        'Size': { score: 9, rationale: 'Compact 25mm form factor' },
-      },
-      totalScore: 7.8,
-    },
-    {
-      id: '2',
-      manufacturer: 'Abracon',
-      partNumber: 'APAMP60',
-      criteria: {
-        'Gain': { score: 9, rationale: 'Exceptional gain of 8 dBi' },
-        'Cost': { score: 6, rationale: 'Higher price at $22' },
-        'Size': { score: 7, rationale: 'Standard 30mm size' },
-      },
-      totalScore: 7.4,
-    },
-    {
-      id: '3',
-      manufacturer: 'Molex',
-      partNumber: '146255',
-      criteria: {
-        'Gain': { score: 6, rationale: 'Meets requirement at 4 dBi' },
-        'Cost': { score: 10, rationale: 'Best price at $12' },
-        'Size': { score: 8, rationale: 'Good 28mm size' },
-      },
-      totalScore: 7.9,
-    },
-  ]);
-
-  const [viewMode, setViewMode] = useState<'table' | 'heatmap'>('table');
-  const [selectedComponent, setSelectedComponent] = useState<ComponentScore | null>(null);
+  const handleExportFullExcel = async () => {
+    if (!projectId) return;
+    try {
+      const response = await resultsApi.exportFullExcel(projectId);
+      const blob = new Blob([response.data], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `TradeStudy_Full_${new Date().toISOString().split("T")[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error: any) {
+      console.error("Failed to export full trade study:", error);
+      alert(
+        `Failed to export: ${
+          error.response?.data?.detail || error.message
+        }`
+      );
+    }
+  };
 
   const getScoreColor = (score: number) => {
-    if (score >= 8) return 'bg-emerald-500';
-    if (score >= 6) return 'bg-yellow-500';
-    return 'bg-red-500';
+    if (score >= 8) return "#10b981"; // emerald-500
+    if (score >= 6) return "#eab308"; // yellow-500
+    return "#ef4444"; // red-500
   };
 
   const getScoreColorClass = (score: number) => {
-    if (score >= 8) return 'bg-emerald-100 text-emerald-700';
-    if (score >= 6) return 'bg-yellow-100 text-yellow-700';
-    return 'bg-red-100 text-red-700';
+    if (score >= 8) return "bg-emerald-100 text-emerald-700";
+    if (score >= 6) return "bg-yellow-100 text-yellow-700";
+    return "bg-red-100 text-red-700";
   };
 
-  const sortedComponents = [...components].sort((a, b) => b.totalScore - a.totalScore);
+  // Prepare data for charts
+  const barChartData = components.map((comp) => ({
+    name: `${comp.manufacturer} ${comp.partNumber}`,
+    ...Object.fromEntries(
+      Object.entries(comp.criteria).map(([key, val]) => [key, val.score])
+    ),
+    total: comp.totalScore,
+  }));
+
+  const spiderChartData = selectedComponent
+    ? [
+        {
+          criterion: "",
+          value: 0,
+          fullMark: 10,
+        },
+        ...Object.entries(selectedComponent.criteria).map(([name, data]) => ({
+          criterion: name,
+          value: data.score,
+          fullMark: 10,
+        })),
+      ]
+    : [];
+
+  // Sensitivity analysis - how changing weights affects rankings
+  const calculateSensitivity = (
+    criterionName: string,
+    weightChange: number
+  ) => {
+    if (!components.length || !criteria.length) return [];
+
+    const criterion = criteria.find((c) => c.name === criterionName);
+    if (!criterion) return [];
+
+    const newWeight = Math.max(
+      1,
+      Math.min(10, criterion.weight + weightChange)
+    );
+    const totalWeight = criteria.reduce(
+      (sum, c) => sum + (c.name === criterionName ? newWeight : c.weight),
+      0
+    );
+
+    return components
+      .map((comp) => {
+        let weightedSum = 0;
+        criteria.forEach((c) => {
+          const score = comp.criteria[c.name]?.score || 0;
+          const weight = c.name === criterionName ? newWeight : c.weight;
+          weightedSum += score * weight;
+        });
+        return {
+          component: comp.manufacturer + " " + comp.partNumber,
+          score: weightedSum / totalWeight,
+        };
+      })
+      .sort((a, b) => b.score - a.score);
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-gray-500">Loading results...</div>
+      </div>
+    );
+  }
+
+  if (!components.length) {
+    return (
+      <div className="max-w-6xl animate-fade-in">
+        <div className="card p-12 text-center">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            No results available
+          </h3>
+          <p className="text-sm text-gray-600 mb-6">
+            Add components and scores to see results
+          </p>
+          <button
+            onClick={() => navigate(`/project/${projectId}`)}
+            className="btn-primary"
+          >
+            Back to Project
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const sortedComponents = [...components].sort(
+    (a, b) => b.totalScore - a.totalScore
+  );
 
   return (
     <div className="max-w-6xl animate-fade-in">
@@ -112,105 +281,325 @@ const Results: React.FC = () => {
           </div>
           <div className="flex flex-wrap gap-2">
             <button
-              onClick={() => setViewMode('table')}
+              onClick={() => setViewMode("table")}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                viewMode === 'table'
-                  ? 'bg-emerald-500 text-white'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                viewMode === "table"
+                  ? "bg-emerald-500 text-white"
+                  : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
               }`}
             >
               Table
             </button>
             <button
-              onClick={() => setViewMode('heatmap')}
+              onClick={() => setViewMode("heatmap")}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                viewMode === 'heatmap'
-                  ? 'bg-emerald-500 text-white'
-                  : 'bg-white text-gray-700 border border-gray-300 hover:bg-gray-50'
+                viewMode === "heatmap"
+                  ? "bg-emerald-500 text-white"
+                  : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
               }`}
             >
               Heatmap
             </button>
-            <button onClick={handleExport} className="btn-primary">
-              Export Report
+            <button
+              onClick={() => setViewMode("charts")}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                viewMode === "charts"
+                  ? "bg-emerald-500 text-white"
+                  : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              Charts
+            </button>
+            <button
+              onClick={handleExportFullExcel}
+              className="btn-primary flex items-center gap-2"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Export Full Report (Excel)
+            </button>
+            <button
+              onClick={handleExportCSV}
+              className="btn-secondary"
+            >
+              Export CSV
             </button>
           </div>
         </div>
       </div>
 
       {/* Winner Card */}
-      <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6 mb-8">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <div className="text-xs font-medium text-emerald-700 mb-1">RECOMMENDED</div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-1">
-              {sortedComponents[0].manufacturer} {sortedComponents[0].partNumber}
-            </h3>
-            <p className="text-sm text-gray-600">
-              Weighted Score: <span className="font-semibold text-emerald-700">{sortedComponents[0].totalScore.toFixed(1)}/10</span>
-            </p>
+      {sortedComponents.length > 0 && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6 mb-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <div className="text-xs font-medium text-emerald-700 mb-1">
+                RECOMMENDED
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 mb-1">
+                {sortedComponents[0].manufacturer}{" "}
+                {sortedComponents[0].partNumber}
+              </h3>
+              <p className="text-sm text-gray-600">
+                Weighted Score:{" "}
+                <span className="font-semibold text-emerald-700">
+                  {sortedComponents[0].totalScore.toFixed(2)}/10
+                </span>
+              </p>
+            </div>
+            <button
+              onClick={() => setSelectedComponent(sortedComponents[0])}
+              className="btn-secondary whitespace-nowrap"
+            >
+              View Details
+            </button>
           </div>
-          <button
-            onClick={() => setSelectedComponent(sortedComponents[0])}
-            className="btn-secondary whitespace-nowrap"
-          >
-            View Details
-          </button>
         </div>
-      </div>
+      )}
+
+      {/* Charts View */}
+      {viewMode === "charts" && (
+        <div className="space-y-6">
+          {/* Chart Type Selector */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => setChartType("bar")}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                chartType === "bar"
+                  ? "bg-emerald-500 text-white"
+                  : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              Bar Chart
+            </button>
+            <button
+              onClick={() => setChartType("spider")}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                chartType === "spider"
+                  ? "bg-emerald-500 text-white"
+                  : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              Spider Chart
+            </button>
+            <button
+              onClick={() => setChartType("tornado")}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                chartType === "tornado"
+                  ? "bg-emerald-500 text-white"
+                  : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
+              }`}
+            >
+              Sensitivity Analysis
+            </button>
+          </div>
+
+          {/* Bar Chart */}
+          {chartType === "bar" && (
+            <div className="card p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Component Scores Comparison
+              </h3>
+              <ResponsiveContainer width="100%" height={400}>
+                <BarChart data={barChartData}>
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis
+                    dataKey="name"
+                    angle={-45}
+                    textAnchor="end"
+                    height={100}
+                    interval={0}
+                  />
+                  <YAxis />
+                  <Tooltip />
+                  <Legend />
+                  {criteria.map((criterion, idx) => (
+                    <Bar
+                      key={criterion.id}
+                      dataKey={criterion.name}
+                      fill={getScoreColor(8)}
+                      opacity={0.8}
+                    />
+                  ))}
+                  <Bar dataKey="total" fill="#10b981" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+
+          {/* Spider Chart */}
+          {chartType === "spider" && selectedComponent && (
+            <div className="card p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                {selectedComponent.manufacturer} {selectedComponent.partNumber}{" "}
+                - Performance Profile
+              </h3>
+              <ResponsiveContainer width="100%" height={400}>
+                <RadarChart data={spiderChartData}>
+                  <PolarGrid />
+                  {/* @ts-ignore - recharts compatibility issue with React 19 */}
+                  <PolarAngleAxis dataKey="criterion" />
+                  {/* @ts-ignore - recharts compatibility issue with React 19 */}
+                  <PolarRadiusAxis angle={90} domain={[0, 10]} />
+                  <Radar
+                    name="Score"
+                    dataKey="value"
+                    stroke="#10b981"
+                    fill="#10b981"
+                    fillOpacity={0.6}
+                  />
+                  <Tooltip />
+                </RadarChart>
+              </ResponsiveContainer>
+              {!selectedComponent && (
+                <p className="text-center text-gray-500 mt-4">
+                  Select a component from the table to view its spider chart
+                </p>
+              )}
+            </div>
+          )}
+
+          {/* Sensitivity Analysis (Tornado) */}
+          {chartType === "tornado" && criteria.length > 0 && (
+            <div className="card p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Sensitivity Analysis
+              </h3>
+              <p className="text-sm text-gray-600 mb-4">
+                See how changing criterion weights affects component rankings
+              </p>
+              <div className="space-y-4">
+                {criteria.map((criterion) => {
+                  const sensitivityPlus = calculateSensitivity(
+                    criterion.name,
+                    2
+                  );
+                  const sensitivityMinus = calculateSensitivity(
+                    criterion.name,
+                    -2
+                  );
+                  return (
+                    <div
+                      key={criterion.id}
+                      className="border border-gray-200 rounded-lg p-4"
+                    >
+                      <h4 className="font-semibold text-gray-900 mb-3">
+                        {criterion.name} Weight Sensitivity
+                      </h4>
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-xs text-gray-600 mb-2">
+                            Weight -2 (Lower Priority)
+                          </p>
+                          <div className="space-y-1">
+                            {sensitivityMinus.slice(0, 3).map((item, idx) => (
+                              <div key={idx} className="text-xs">
+                                {idx + 1}. {item.component} (
+                                {item.score.toFixed(2)})
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-600 mb-2">
+                            Weight +2 (Higher Priority)
+                          </p>
+                          <div className="space-y-1">
+                            {sensitivityPlus.slice(0, 3).map((item, idx) => (
+                              <div key={idx} className="text-xs">
+                                {idx + 1}. {item.component} (
+                                {item.score.toFixed(2)})
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Results Table */}
-      {viewMode === 'table' && (
+      {viewMode === "table" && (
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-5 py-3 text-left font-semibold text-gray-700 text-sm">Rank</th>
-                  <th className="px-5 py-3 text-left font-semibold text-gray-700 text-sm">Component</th>
-                  <th className="px-5 py-3 text-center font-semibold text-gray-700 text-sm">Gain</th>
-                  <th className="px-5 py-3 text-center font-semibold text-gray-700 text-sm">Cost</th>
-                  <th className="px-5 py-3 text-center font-semibold text-gray-700 text-sm">Size</th>
-                  <th className="px-5 py-3 text-center font-semibold text-gray-700 text-sm">Score</th>
+                  <th className="px-5 py-3 text-left font-semibold text-gray-700 text-sm">
+                    Rank
+                  </th>
+                  <th className="px-5 py-3 text-left font-semibold text-gray-700 text-sm">
+                    Component
+                  </th>
+                  {criteria.map((criterion) => (
+                    <th
+                      key={criterion.id}
+                      className="px-5 py-3 text-center font-semibold text-gray-700 text-sm"
+                    >
+                      {criterion.name} (W:{criterion.weight})
+                    </th>
+                  ))}
+                  <th className="px-5 py-3 text-center font-semibold text-gray-700 text-sm">
+                    Total Score
+                  </th>
                   <th className="px-5 py-3 text-center font-semibold text-gray-700 text-sm"></th>
                 </tr>
               </thead>
               <tbody>
-                {sortedComponents.map((component, index) => (
+                {sortedComponents.map((component) => (
                   <tr
                     key={component.id}
-                    className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
+                    className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
+                    onClick={() => setSelectedComponent(component)}
                   >
                     <td className="px-5 py-4">
-                      <span className="font-semibold text-sm text-gray-500">#{index + 1}</span>
+                      <span className="font-semibold text-sm text-gray-500">
+                        #{component.rank}
+                      </span>
                     </td>
                     <td className="px-5 py-4">
-                      <div className="font-semibold text-gray-900 text-sm">{component.manufacturer}</div>
-                      <div className="text-xs text-gray-600">{component.partNumber}</div>
+                      <div className="font-semibold text-gray-900 text-sm">
+                        {component.manufacturer}
+                      </div>
+                      <div className="text-xs text-gray-600">
+                        {component.partNumber}
+                      </div>
                     </td>
-                    <td className="px-5 py-4 text-center">
-                      <span className={`px-2 py-1 rounded-md text-xs font-medium ${getScoreColorClass(component.criteria['Gain'].score)}`}>
-                        {component.criteria['Gain'].score}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-center">
-                      <span className={`px-2 py-1 rounded-md text-xs font-medium ${getScoreColorClass(component.criteria['Cost'].score)}`}>
-                        {component.criteria['Cost'].score}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-center">
-                      <span className={`px-2 py-1 rounded-md text-xs font-medium ${getScoreColorClass(component.criteria['Size'].score)}`}>
-                        {component.criteria['Size'].score}
-                      </span>
-                    </td>
+                    {criteria.map((criterion) => {
+                      const score =
+                        component.criteria[criterion.name]?.score || 0;
+                      return (
+                        <td
+                          key={criterion.id}
+                          className="px-5 py-4 text-center"
+                        >
+                          <span
+                            className={`px-2 py-1 rounded-md text-xs font-medium ${getScoreColorClass(
+                              score
+                            )}`}
+                          >
+                            {score}
+                          </span>
+                        </td>
+                      );
+                    })}
                     <td className="px-5 py-4 text-center">
                       <span className="font-bold text-emerald-700">
-                        {component.totalScore.toFixed(1)}
+                        {component.totalScore.toFixed(2)}
                       </span>
                     </td>
                     <td className="px-5 py-4 text-center">
                       <button
-                        onClick={() => setSelectedComponent(component)}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedComponent(component);
+                        }}
                         className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
                       >
                         Details
@@ -225,34 +614,43 @@ const Results: React.FC = () => {
       )}
 
       {/* Heatmap View */}
-      {viewMode === 'heatmap' && (
+      {viewMode === "heatmap" && (
         <div className="space-y-4">
-          {sortedComponents.map((component, index) => (
+          {sortedComponents.map((component) => (
             <div key={component.id} className="card p-6">
               <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-5 gap-3">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="text-xs font-medium text-gray-500">#{index + 1}</span>
+                    <span className="text-xs font-medium text-gray-500">
+                      #{component.rank}
+                    </span>
                     <h3 className="text-lg font-semibold text-gray-900">
                       {component.manufacturer} {component.partNumber}
                     </h3>
                   </div>
                 </div>
                 <div className="text-xl font-bold text-emerald-700">
-                  {component.totalScore.toFixed(1)}/10
+                  {component.totalScore.toFixed(2)}/10
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 {Object.entries(component.criteria).map(([criterion, data]) => (
                   <div key={criterion} className="space-y-2">
                     <div className="flex justify-between text-xs">
-                      <span className="font-semibold text-gray-700">{criterion}</span>
-                      <span className="font-medium text-gray-600">{data.score}/10</span>
+                      <span className="font-semibold text-gray-700">
+                        {criterion}
+                      </span>
+                      <span className="font-medium text-gray-600">
+                        {data.score}/10
+                      </span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
-                        className={`h-2 rounded-full ${getScoreColor(data.score)} transition-all`}
-                        style={{ width: `${data.score * 10}%` }}
+                        className="h-2 rounded-full transition-all"
+                        style={{
+                          width: `${data.score * 10}%`,
+                          backgroundColor: getScoreColor(data.score),
+                        }}
                       />
                     </div>
                     <p className="text-xs text-gray-600">{data.rationale}</p>
@@ -271,24 +669,40 @@ const Results: React.FC = () => {
           onClick={() => setSelectedComponent(null)}
         >
           <div
-            className="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 animate-slide-up shadow-xl"
+            className="bg-white rounded-lg p-8 max-w-2xl w-full mx-4 animate-slide-up shadow-xl max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <h2 className="text-2xl font-bold text-gray-900 mb-6">
               {selectedComponent.manufacturer} {selectedComponent.partNumber}
             </h2>
             <div className="space-y-5">
-              {Object.entries(selectedComponent.criteria).map(([criterion, data]) => (
-                <div key={criterion} className="border-b border-gray-200 pb-5 last:border-b-0">
-                  <div className="flex justify-between items-center mb-2">
-                    <h3 className="font-semibold text-gray-900">{criterion}</h3>
-                    <span className={`px-3 py-1 rounded-md text-xs font-medium ${getScoreColorClass(data.score)}`}>
-                      {data.score}/10
-                    </span>
+              {Object.entries(selectedComponent.criteria).map(
+                ([criterion, data]) => (
+                  <div
+                    key={criterion}
+                    className="border-b border-gray-200 pb-5 last:border-b-0"
+                  >
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="font-semibold text-gray-900">
+                        {criterion}
+                      </h3>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs text-gray-500">
+                          Weight: {data.weight}
+                        </span>
+                        <span
+                          className={`px-3 py-1 rounded-md text-xs font-medium ${getScoreColorClass(
+                            data.score
+                          )}`}
+                        >
+                          {data.score}/10
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-600">{data.rationale}</p>
                   </div>
-                  <p className="text-sm text-gray-600">{data.rationale}</p>
-                </div>
-              ))}
+                )
+              )}
             </div>
             <button
               onClick={() => setSelectedComponent(null)}
