@@ -73,8 +73,13 @@ const Features: React.FC = () => {
               </h3>
               <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-4 sm:ml-12">
                 <li>Score and rank components against weighted criteria</li>
-                <li>Adjust weights in real-time, see instant ranking updates</li>
-                <li>Multi-dimensional evaluation across performance, cost, reliability</li>
+                <li>
+                  Adjust weights in real-time, see instant ranking updates
+                </li>
+                <li>
+                  Multi-dimensional evaluation across performance, cost,
+                  reliability
+                </li>
                 <li>Objective, data-backed decision support</li>
               </ul>
             </div>
