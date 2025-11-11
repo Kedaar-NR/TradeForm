@@ -2,6 +2,37 @@
 @tailwind components;
 @tailwind utilities;
 
+/* AllianceNo2 Font */
+@font-face {
+  font-family: 'AllianceNo2';
+  src: local('AllianceNo2-Regular'),
+       local('AllianceNo2'),
+       local('Alliance No.2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'AllianceNo2';
+  src: local('AllianceNo2-Bold'),
+       local('AllianceNo2 Bold'),
+       local('Alliance No.2 Bold');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'AllianceNo2';
+  src: local('AllianceNo2-ExtraBold'),
+       local('AllianceNo2 ExtraBold'),
+       local('Alliance No.2 ExtraBold');
+  font-weight: 800;
+  font-style: normal;
+  font-display: swap;
+}
+
 @layer base {
   body {
     @apply text-gray-900;
