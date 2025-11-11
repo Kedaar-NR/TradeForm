@@ -10,7 +10,9 @@ interface ComponentScore {
 }
 
 const Results: React.FC = () => {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const navigate = useNavigate();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const { projectId } = useParams<{ projectId: string }>();
 
   const handleExport = () => {

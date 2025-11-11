@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { Project, Criterion, Component, Score, ProjectWithDetails } from '../types';
+import { Project, ProjectWithDetails } from '../types';
 
 interface AppState {
   // Current project

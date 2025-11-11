@@ -99,13 +99,13 @@ const Signup: React.FC = () => {
                 />
                 <label className="ml-2 text-sm text-gray-600">
                   I agree to the{' '}
-                  <a href="#" className="text-emerald-600 hover:text-emerald-700">
+                  <button type="button" className="text-emerald-600 hover:text-emerald-700">
                     Terms of Service
-                  </a>{' '}
+                  </button>{' '}
                   and{' '}
-                  <a href="#" className="text-emerald-600 hover:text-emerald-700">
+                  <button type="button" className="text-emerald-600 hover:text-emerald-700">
                     Privacy Policy
-                  </a>
+                  </button>
                 </label>
               </div>
 
