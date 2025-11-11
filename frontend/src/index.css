@@ -2,6 +2,35 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Freight Big Pro Font - SalesPatriot.com font */
+@font-face {
+  font-family: 'Freight Big Pro';
+  src: local('Freight Big Pro'),
+       local('FreightBigPro-Regular'),
+       local('FreightBigPro');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Freight Big Pro';
+  src: local('Freight Big Pro Bold'),
+       local('FreightBigPro-Bold');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Freight Big Pro';
+  src: local('Freight Big Pro Black'),
+       local('FreightBigPro-Black');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* AllianceNo2 Font */
 @font-face {
   font-family: 'AllianceNo2';
