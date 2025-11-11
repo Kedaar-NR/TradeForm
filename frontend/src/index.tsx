@@ -1,32 +1,69 @@
-import React from 'react';
-import ReactDOM from 'react-dom/client';
-import './index.css';
-import App from './App';
-import reportWebVitals from './reportWebVitals';
+import React from "react";
+import ReactDOM from "react-dom/client";
+import "./index.css";
+import App from "./App";
+import reportWebVitals from "./reportWebVitals";
 
 // Suppress webpack HMR fetch errors (common with browser extensions)
-if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development') {
-  window.addEventListener('error', (event) => {
-    if (event.message?.includes('Failed to fetch') && 
-        (event.filename?.includes('bundle.js') || 
-         event.filename?.includes('sockjs-node'))) {
+if (typeof window !== "undefined") {
+  const isHMRFetchError = (error: any) => {
+    const message = error?.message || error?.toString() || "";
+    const stack = error?.stack || "";
+    const filename = error?.filename || "";
+
+    return (
+      (message.includes("Failed to fetch") ||
+        message.includes("NetworkError") ||
+        message.includes("Load failed")) &&
+      (filename.includes("bundle.js") ||
+        filename.includes("sockjs-node") ||
+        filename.includes("webpack-dev-server") ||
+        filename.includes("hot-update") ||
+        stack.includes("sockjs-node") ||
+        stack.includes("webpack-dev-server") ||
+        stack.includes("hot-update"))
+    );
+  };
+
+  // Catch all error events
+  window.addEventListener(
+    "error",
+    (event) => {
+      if (isHMRFetchError(event)) {
+        event.preventDefault();
+        event.stopPropagation();
+        return false;
+      }
+    },
+    true
+  );
+
+  // Catch all unhandled promise rejections
+  window.addEventListener("unhandledrejection", (event) => {
+    if (isHMRFetchError(event.reason)) {
       event.preventDefault();
-      console.warn('HMR connection issue suppressed (likely browser extension interference)');
-    }
-  }, true);
-  
-  window.addEventListener('unhandledrejection', (event) => {
-    if (event.reason?.message?.includes('Failed to fetch') && 
-        (event.reason?.stack?.includes('sockjs-node') || 
-         event.reason?.stack?.includes('webpack-dev-server'))) {
-      event.preventDefault();
-      console.warn('HMR connection issue suppressed (likely browser extension interference)');
+      return false;
     }
   });
+
+  // Override console.error to filter HMR errors
+  const originalConsoleError = console.error;
+  console.error = (...args: any[]) => {
+    const errorStr = args.join(" ");
+    if (
+      errorStr.includes("Failed to fetch") &&
+      (errorStr.includes("sockjs-node") ||
+        errorStr.includes("webpack-dev-server") ||
+        errorStr.includes("hot-update"))
+    ) {
+      return; // Suppress HMR fetch errors
+    }
+    originalConsoleError.apply(console, args);
+  };
 }
 
 const root = ReactDOM.createRoot(
-  document.getElementById('root') as HTMLElement
+  document.getElementById("root") as HTMLElement
 );
 root.render(
   <React.StrictMode>
