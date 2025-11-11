@@ -1,32 +1,40 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import React from "react";
+import { useNavigate } from "react-router-dom";
 
 interface LogoProps {
-  size?: 'sm' | 'md' | 'lg';
+  size?: "sm" | "md" | "lg";
   showText?: boolean;
   clickable?: boolean;
+  textColor?: "dark" | "white";
 }
 
-const Logo: React.FC<LogoProps> = ({ size = 'md', showText = true, clickable = true }) => {
+const Logo: React.FC<LogoProps> = ({
+  size = "md",
+  showText = true,
+  clickable = true,
+  textColor = "dark",
+}) => {
   const navigate = useNavigate();
 
   const sizes = {
-    sm: { icon: 'w-6 h-6', text: 'text-base' },
-    md: { icon: 'w-8 h-8', text: 'text-xl' },
-    lg: { icon: 'w-12 h-12', text: 'text-2xl' },
+    sm: { icon: "w-6 h-6", text: "text-base" },
+    md: { icon: "w-8 h-8", text: "text-xl" },
+    lg: { icon: "w-12 h-12", text: "text-2xl" },
   };
 
   const { icon, text } = sizes[size];
 
   const handleClick = () => {
     if (clickable) {
-      navigate('/');
+      navigate("/");
     }
   };
 
   return (
     <div
-      className={`flex items-center gap-2 ${clickable ? 'cursor-pointer hover:opacity-80 transition-opacity' : ''}`}
+      className={`flex items-center gap-2 ${
+        clickable ? "cursor-pointer hover:opacity-80 transition-opacity" : ""
+      }`}
       onClick={handleClick}
     >
       <svg
@@ -35,7 +43,7 @@ const Logo: React.FC<LogoProps> = ({ size = 'md', showText = true, clickable = t
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        <rect width="32" height="32" rx="6" fill="#10B981" />
+        <rect width="32" height="32" rx="6" fill="#000000" />
         <path
           d="M8 11H24M16 11V24M12 16H20"
           stroke="white"
@@ -44,7 +52,13 @@ const Logo: React.FC<LogoProps> = ({ size = 'md', showText = true, clickable = t
         />
       </svg>
       {showText && (
-        <span className={`${text} font-bold text-gray-900`}>TradeForm</span>
+        <span
+          className={`${text} font-bold ${
+            textColor === "white" ? "text-white" : "text-gray-900"
+          } font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]`}
+        >
+          TradeForm
+        </span>
       )}
     </div>
   );
