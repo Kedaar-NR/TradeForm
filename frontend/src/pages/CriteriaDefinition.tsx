@@ -1,42 +1,165 @@
-import React, { useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { Criterion } from '../types';
+import React, { useState, useEffect, useCallback } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Criterion } from "../types";
+import { criteriaApi } from "../services/api";
 
-interface CriterionForm extends Omit<Criterion, 'id' | 'projectId'> {
+interface CriterionForm extends Omit<Criterion, "id" | "projectId"> {
   id?: string;
+  isCustom?: boolean; // Track if using "Other" option
 }
+
+const COMMON_CRITERIA = [
+  "Cost",
+  "Gain",
+  "Size",
+  "Power Consumption",
+  "Frequency Range",
+  "Bandwidth",
+  "Efficiency",
+  "Temperature Range",
+  "Reliability",
+  "Availability",
+  "Weight",
+  "Voltage",
+  "Current",
+  "Impedance",
+  "Noise",
+  "Sensitivity",
+  "Other",
+];
 
 const CriteriaDefinition: React.FC = () => {
   const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
 
-  const [criteria, setCriteria] = useState<CriterionForm[]>([
-    {
-      name: 'Cost',
-      description: 'Total component cost',
-      weight: 10,
-      unit: 'USD',
-      higherIsBetter: false,
-    },
-  ]);
+  const [criteria, setCriteria] = useState<CriterionForm[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+
+  // Load existing criteria
+  useEffect(() => {
+    const loadCriteria = async () => {
+      if (!projectId) {
+        setIsLoading(false);
+        return;
+      }
+      try {
+        setIsLoading(true);
+        const response = await criteriaApi.getByProject(projectId);
+        const transformedCriteria = response.data.map((crit: any) => ({
+          name: crit.name,
+          description: crit.description,
+          weight: crit.weight,
+          unit: crit.unit,
+          higherIsBetter: crit.higher_is_better,
+          minimumRequirement: crit.minimum_requirement,
+          maximumRequirement: crit.maximum_requirement,
+          id: crit.id,
+          isCustom: false,
+        }));
+        if (transformedCriteria.length > 0) {
+          setCriteria(transformedCriteria);
+        } else {
+          // Default criterion if none exist
+          setCriteria([
+            {
+              name: "Cost",
+              description: "Total component cost",
+              weight: 10,
+              unit: "USD",
+              higherIsBetter: false,
+              isCustom: false,
+            },
+          ]);
+        }
+      } catch (error) {
+        console.error("Failed to load criteria:", error);
+        // Default criterion on error
+        setCriteria([
+          {
+            name: "Cost",
+            description: "Total component cost",
+            weight: 10,
+            unit: "USD",
+            higherIsBetter: false,
+            isCustom: false,
+          },
+        ]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadCriteria();
+  }, [projectId]);
 
   const addCriterion = () => {
     setCriteria([
       ...criteria,
       {
-        name: '',
-        description: '',
+        name: "",
+        description: "",
         weight: 5,
-        unit: '',
+        unit: "",
         higherIsBetter: true,
+        isCustom: false,
       },
     ]);
   };
+
+  const saveCriteria = useCallback(
+    async (criteriaToSave: CriterionForm[]) => {
+      if (!projectId || !criteriaToSave.length) return;
+
+      try {
+        setIsSaving(true);
+        // Get existing criteria to update/delete
+        const existingResponse = await criteriaApi.getByProject(projectId);
+        const existingCriteria = existingResponse.data;
+        const existingIds = new Set(existingCriteria.map((c: any) => c.id));
+
+        // Save/update each criterion
+        for (const criterion of criteriaToSave) {
+          const criterionData = {
+            name: criterion.name,
+            description: criterion.description || undefined,
+            weight: criterion.weight,
+            unit: criterion.unit || undefined,
+            higherIsBetter: criterion.higherIsBetter,
+            minimumRequirement: criterion.minimumRequirement || undefined,
+            maximumRequirement: criterion.maximumRequirement || undefined,
+          };
+
+          if (criterion.id && existingIds.has(criterion.id)) {
+            // Update existing
+            await criteriaApi.update(criterion.id, criterionData);
+          } else {
+            // Create new
+            await criteriaApi.create(projectId, criterionData);
+          }
+        }
+      } catch (error: any) {
+        console.error("Failed to save criteria:", error);
+      } finally {
+        setIsSaving(false);
+      }
+    },
+    [projectId]
+  );
 
   const updateCriterion = (index: number, updates: Partial<CriterionForm>) => {
     const newCriteria = [...criteria];
     newCriteria[index] = { ...newCriteria[index], ...updates };
     setCriteria(newCriteria);
+
+    // Auto-save after 1.5 seconds
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+    }
+    const timeout = setTimeout(() => {
+      saveCriteria(newCriteria);
+    }, 1500);
+    setSaveTimeout(timeout);
   };
 
   const removeCriterion = (index: number) => {
@@ -47,12 +170,51 @@ const CriteriaDefinition: React.FC = () => {
     return criteria.reduce((sum, c) => sum + (c.weight || 0), 0);
   };
 
-  const handleContinue = () => {
-    // Save criteria and navigate to component discovery
-    navigate(`/project/${projectId}/discovery`);
-  };
-
   const isFormValid = criteria.every((c) => c.name.trim() && c.weight > 0);
+
+  const handleContinue = useCallback(async () => {
+    // Clear any pending auto-save
+    if (saveTimeout) {
+      clearTimeout(saveTimeout);
+      setSaveTimeout(null);
+    }
+    // Save criteria before navigating
+    await saveCriteria(criteria);
+    navigate(`/project/${projectId}/discovery`);
+  }, [criteria, navigate, projectId, saveCriteria, saveTimeout]);
+
+  // Allow Enter key to continue when valid
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Enter" && isFormValid && !isSaving) {
+        e.preventDefault();
+        handleContinue();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [isFormValid, isSaving, handleContinue]);
+
+  // Save on navigation away
+  useEffect(() => {
+    return () => {
+      if (saveTimeout) {
+        clearTimeout(saveTimeout);
+      }
+      // Save any pending changes
+      if (criteria.length > 0) {
+        saveCriteria(criteria).catch(console.error);
+      }
+    };
+  }, [criteria, saveCriteria, saveTimeout]);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <div className="text-gray-500">Loading criteria...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-4xl animate-fade-in">
@@ -73,21 +235,27 @@ const CriteriaDefinition: React.FC = () => {
             <div className="w-8 h-8 bg-emerald-500 text-white rounded-lg flex items-center justify-center text-sm">
               ✓
             </div>
-            <span className="ml-2 text-sm font-medium text-gray-500">Setup</span>
+            <span className="ml-2 text-sm font-medium text-gray-500">
+              Setup
+            </span>
           </div>
           <div className="w-16 h-0.5 bg-emerald-500"></div>
           <div className="flex items-center">
             <div className="w-8 h-8 bg-emerald-500 text-white rounded-lg flex items-center justify-center font-semibold text-sm">
               2
             </div>
-            <span className="ml-2 text-sm font-medium text-gray-900">Criteria</span>
+            <span className="ml-2 text-sm font-medium text-gray-900">
+              Criteria
+            </span>
           </div>
           <div className="w-16 h-0.5 bg-gray-300"></div>
           <div className="flex items-center">
             <div className="w-8 h-8 bg-gray-200 text-gray-500 rounded-lg flex items-center justify-center font-semibold text-sm">
               3
             </div>
-            <span className="ml-2 text-sm font-medium text-gray-500">Components</span>
+            <span className="ml-2 text-sm font-medium text-gray-500">
+              Components
+            </span>
           </div>
         </div>
       </div>
@@ -107,7 +275,9 @@ const CriteriaDefinition: React.FC = () => {
           <div className="bg-white rounded-full h-2 overflow-hidden">
             <div
               className="h-full bg-emerald-500 transition-all duration-300"
-              style={{ width: `${Math.min((getTotalWeight() / 50) * 100, 100)}%` }}
+              style={{
+                width: `${Math.min((getTotalWeight() / 50) * 100, 100)}%`,
+              }}
             />
           </div>
         </div>
@@ -123,16 +293,45 @@ const CriteriaDefinition: React.FC = () => {
                 {/* Criterion Name */}
                 <div className="col-span-12 md:col-span-3">
                   <label className="label">Criterion Name *</label>
-                  <input
-                    type="text"
-                    value={criterion.name}
-                    onChange={(e) =>
-                      updateCriterion(index, { name: e.target.value })
-                    }
-                    placeholder="e.g., Gain"
+                  <select
+                    value={criterion.isCustom ? "Other" : criterion.name || ""}
+                    onChange={(e) => {
+                      const selectedValue = e.target.value;
+                      if (selectedValue === "Other") {
+                        updateCriterion(index, {
+                          name: "",
+                          isCustom: true,
+                        });
+                      } else {
+                        updateCriterion(index, {
+                          name: selectedValue,
+                          isCustom: false,
+                        });
+                      }
+                    }}
                     className="input-field"
                     required
-                  />
+                  >
+                    <option value="">Select a criterion...</option>
+                    {COMMON_CRITERIA.map((criterionName) => (
+                      <option key={criterionName} value={criterionName}>
+                        {criterionName}
+                      </option>
+                    ))}
+                  </select>
+                  {criterion.isCustom && (
+                    <input
+                      type="text"
+                      value={criterion.name}
+                      onChange={(e) =>
+                        updateCriterion(index, { name: e.target.value })
+                      }
+                      placeholder="Enter custom criterion name"
+                      className="input-field mt-2"
+                      autoFocus
+                      required
+                    />
+                  )}
                 </div>
 
                 {/* Description */}
@@ -226,31 +425,38 @@ const CriteriaDefinition: React.FC = () => {
 
         {/* Action Buttons */}
         <div className="flex justify-between items-center pt-6 mt-6 border-t border-gray-200">
-          <button
-            onClick={() => navigate('/')}
-            className="btn-secondary"
-          >
+          <button onClick={() => navigate("/")} className="btn-secondary">
             ← Back
           </button>
-          <button
-            onClick={handleContinue}
-            disabled={!isFormValid}
-            className={`btn-primary ${
-              !isFormValid && 'opacity-50 cursor-not-allowed'
-            }`}
-          >
-            Continue to Component Discovery →
-          </button>
+          <div className="flex items-center gap-3">
+            {isSaving && (
+              <span className="text-sm text-gray-500">Auto-saving...</span>
+            )}
+            <button
+              onClick={handleContinue}
+              disabled={!isFormValid || isSaving}
+              className={`btn-primary ${
+                (!isFormValid || isSaving) && "opacity-50 cursor-not-allowed"
+              }`}
+            >
+              {isSaving ? "Saving..." : "Continue to Component Discovery →"}
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Help Section */}
       <div className="mt-6 card p-6 bg-gray-50">
-        <h3 className="font-semibold text-gray-900 mb-2 text-sm">How Criteria Work</h3>
+        <h3 className="font-semibold text-gray-900 mb-2 text-sm">
+          How Criteria Work
+        </h3>
         <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
           <li>Each criterion represents an evaluation parameter</li>
           <li>Weights determine relative importance (1-10 scale)</li>
-          <li>Check "Higher is better" for criteria where bigger values are preferred</li>
+          <li>
+            Check "Higher is better" for criteria where bigger values are
+            preferred
+          </li>
         </ul>
       </div>
     </div>
