@@ -1,14 +1,42 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useStore } from '../store/useStore';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useStore } from "../store/useStore";
 
 // Common component types with suggested criteria
 const componentTypesSuggestions: Record<string, string[]> = {
-  'GPS Antenna': ['Frequency Range', 'Gain', 'VSWR', 'Size', 'Cost', 'Operating Temperature'],
-  'Microprocessor': ['Clock Speed', 'Power Consumption', 'Core Count', 'Price', 'Temperature Range', 'Memory'],
-  'Sensor': ['Accuracy', 'Range', 'Resolution', 'Response Time', 'Power', 'Cost'],
-  'Battery': ['Capacity', 'Voltage', 'Weight', 'Cost', 'Cycle Life', 'Temperature Range'],
-  'Camera': ['Resolution', 'Frame Rate', 'Sensor Size', 'Low Light Performance', 'Price', 'Weight'],
+  "GPS Antenna": [
+    "Frequency Range",
+    "Gain",
+    "VSWR",
+    "Size",
+    "Cost",
+    "Operating Temperature",
+  ],
+  Microprocessor: [
+    "Clock Speed",
+    "Power Consumption",
+    "Core Count",
+    "Price",
+    "Temperature Range",
+    "Memory",
+  ],
+  Sensor: ["Accuracy", "Range", "Resolution", "Response Time", "Power", "Cost"],
+  Battery: [
+    "Capacity",
+    "Voltage",
+    "Weight",
+    "Cost",
+    "Cycle Life",
+    "Temperature Range",
+  ],
+  Camera: [
+    "Resolution",
+    "Frame Rate",
+    "Sensor Size",
+    "Low Light Performance",
+    "Price",
+    "Weight",
+  ],
 };
 
 const ProjectSetup: React.FC = () => {
@@ -16,9 +44,9 @@ const ProjectSetup: React.FC = () => {
   const { addProject } = useStore();
 
   const [formData, setFormData] = useState({
-    name: '',
-    componentType: '',
-    description: '',
+    name: "",
+    componentType: "",
+    description: "",
   });
 
   const [suggestedCriteria, setSuggestedCriteria] = useState<string[]>([]);
@@ -28,8 +56,8 @@ const ProjectSetup: React.FC = () => {
     setFormData({ ...formData, componentType: value });
 
     // Find matching suggestions
-    const matchingKey = Object.keys(componentTypesSuggestions).find(
-      (key) => key.toLowerCase().includes(value.toLowerCase())
+    const matchingKey = Object.keys(componentTypesSuggestions).find((key) =>
+      key.toLowerCase().includes(value.toLowerCase())
     );
 
     if (matchingKey) {
@@ -49,7 +77,7 @@ const ProjectSetup: React.FC = () => {
       name: formData.name,
       componentType: formData.componentType,
       description: formData.description,
-      status: 'draft' as const,
+      status: "draft" as const,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -70,7 +98,8 @@ const ProjectSetup: React.FC = () => {
           Create New Trade Study
         </h1>
         <p className="text-gray-600">
-          Define what component you're evaluating and we'll help you analyze options
+          Define what component you're evaluating and we'll help you analyze
+          options
         </p>
       </div>
 
@@ -81,21 +110,27 @@ const ProjectSetup: React.FC = () => {
             <div className="w-8 h-8 bg-emerald-500 text-white rounded-lg flex items-center justify-center font-semibold text-sm">
               1
             </div>
-            <span className="ml-2 text-sm font-medium text-gray-900">Setup</span>
+            <span className="ml-2 text-sm font-medium text-gray-900">
+              Setup
+            </span>
           </div>
           <div className="w-16 h-0.5 bg-gray-300"></div>
           <div className="flex items-center">
             <div className="w-8 h-8 bg-gray-200 text-gray-500 rounded-lg flex items-center justify-center font-semibold text-sm">
               2
             </div>
-            <span className="ml-2 text-sm font-medium text-gray-500">Criteria</span>
+            <span className="ml-2 text-sm font-medium text-gray-500">
+              Criteria
+            </span>
           </div>
           <div className="w-16 h-0.5 bg-gray-300"></div>
           <div className="flex items-center">
             <div className="w-8 h-8 bg-gray-200 text-gray-500 rounded-lg flex items-center justify-center font-semibold text-sm">
               3
             </div>
-            <span className="ml-2 text-sm font-medium text-gray-500">Components</span>
+            <span className="ml-2 text-sm font-medium text-gray-500">
+              Components
+            </span>
           </div>
         </div>
       </div>
@@ -114,9 +149,7 @@ const ProjectSetup: React.FC = () => {
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Project Name */}
           <div>
-            <label className="label">
-              Project Name *
-            </label>
+            <label className="label">Project Name *</label>
             <input
               type="text"
               value={formData.name}
@@ -134,9 +167,7 @@ const ProjectSetup: React.FC = () => {
 
           {/* Component Type */}
           <div>
-            <label className="label">
-              Component Type *
-            </label>
+            <label className="label">Component Type *</label>
             <input
               type="text"
               value={formData.componentType}
@@ -199,9 +230,7 @@ const ProjectSetup: React.FC = () => {
 
           {/* Description */}
           <div>
-            <label className="label">
-              Description (Optional)
-            </label>
+            <label className="label">Description (Optional)</label>
             <textarea
               value={formData.description}
               onChange={(e) =>
@@ -217,7 +246,7 @@ const ProjectSetup: React.FC = () => {
           <div className="flex justify-between items-center pt-6 border-t border-gray-200">
             <button
               type="button"
-              onClick={() => navigate('/')}
+              onClick={() => navigate("/dashboard")}
               className="btn-secondary"
             >
               Cancel
@@ -226,7 +255,7 @@ const ProjectSetup: React.FC = () => {
               type="submit"
               disabled={!isFormValid}
               className={`btn-primary ${
-                !isFormValid && 'opacity-50 cursor-not-allowed'
+                !isFormValid && "opacity-50 cursor-not-allowed"
               }`}
             >
               Continue to Criteria Definition →
@@ -237,9 +266,13 @@ const ProjectSetup: React.FC = () => {
 
       {/* Help Section */}
       <div className="mt-6 card p-6 bg-gray-50">
-        <h3 className="font-semibold text-gray-900 mb-2 text-sm">What is a Trade Study?</h3>
+        <h3 className="font-semibold text-gray-900 mb-2 text-sm">
+          What is a Trade Study?
+        </h3>
         <p className="text-sm text-gray-600 leading-relaxed">
-          A systematic process engineers use to select the best component from many options by scoring each against multiple weighted criteria. TradeForm automates this using AI.
+          A systematic process engineers use to select the best component from
+          many options by scoring each against multiple weighted criteria.
+          TradeForm automates this using AI.
         </p>
       </div>
     </div>
