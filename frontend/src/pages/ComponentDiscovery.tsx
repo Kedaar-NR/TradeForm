@@ -11,6 +11,9 @@ const ComponentDiscovery: React.FC = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isDiscovering, setIsDiscovering] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [isScoring, setIsScoring] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     manufacturer: "",
     partNumber: "",
@@ -21,17 +24,6 @@ const ComponentDiscovery: React.FC = () => {
 
   const loadComponents = React.useCallback(async () => {
     if (!projectId) {
-      setIsLoading(false);
-      return;
-    }
-
-    // Validate projectId is a UUID format (basic check)
-    const uuidRegex =
-      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-    if (!uuidRegex.test(projectId)) {
-      console.warn(
-        `Invalid project ID format: ${projectId}. Expected UUID format.`
-      );
       setIsLoading(false);
       setComponents([]);
       return;
@@ -74,7 +66,14 @@ const ComponentDiscovery: React.FC = () => {
   // Load components on mount
   useEffect(() => {
     if (projectId) {
+      console.log(
+        "ComponentDiscovery: Loading components for project:",
+        projectId
+      );
       loadComponents();
+    } else {
+      console.warn("ComponentDiscovery: No projectId provided");
+      setIsLoading(false);
     }
   }, [projectId, loadComponents]);
 
@@ -192,6 +191,73 @@ const ComponentDiscovery: React.FC = () => {
     navigate(`/project/${projectId}/results`);
   };
 
+  const handleScoreAll = async () => {
+    if (!projectId) return;
+
+    const confirmed = window.confirm(
+      'This will automatically score all components against all criteria using AI. This may take a few moments. Continue?'
+    );
+    if (!confirmed) return;
+
+    try {
+      setIsScoring(true);
+      const response = await componentsApi.scoreAll(projectId);
+      alert(
+        `Scoring complete! Created ${response.data.scores_created} new scores, updated ${response.data.scores_updated} existing scores.`
+      );
+      // Navigate to results page to see scores
+      navigate(`/project/${projectId}/results`);
+    } catch (error: any) {
+      console.error('Failed to score components:', error);
+      alert(
+        error.response?.data?.detail ||
+          'Failed to score components. Please check that all components and criteria are properly configured.'
+      );
+    } finally {
+      setIsScoring(false);
+    }
+  };
+
+  const handleExportExcel = async () => {
+    if (!projectId) return;
+    try {
+      const response = await componentsApi.exportExcel(projectId);
+      const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `components_${new Date().toISOString().split('T')[0]}.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error: any) {
+      console.error('Failed to export components:', error);
+      alert(`Failed to export components: ${error.response?.data?.detail || error.message}`);
+    }
+  };
+
+  const handleImportExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !projectId) return;
+
+    try {
+      setIsUploading(true);
+      await componentsApi.uploadExcel(projectId, file);
+      // Reload components after import
+      await loadComponents();
+      alert('Components imported successfully!');
+    } catch (error: any) {
+      console.error('Failed to import components:', error);
+      alert(`Failed to import components: ${error.response?.data?.detail || error.message}`);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
   const getAvailabilityBadge = (availability: Component["availability"]) => {
     const styles = {
       in_stock: "bg-emerald-100 text-emerald-700",
@@ -213,6 +279,27 @@ const ComponentDiscovery: React.FC = () => {
       </span>
     );
   };
+
+  if (!projectId) {
+    return (
+      <div className="max-w-6xl animate-fade-in">
+        <div className="card p-12 text-center">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">
+            Invalid Project
+          </h3>
+          <p className="text-sm text-gray-600 mb-6">
+            No project ID provided. Please go back and try again.
+          </p>
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="btn-primary"
+          >
+            Back to Dashboard
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-6xl animate-fade-in">
@@ -290,6 +377,59 @@ const ComponentDiscovery: React.FC = () => {
           </div>
           <div className="ml-4 text-4xl">🤖</div>
         </div>
+      </div>
+
+      {/* Import/Export and Score Actions */}
+      <div className="flex flex-wrap gap-3 mb-6">
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".xlsx,.xls"
+          onChange={handleImportExcel}
+          className="hidden"
+        />
+        <button
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading}
+          className="btn-secondary flex items-center gap-2"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+          {isUploading ? 'Uploading...' : 'Import from Excel'}
+        </button>
+        <button
+          onClick={handleExportExcel}
+          disabled={components.length === 0}
+          className="btn-secondary flex items-center gap-2 disabled:opacity-50"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+          </svg>
+          Export to Excel
+        </button>
+        <button
+          onClick={handleScoreAll}
+          disabled={components.length === 0 || isScoring}
+          className="btn-primary flex items-center gap-2 disabled:opacity-50"
+        >
+          {isScoring ? (
+            <>
+              <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Scoring...
+            </>
+          ) : (
+            <>
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              </svg>
+              Score All Components
+            </>
+          )}
+        </button>
       </div>
 
       {/* Manual Add Section */}
