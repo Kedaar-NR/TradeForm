@@ -1,6 +1,6 @@
 # TradeForm - AI-Powered Trade Study Automation
 
-TradeForm is a complete enterprise web application that automates engineering trade studies, reducing the time from **2 weeks to 2 hours** using AI capabilities.
+TradeForm is a complete enterprise web application that automates engineering trade studies, reducing the time from **1 month to 2 hours** using AI capabilities.
 
 ## Overview
 
