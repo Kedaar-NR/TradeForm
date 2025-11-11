@@ -45,16 +45,18 @@ const Landing: React.FC = () => {
     hidden.load();
 
     const onEnded = async () => {
-      // Ensure hidden is ready
-      const playHidden = () => hidden.play().catch(() => {});
+      // Start playing hidden video first, then switch
       if (hidden.readyState < 3) {
-        hidden.addEventListener("canplaythrough", playHidden, { once: true });
         hidden.load();
-      } else {
-        playHidden();
+        await new Promise((resolve) => {
+          hidden.addEventListener("canplay", resolve, { once: true });
+        });
       }
 
-      // Instant switch (no crossfade)
+      // Start next video playing
+      await hidden.play().catch(() => {});
+
+      // Now instantly switch visibility
       active.style.opacity = "0";
       hidden.style.opacity = "1";
 
