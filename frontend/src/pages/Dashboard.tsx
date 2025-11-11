@@ -69,7 +69,7 @@ const Dashboard: React.FC = () => {
     const styles = {
       draft: "bg-gray-100 text-gray-700",
       in_progress: "bg-blue-100 text-blue-700",
-      completed: "bg-emerald-100 text-emerald-700",
+      completed: "bg-gray-200 text-gray-900",
     };
 
     const labels = {
@@ -139,7 +139,7 @@ const Dashboard: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <button
           onClick={() => navigate("/new-project")}
-          className="card p-6 hover:border-emerald-300 group cursor-pointer text-left"
+          className="card p-6 hover:border-gray-400 group cursor-pointer text-left"
         >
           <h3 className="font-semibold text-gray-900 mb-1">New Trade Study</h3>
           <p className="text-sm text-gray-600">
@@ -149,7 +149,7 @@ const Dashboard: React.FC = () => {
 
         <button
           onClick={() => navigate("/documentation")}
-          className="card p-6 hover:border-emerald-300 group cursor-pointer text-left"
+          className="card p-6 hover:border-gray-400 group cursor-pointer text-left"
         >
           <h3 className="font-semibold text-gray-900 mb-1">Documentation</h3>
           <p className="text-sm text-gray-600">Learn how to use TradeForm</p>
@@ -157,7 +157,7 @@ const Dashboard: React.FC = () => {
 
         <button
           onClick={() => navigate("/templates")}
-          className="card p-6 hover:border-emerald-300 group cursor-pointer text-left"
+          className="card p-6 hover:border-gray-400 group cursor-pointer text-left"
         >
           <h3 className="font-semibold text-gray-900 mb-1">Templates</h3>
           <p className="text-sm text-gray-600">Browse study templates</p>
@@ -224,7 +224,7 @@ const Dashboard: React.FC = () => {
                 key={project.id}
                 className={`card p-5 cursor-pointer group ${
                   project.status === "completed"
-                    ? "border-emerald-200 bg-emerald-50/30"
+                    ? "border-gray-300 bg-gray-100/30"
                     : ""
                 }`}
                 onClick={() => navigate(`/project/${project.id}`)}
@@ -234,7 +234,7 @@ const Dashboard: React.FC = () => {
                     <div className="flex items-center gap-3 mb-2">
                       {project.status === "completed" && (
                         <svg
-                          className="w-5 h-5 text-emerald-600 flex-shrink-0"
+                          className="w-5 h-5 text-black flex-shrink-0"
                           fill="currentColor"
                           viewBox="0 0 20 20"
                         >
@@ -298,7 +298,7 @@ const Dashboard: React.FC = () => {
                         e.stopPropagation();
                         navigate(`/project/${project.id}`);
                       }}
-                      className="text-gray-400 group-hover:text-emerald-600 transition-colors"
+                      className="text-gray-400 group-hover:text-black transition-colors"
                       title="Open study"
                     >
                       <svg

@@ -86,11 +86,11 @@
 
 @layer components {
   .card {
-    @apply bg-white rounded-lg border border-gray-200 hover:border-emerald-200 hover:shadow-sm transition-all;
+    @apply bg-white rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all;
   }
 
   .btn-primary {
-    @apply bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-all;
+    @apply bg-gray-900 hover:bg-black text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-all;
   }
 
   .btn-secondary {
@@ -98,11 +98,11 @@
   }
 
   .btn-pill {
-    @apply bg-white text-gray-700 px-5 py-2.5 rounded-lg text-sm font-medium border border-gray-200 hover:bg-gray-50 hover:border-emerald-300 transition-all;
+    @apply bg-white text-gray-700 px-5 py-2.5 rounded-lg text-sm font-medium border border-gray-200 hover:bg-gray-50 hover:border-gray-400 transition-all;
   }
 
   .input-field {
-    @apply w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 outline-none transition-all bg-white;
+    @apply w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none transition-all bg-white;
   }
 
   .label {
@@ -114,7 +114,7 @@
   }
 
   .sidebar-link-active {
-    @apply bg-emerald-50 text-emerald-700 hover:bg-emerald-100;
+    @apply bg-gray-100 text-gray-900 hover:bg-gray-200 font-semibold;
   }
 }
 

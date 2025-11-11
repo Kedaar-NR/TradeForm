@@ -65,7 +65,7 @@ const Pricing: React.FC = () => {
 
           <div className="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
             {/* Standard Plan */}
-            <div className="bg-white rounded-2xl border-2 border-gray-200 p-8 hover:border-emerald-300 transition-all shadow-lg hover:shadow-xl">
+            <div className="bg-white rounded-2xl border-2 border-gray-200 p-8 hover:border-gray-400 transition-all shadow-lg hover:shadow-xl">
               <div className="mb-6">
                 <h3 className="text-2xl font-bold text-gray-900 mb-2">
                   Standard
@@ -83,7 +83,7 @@ const Pricing: React.FC = () => {
               <ul className="space-y-4 mb-8">
                 <li className="flex items-start gap-3">
                   <svg
-                    className="w-5 h-5 text-emerald-500 mt-0.5 shrink-0"
+                    className="w-5 h-5 text-gray-1000 mt-0.5 shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -101,7 +101,7 @@ const Pricing: React.FC = () => {
                 </li>
                 <li className="flex items-start gap-3">
                   <svg
-                    className="w-5 h-5 text-emerald-500 mt-0.5 shrink-0"
+                    className="w-5 h-5 text-gray-1000 mt-0.5 shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -117,7 +117,7 @@ const Pricing: React.FC = () => {
                 </li>
                 <li className="flex items-start gap-3">
                   <svg
-                    className="w-5 h-5 text-emerald-500 mt-0.5 shrink-0"
+                    className="w-5 h-5 text-gray-1000 mt-0.5 shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -135,7 +135,7 @@ const Pricing: React.FC = () => {
                 </li>
                 <li className="flex items-start gap-3">
                   <svg
-                    className="w-5 h-5 text-emerald-500 mt-0.5 shrink-0"
+                    className="w-5 h-5 text-gray-1000 mt-0.5 shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -153,7 +153,7 @@ const Pricing: React.FC = () => {
                 </li>
                 <li className="flex items-start gap-3">
                   <svg
-                    className="w-5 h-5 text-emerald-500 mt-0.5 shrink-0"
+                    className="w-5 h-5 text-gray-1000 mt-0.5 shrink-0"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -170,14 +170,14 @@ const Pricing: React.FC = () => {
               </ul>
               <button
                 onClick={() => navigate("/signup")}
-                className="w-full bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg"
+                className="w-full bg-gray-1000 hover:bg-black text-white px-6 py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg"
               >
                 Get started
               </button>
             </div>
 
             {/* Enterprise Plan */}
-            <div className="bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl border-2 border-emerald-500 p-8 text-white shadow-xl relative overflow-hidden">
+            <div className="bg-gradient-to-br from-gray-1000 to-teal-600 rounded-2xl border-2 border-gray-1000 p-8 text-white shadow-xl relative overflow-hidden">
               <div className="absolute top-4 right-4">
                 <span className="bg-white/20 backdrop-blur-sm text-white text-xs font-semibold px-3 py-1 rounded-full">
                   POPULAR
@@ -305,7 +305,7 @@ const Pricing: React.FC = () => {
                 onClick={() =>
                   window.open("mailto:sales@tradeform.com", "_blank")
                 }
-                className="w-full bg-white hover:bg-gray-50 text-emerald-600 px-6 py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg"
+                className="w-full bg-white hover:bg-gray-50 text-black px-6 py-3 rounded-lg font-semibold transition-all shadow-md hover:shadow-lg"
               >
                 Contact Sales
               </button>

@@ -99,11 +99,11 @@ const Login: React.FC = () => {
                 <label className="flex items-center">
                   <input
                     type="checkbox"
-                    className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500"
+                    className="w-4 h-4 text-black rounded border-gray-300 focus:ring-gray-1000"
                   />
                   <span className="ml-2 text-gray-700">Remember me</span>
                 </label>
-                <button type="button" className="text-emerald-600 hover:text-emerald-700">
+                <button type="button" className="text-black hover:text-gray-900">
                   Forgot password?
                 </button>
               </div>
@@ -118,7 +118,7 @@ const Login: React.FC = () => {
                 Don't have an account?{' '}
                 <button
                   onClick={() => navigate('/signup')}
-                  className="text-emerald-600 hover:text-emerald-700 font-medium"
+                  className="text-black hover:text-gray-900 font-medium"
                 >
                   Sign up
                 </button>

@@ -163,13 +163,13 @@ const Results: React.FC = () => {
   };
 
   const getScoreColor = (score: number) => {
-    if (score >= 8) return "#10b981"; // emerald-500
+    if (score >= 8) return "#10b981"; // gray-1000
     if (score >= 6) return "#eab308"; // yellow-500
     return "#ef4444"; // red-500
   };
 
   const getScoreColorClass = (score: number) => {
-    if (score >= 8) return "bg-emerald-100 text-emerald-700";
+    if (score >= 8) return "bg-gray-200 text-gray-900";
     if (score >= 6) return "bg-yellow-100 text-yellow-700";
     return "bg-red-100 text-red-700";
   };
@@ -284,7 +284,7 @@ const Results: React.FC = () => {
               onClick={() => setViewMode("table")}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 viewMode === "table"
-                  ? "bg-emerald-500 text-white"
+                  ? "bg-gray-1000 text-white"
                   : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
               }`}
             >
@@ -294,7 +294,7 @@ const Results: React.FC = () => {
               onClick={() => setViewMode("heatmap")}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 viewMode === "heatmap"
-                  ? "bg-emerald-500 text-white"
+                  ? "bg-gray-1000 text-white"
                   : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
               }`}
             >
@@ -304,7 +304,7 @@ const Results: React.FC = () => {
               onClick={() => setViewMode("charts")}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 viewMode === "charts"
-                  ? "bg-emerald-500 text-white"
+                  ? "bg-gray-1000 text-white"
                   : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
               }`}
             >
@@ -331,10 +331,10 @@ const Results: React.FC = () => {
 
       {/* Winner Card */}
       {sortedComponents.length > 0 && (
-        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-6 mb-8">
+        <div className="bg-gray-100 border border-gray-300 rounded-lg p-6 mb-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
-              <div className="text-xs font-medium text-emerald-700 mb-1">
+              <div className="text-xs font-medium text-gray-900 mb-1">
                 RECOMMENDED
               </div>
               <h3 className="text-lg font-semibold text-gray-900 mb-1">
@@ -343,7 +343,7 @@ const Results: React.FC = () => {
               </h3>
               <p className="text-sm text-gray-600">
                 Weighted Score:{" "}
-                <span className="font-semibold text-emerald-700">
+                <span className="font-semibold text-gray-900">
                   {sortedComponents[0].totalScore.toFixed(2)}/10
                 </span>
               </p>
@@ -367,7 +367,7 @@ const Results: React.FC = () => {
               onClick={() => setChartType("bar")}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 chartType === "bar"
-                  ? "bg-emerald-500 text-white"
+                  ? "bg-gray-1000 text-white"
                   : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
               }`}
             >
@@ -377,7 +377,7 @@ const Results: React.FC = () => {
               onClick={() => setChartType("spider")}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 chartType === "spider"
-                  ? "bg-emerald-500 text-white"
+                  ? "bg-gray-1000 text-white"
                   : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
               }`}
             >
@@ -387,7 +387,7 @@ const Results: React.FC = () => {
               onClick={() => setChartType("tornado")}
               className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
                 chartType === "tornado"
-                  ? "bg-emerald-500 text-white"
+                  ? "bg-gray-1000 text-white"
                   : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
               }`}
             >
@@ -590,7 +590,7 @@ const Results: React.FC = () => {
                       );
                     })}
                     <td className="px-5 py-4 text-center">
-                      <span className="font-bold text-emerald-700">
+                      <span className="font-bold text-gray-900">
                         {component.totalScore.toFixed(2)}
                       </span>
                     </td>
@@ -600,7 +600,7 @@ const Results: React.FC = () => {
                           e.stopPropagation();
                           setSelectedComponent(component);
                         }}
-                        className="text-sm text-emerald-600 hover:text-emerald-700 font-medium"
+                        className="text-sm text-black hover:text-gray-900 font-medium"
                       >
                         Details
                       </button>
@@ -629,7 +629,7 @@ const Results: React.FC = () => {
                     </h3>
                   </div>
                 </div>
-                <div className="text-xl font-bold text-emerald-700">
+                <div className="text-xl font-bold text-gray-900">
                   {component.totalScore.toFixed(2)}/10
                 </div>
               </div>
