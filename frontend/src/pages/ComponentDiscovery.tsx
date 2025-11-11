@@ -310,7 +310,7 @@ const ComponentDiscovery: React.FC = () => {
         </h1>
         <p className="text-gray-600">
           Add components to evaluate in your trade study. You can add them
-          manually or use AI discovery (coming soon).
+          manually or use AI discovery.
         </p>
       </div>
 
@@ -375,7 +375,6 @@ const ComponentDiscovery: React.FC = () => {
               )}
             </button>
           </div>
-          <div className="ml-4 text-4xl">🤖</div>
         </div>
       </div>
 

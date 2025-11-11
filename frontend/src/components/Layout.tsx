@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Logo from './Logo';
 
@@ -9,6 +9,10 @@ interface LayoutProps {
 const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchQuery, setSearchQuery] = useState('');
+  const [aiResponse, setAiResponse] = useState('');
+  const [showAiModal, setShowAiModal] = useState(false);
+  const [isAsking, setIsAsking] = useState(false);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -36,6 +40,34 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const handleLogout = () => {
     localStorage.removeItem('isAuthenticated');
     navigate('/');
+  };
+
+  const handleAskAI = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!searchQuery.trim() || isAsking) return;
+
+    setIsAsking(true);
+    try {
+      const response = await fetch('http://localhost:8000/api/ai/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: searchQuery })
+      });
+
+      if (!response.ok) {
+        throw new Error('AI request failed');
+      }
+
+      const data = await response.json();
+      setAiResponse(data.response);
+      setShowAiModal(true);
+    } catch (error) {
+      console.error('AI chat error:', error);
+      setAiResponse('Sorry, I encountered an error. Please try again.');
+      setShowAiModal(true);
+    } finally {
+      setIsAsking(false);
+    }
   };
 
   return (
@@ -89,13 +121,16 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
         {/* Top header */}
         <header className="bg-white border-b border-gray-200 px-8 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex-1">
+            <form onSubmit={handleAskAI} className="flex-1">
               <input
                 type="text"
-                placeholder="Search or ask..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Search / AI Ask..."
                 className="input-field max-w-md"
+                disabled={isAsking}
               />
-            </div>
+            </form>
             <div className="flex items-center gap-3">
               <button
                 onClick={() => navigate("/documentation")}
@@ -120,6 +155,54 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
         </main>
       </div>
+
+      {/* AI Response Modal */}
+      {showAiModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b border-gray-200 flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-gray-900">AI Assistant</h2>
+              <button
+                onClick={() => setShowAiModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            <div className="p-6 overflow-auto flex-1">
+              <div className="mb-4">
+                <div className="text-sm font-medium text-gray-500 mb-2">Your Question:</div>
+                <div className="text-gray-900 bg-gray-50 p-3 rounded">{searchQuery}</div>
+              </div>
+              <div>
+                <div className="text-sm font-medium text-gray-500 mb-2">AI Response:</div>
+                <div className="text-gray-900 whitespace-pre-wrap">{aiResponse}</div>
+              </div>
+            </div>
+            <div className="p-6 border-t border-gray-200 flex justify-end gap-3">
+              <button
+                onClick={() => {
+                  setShowAiModal(false);
+                  setSearchQuery('');
+                }}
+                className="btn-secondary"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => {
+                  setShowAiModal(false);
+                }}
+                className="btn-primary"
+              >
+                Ask Another Question
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
