@@ -300,7 +300,9 @@ def discover_components(project_id: UUID, db: Session = Depends(get_db)):
     criteria_names = [c.name for c in criteria] if criteria else []
     
     # Initialize Anthropic client
-    api_key = os.getenv("ANTHROPIC_API_KEY", "REMOVED_API_KEY")
+    api_key = os.getenv("ANTHROPIC_API_KEY")
+    if not api_key:
+        raise HTTPException(status_code=500, detail="ANTHROPIC_API_KEY environment variable not set")
     client = Anthropic(api_key=api_key)
     
     # Build prompt for component discovery
