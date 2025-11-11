@@ -209,7 +209,7 @@ const Templates: React.FC = () => {
 
     try {
       setIsCreating(template.id);
-      
+
       // Create project from template
       const projectResponse = await projectsApi.create({
         name: template.name,
@@ -237,11 +237,17 @@ const Templates: React.FC = () => {
         )
       );
 
-      // Navigate to component discovery
-      navigate(`/project/${projectId}/discovery`);
+      // Small delay to ensure criteria are saved
+      await new Promise((resolve) => setTimeout(resolve, 500));
+
+      // Navigate to criteria page to review/edit
+      navigate(`/project/${projectId}/criteria`);
     } catch (error: any) {
       console.error("Failed to create project from template:", error);
-      const errorMessage = error?.response?.data?.detail || error?.message || "Unknown error occurred";
+      const errorMessage =
+        error?.response?.data?.detail ||
+        error?.message ||
+        "Unknown error occurred";
       alert(`Failed to create project: ${errorMessage}`);
     } finally {
       setIsCreating(null);
@@ -252,7 +258,9 @@ const Templates: React.FC = () => {
     <div className="space-y-8 animate-fade-in">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Study Templates</h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">
+          Study Templates
+        </h1>
         <p className="text-gray-600">
           Start your trade study from a pre-configured template with common
           criteria already set up
@@ -292,7 +300,9 @@ const Templates: React.FC = () => {
                   >
                     <span className="text-gray-700">{criterion.name}</span>
                     <div className="flex items-center gap-2">
-                      <span className="text-gray-500">Weight: {criterion.weight}</span>
+                      <span className="text-gray-500">
+                        Weight: {criterion.weight}
+                      </span>
                       {criterion.unit && (
                         <span className="text-gray-400">•</span>
                       )}

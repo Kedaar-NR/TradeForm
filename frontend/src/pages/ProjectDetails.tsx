@@ -1,7 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Project, Component, Criterion } from "../types";
-import { projectsApi, componentsApi, criteriaApi } from "../services/api";
+import {
+  projectsApi,
+  componentsApi,
+  criteriaApi,
+  versionsApi,
+  commentsApi,
+  changesApi,
+  sharesApi,
+} from "../services/api";
 
 const ProjectDetails: React.FC = () => {
   const navigate = useNavigate();
@@ -14,6 +22,15 @@ const ProjectDetails: React.FC = () => {
   const [editingComponent, setEditingComponent] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<Partial<Component>>({});
   const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [activeTab, setActiveTab] = useState<
+    "overview" | "versions" | "collaboration"
+  >("overview");
+  const [versions, setVersions] = useState<any[]>([]);
+  const [comments, setComments] = useState<any[]>([]);
+  const [changes, setChanges] = useState<any[]>([]);
+  const [shares, setShares] = useState<any[]>([]);
+  const [newComment, setNewComment] = useState("");
+  const [newVersionDesc, setNewVersionDesc] = useState("");
 
   const loadProjectData = React.useCallback(async () => {
     if (!projectId) return;
@@ -68,6 +85,31 @@ const ProjectDetails: React.FC = () => {
       setIsLoading(false);
     }
   }, [projectId]);
+
+  const loadCollaborationData = React.useCallback(async () => {
+    if (!projectId) return;
+    try {
+      const [versionsRes, commentsRes, changesRes, sharesRes] =
+        await Promise.all([
+          versionsApi.getByProject(projectId).catch(() => ({ data: [] })),
+          commentsApi.getByProject(projectId).catch(() => ({ data: [] })),
+          changesApi.getByProject(projectId).catch(() => ({ data: [] })),
+          sharesApi.getByProject(projectId).catch(() => ({ data: [] })),
+        ]);
+      setVersions(versionsRes.data || []);
+      setComments(commentsRes.data || []);
+      setChanges(changesRes.data || []);
+      setShares(sharesRes.data || []);
+    } catch (error) {
+      console.error("Failed to load collaboration data:", error);
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    if (projectId && activeTab !== "overview") {
+      loadCollaborationData();
+    }
+  }, [projectId, activeTab, loadCollaborationData]);
 
   useEffect(() => {
     if (projectId) {
@@ -537,45 +579,289 @@ const ProjectDetails: React.FC = () => {
         </div>
       )}
 
-      {/* Actions */}
-      <div className="flex gap-3 pt-6 border-t border-gray-200 items-center justify-between">
-        <div className="flex gap-3">
+      {/* Tabs */}
+      <div className="border-b border-gray-200 mb-6">
+        <nav className="flex gap-4">
           <button
-            onClick={() => navigate(`/project/${projectId}/results`)}
-            className="btn-primary"
-            disabled={components.length === 0}
+            onClick={() => setActiveTab("overview")}
+            className={`pb-3 px-1 border-b-2 font-medium text-sm ${
+              activeTab === "overview"
+                ? "border-emerald-500 text-emerald-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
           >
-            View Results →
+            Overview
           </button>
           <button
-            onClick={() => navigate("/dashboard")}
-            className="btn-secondary"
+            onClick={() => setActiveTab("versions")}
+            className={`pb-3 px-1 border-b-2 font-medium text-sm ${
+              activeTab === "versions"
+                ? "border-emerald-500 text-emerald-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
           >
-            Back to Dashboard
+            Version History
           </button>
-        </div>
-        {project.status !== "completed" && (
           <button
-            onClick={handleMarkAsDone}
-            className="btn-primary bg-emerald-600 hover:bg-emerald-700"
-            disabled={isSaving || components.length === 0}
+            onClick={() => setActiveTab("collaboration")}
+            className={`pb-3 px-1 border-b-2 font-medium text-sm ${
+              activeTab === "collaboration"
+                ? "border-emerald-500 text-emerald-600"
+                : "border-transparent text-gray-500 hover:text-gray-700"
+            }`}
           >
-            {isSaving ? "Saving..." : "✓ Mark as Done"}
+            Team Collaboration
           </button>
-        )}
-        {project.status === "completed" && (
-          <div className="flex items-center gap-2 text-emerald-600">
-            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-              <path
-                fillRule="evenodd"
-                d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                clipRule="evenodd"
-              />
-            </svg>
-            <span className="font-medium">Study Completed</span>
-          </div>
-        )}
+        </nav>
       </div>
+
+      {/* Version History Tab */}
+      {activeTab === "versions" && (
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-semibold text-gray-900">
+              Version History
+            </h2>
+            <button
+              onClick={async () => {
+                if (!projectId) return;
+                try {
+                  await versionsApi.create(projectId, newVersionDesc);
+                  setNewVersionDesc("");
+                  await loadCollaborationData();
+                  alert("Version created successfully!");
+                } catch (error: any) {
+                  alert(
+                    `Failed to create version: ${
+                      error.response?.data?.detail || error.message
+                    }`
+                  );
+                }
+              }}
+              className="btn-primary"
+            >
+              Create Version
+            </button>
+          </div>
+          <div className="card p-4 mb-4">
+            <input
+              type="text"
+              value={newVersionDesc}
+              onChange={(e) => setNewVersionDesc(e.target.value)}
+              placeholder="Version description (optional)"
+              className="input-field"
+            />
+          </div>
+          <div className="space-y-3">
+            {versions.length === 0 ? (
+              <div className="card p-12 text-center">
+                <p className="text-gray-500">
+                  No versions yet. Create your first version to track changes.
+                </p>
+              </div>
+            ) : (
+              versions.map((version: any) => (
+                <div key={version.id} className="card p-5">
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="font-semibold text-gray-900">
+                          Version {version.version_number}
+                        </span>
+                        <span className="text-xs text-gray-500">
+                          {new Date(version.created_at).toLocaleDateString()}
+                        </span>
+                      </div>
+                      {version.description && (
+                        <p className="text-sm text-gray-600">
+                          {version.description}
+                        </p>
+                      )}
+                    </div>
+                    <button
+                      onClick={() => {
+                        if (version.snapshot_data) {
+                          const snapshot = JSON.parse(version.snapshot_data);
+                          alert(
+                            `Snapshot: ${JSON.stringify(snapshot, null, 2)}`
+                          );
+                        }
+                      }}
+                      className="btn-secondary text-sm"
+                    >
+                      View Snapshot
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Team Collaboration Tab */}
+      {activeTab === "collaboration" && (
+        <div className="space-y-6">
+          {/* Comments Section */}
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              Comments
+            </h2>
+            <div className="card p-4 mb-4">
+              <textarea
+                value={newComment}
+                onChange={(e) => setNewComment(e.target.value)}
+                placeholder="Add a comment..."
+                className="input-field w-full mb-3"
+                rows={3}
+              />
+              <button
+                onClick={async () => {
+                  if (!projectId || !newComment.trim()) return;
+                  try {
+                    await commentsApi.create(projectId, newComment);
+                    setNewComment("");
+                    await loadCollaborationData();
+                  } catch (error: any) {
+                    alert(
+                      `Failed to add comment: ${
+                        error.response?.data?.detail || error.message
+                      }`
+                    );
+                  }
+                }}
+                className="btn-primary"
+                disabled={!newComment.trim()}
+              >
+                Add Comment
+              </button>
+            </div>
+            <div className="space-y-3">
+              {comments.length === 0 ? (
+                <div className="card p-12 text-center">
+                  <p className="text-gray-500">
+                    No comments yet. Start the conversation!
+                  </p>
+                </div>
+              ) : (
+                comments.map((comment: any) => (
+                  <div key={comment.id} className="card p-4">
+                    <div className="flex items-start justify-between mb-2">
+                      <span className="text-xs text-gray-500">
+                        {new Date(comment.created_at).toLocaleString()}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-700">{comment.content}</p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Change History Section */}
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              Change History
+            </h2>
+            <div className="space-y-2">
+              {changes.length === 0 ? (
+                <div className="card p-12 text-center">
+                  <p className="text-gray-500">No changes tracked yet.</p>
+                </div>
+              ) : (
+                changes.map((change: any) => (
+                  <div key={change.id} className="card p-4">
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-sm font-medium text-gray-900">
+                          {change.change_description}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date(change.created_at).toLocaleString()}
+                        </p>
+                      </div>
+                      <span className="text-xs px-2 py-1 bg-gray-100 text-gray-700 rounded">
+                        {change.change_type}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* Shared With Section */}
+          <div>
+            <h2 className="text-xl font-semibold text-gray-900 mb-4">
+              Shared With
+            </h2>
+            <div className="space-y-2">
+              {shares.length === 0 ? (
+                <div className="card p-12 text-center">
+                  <p className="text-gray-500">
+                    This project is not shared with anyone yet.
+                  </p>
+                </div>
+              ) : (
+                shares.map((share: any) => (
+                  <div key={share.id} className="card p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-gray-700">
+                        User ID: {share.shared_with_user_id}
+                      </span>
+                      <span className="text-xs px-2 py-1 bg-emerald-100 text-emerald-700 rounded">
+                        {share.permission}
+                      </span>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Actions */}
+      {activeTab === "overview" && (
+        <div className="flex gap-3 pt-6 border-t border-gray-200 items-center justify-between">
+          <div className="flex gap-3">
+            <button
+              onClick={() => navigate(`/project/${projectId}/results`)}
+              className="btn-primary"
+              disabled={components.length === 0}
+            >
+              View Results →
+            </button>
+            <button
+              onClick={() => navigate("/dashboard")}
+              className="btn-secondary"
+            >
+              Back to Dashboard
+            </button>
+          </div>
+          {project.status !== "completed" && (
+            <button
+              onClick={handleMarkAsDone}
+              className="btn-primary bg-emerald-600 hover:bg-emerald-700"
+              disabled={isSaving || components.length === 0}
+            >
+              {isSaving ? "Saving..." : "✓ Mark as Done"}
+            </button>
+          )}
+          {project.status === "completed" && (
+            <div className="flex items-center gap-2 text-emerald-600">
+              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
+                <path
+                  fillRule="evenodd"
+                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <span className="font-medium">Study Completed</span>
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };
