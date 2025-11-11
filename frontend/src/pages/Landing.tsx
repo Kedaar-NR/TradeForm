@@ -5,10 +5,10 @@ import Logo from "../components/Logo";
 const Landing: React.FC = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
-  const videoRef1 = useRef<HTMLVideoElement>(null);
-  const videoRef2 = useRef<HTMLVideoElement>(null);
+  const videoARef = useRef<HTMLVideoElement>(null);
+  const videoBRef = useRef<HTMLVideoElement>(null);
+  const [useA, setUseA] = useState(true);
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
-  const [activeVideoRef, setActiveVideoRef] = useState<1 | 2>(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submissionMessage, setSubmissionMessage] = useState<string | null>(
     null
@@ -24,49 +24,51 @@ const Landing: React.FC = () => {
     []
   );
 
-  // Preload next video
+  // Preload next video for instant switching
   useEffect(() => {
+    const active = useA ? videoARef.current : videoBRef.current;
+    const hidden = useA ? videoBRef.current : videoARef.current;
+    if (!active || !hidden) return;
+
+    // Ensure attributes for autoplay policies
+    [active, hidden].forEach((v) => {
+      v.muted = true;
+      v.playsInline = true as any;
+    });
+
     const nextIndex = (currentVideoIndex + 1) % videos.length;
-    const nextVideo = activeVideoRef === 1 ? videoRef2.current : videoRef1.current;
 
-    if (nextVideo) {
-      nextVideo.src = videos[nextIndex];
-      nextVideo.load();
-    }
-  }, [currentVideoIndex, videos, activeVideoRef]);
+    // Set active current source if empty
+    if (!active.src) active.src = videos[currentVideoIndex];
+    // Preload next on hidden
+    if (hidden.src !== videos[nextIndex]) hidden.src = videos[nextIndex];
+    hidden.load();
 
-  // Handle video end and switch
-  useEffect(() => {
-    const currentVideo = activeVideoRef === 1 ? videoRef1.current : videoRef2.current;
-    if (!currentVideo) return;
-
-    const handleVideoEnd = () => {
-      const nextVideo = activeVideoRef === 1 ? videoRef2.current : videoRef1.current;
-
-      if (nextVideo) {
-        // Play next video
-        nextVideo.play().catch(() => {});
-
-        // Switch active video
-        setActiveVideoRef(activeVideoRef === 1 ? 2 : 1);
-        setCurrentVideoIndex((prevIndex) => (prevIndex + 1) % videos.length);
+    const onEnded = async () => {
+      // Ensure hidden is ready
+      const playHidden = () => hidden.play().catch(() => {});
+      if (hidden.readyState < 3) {
+        hidden.addEventListener("canplaythrough", playHidden, { once: true });
+        hidden.load();
+      } else {
+        playHidden();
       }
+
+      // Instant switch (no crossfade)
+      active.style.opacity = "0";
+      hidden.style.opacity = "1";
+
+      // Swap roles and index
+      setUseA((prev) => !prev);
+      setCurrentVideoIndex(nextIndex);
     };
 
-    currentVideo.addEventListener("ended", handleVideoEnd);
-
-    return () => {
-      currentVideo.removeEventListener("ended", handleVideoEnd);
-    };
-  }, [videos, activeVideoRef]);
-
-  // Auto-play first video on mount
-  useEffect(() => {
-    const video = videoRef1.current;
-    if (video) {
-      video.play().catch(() => {});
-    }
-  }, []);
+    active.addEventListener("ended", onEnded);
+    // Kick play on mount
+    active.play().catch(() => {});
+    return () => active.removeEventListener("ended", onEnded);
+  }, [useA, currentVideoIndex, videos]);
+  // No source swapping inside the element anymore — handled by refs & .src
 
   const handleJoinWaitlist = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -103,31 +105,22 @@ const Landing: React.FC = () => {
       {/* Full Page Video Background */}
       <div className="fixed inset-0 w-full h-full z-0 bg-black">
         <video
-          ref={videoRef1}
+          ref={videoARef}
+          autoPlay
           muted
           playsInline
-          preload="auto"
-          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000"
-          style={{
-            objectFit: "cover",
-            width: "100%",
-            height: "100%",
-            opacity: activeVideoRef === 1 ? 1 : 0,
-          }}
-          src={videos[0]}
+          loop={false}
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: useA ? 1 : 0 }}
         />
         <video
-          ref={videoRef2}
+          ref={videoBRef}
+          autoPlay
           muted
           playsInline
-          preload="auto"
-          className="absolute inset-0 w-full h-full object-cover transition-opacity duration-1000"
-          style={{
-            objectFit: "cover",
-            width: "100%",
-            height: "100%",
-            opacity: activeVideoRef === 2 ? 1 : 0,
-          }}
+          loop={false}
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: useA ? 0 : 1 }}
         />
         {/* Overlay for better text readability */}
         <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50"></div>
