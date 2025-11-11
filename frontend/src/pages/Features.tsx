@@ -161,6 +161,69 @@ const Features: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Footer Section */}
+      <footer className="bg-white border-t border-gray-200 py-12">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
+            {/* Left Column - Brand Information */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Logo />
+              </div>
+              <p className="text-sm text-gray-600 leading-relaxed max-w-xs">
+                TradeForm simplified your trade study workflow and accelerates
+                data-driven decisions.
+              </p>
+            </div>
+
+            {/* Middle Column - Company Links */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold text-gray-900">Company</h3>
+              <div className="space-y-2">
+                <button className="block text-sm text-gray-600 hover:text-gray-900 transition-colors text-left">
+                  About
+                </button>
+                <button className="block text-sm text-gray-600 hover:text-gray-900 transition-colors text-left">
+                  Careers
+                </button>
+                <button className="block text-sm text-gray-600 hover:text-gray-900 transition-colors text-left">
+                  Contact
+                </button>
+              </div>
+            </div>
+
+            {/* Right Column - Legal Links */}
+            <div className="space-y-3">
+              <h3 className="text-sm font-bold text-gray-900">Legal</h3>
+              <div className="space-y-2">
+                <button className="block text-sm text-gray-600 hover:text-gray-900 transition-colors text-left">
+                  Privacy Policy
+                </button>
+                <a
+                  href="https://linkedin.com"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="block text-sm text-gray-600 hover:text-gray-900 transition-colors"
+                >
+                  LinkedIn
+                </a>
+                <button className="block text-sm text-gray-600 hover:text-gray-900 transition-colors text-left">
+                  United States
+                </button>
+              </div>
+            </div>
+          </div>
+
+          {/* Separator Line */}
+          <div className="border-t border-gray-200 mb-6"></div>
+
+          {/* Copyright */}
+          <p className="text-xs text-gray-500 text-center">
+            © 2025 TradeForm. All rights reserved.
+          </p>
+        </div>
+      </footer>
     </div>
   );
 };
