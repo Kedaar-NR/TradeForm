@@ -51,6 +51,7 @@ const ProjectSetup: React.FC = () => {
 
   const [suggestedCriteria, setSuggestedCriteria] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isOptimizing, setIsOptimizing] = useState(false);
 
   const handleComponentTypeChange = (value: string) => {
     setFormData({ ...formData, componentType: value });
@@ -65,6 +66,47 @@ const ProjectSetup: React.FC = () => {
       setShowSuggestions(true);
     } else {
       setShowSuggestions(false);
+    }
+  };
+
+  const handleAIOptimize = async () => {
+    if (!formData.name) {
+      alert("Please enter a project name first");
+      return;
+    }
+
+    try {
+      setIsOptimizing(true);
+
+      // Call backend to use AI to suggest description and component type
+      const response = await fetch('http://localhost:8000/api/ai/optimize-project', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          component_type: formData.componentType || null,
+          description: formData.description || null
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error('AI optimization failed');
+      }
+
+      const data = await response.json();
+
+      setFormData({
+        name: formData.name,
+        componentType: data.component_type || formData.componentType,
+        description: data.description || formData.description
+      });
+
+      alert('AI optimization complete! Review the suggested details.');
+    } catch (error: any) {
+      console.error('AI optimization error:', error);
+      alert('AI optimization failed. Please fill in details manually.');
+    } finally {
+      setIsOptimizing(false);
     }
   };
 
@@ -260,6 +302,36 @@ const ProjectSetup: React.FC = () => {
             >
               Continue to Criteria Definition →
             </button>
+          </div>
+
+          {/* AI Optimize Button */}
+          <div className="mt-6 pt-6 border-t border-gray-200">
+            <button
+              type="button"
+              onClick={handleAIOptimize}
+              disabled={!formData.name || isOptimizing}
+              className="w-full btn-secondary flex items-center justify-center gap-2 disabled:opacity-50"
+            >
+              {isOptimizing ? (
+                <>
+                  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  AI Optimizing...
+                </>
+              ) : (
+                <>
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                  </svg>
+                  AI Optimize Project Details
+                </>
+              )}
+            </button>
+            <p className="text-xs text-gray-500 mt-2 text-center">
+              AI will suggest component type and description based on your project name
+            </p>
           </div>
         </form>
       </div>
