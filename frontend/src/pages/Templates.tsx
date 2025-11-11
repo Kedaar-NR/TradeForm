@@ -209,6 +209,7 @@ const Templates: React.FC = () => {
 
     try {
       setIsCreating(template.id);
+      
       // Create project from template
       const projectResponse = await projectsApi.create({
         name: template.name,
@@ -216,6 +217,10 @@ const Templates: React.FC = () => {
         description: template.description,
         status: "draft",
       });
+
+      if (!projectResponse?.data?.id) {
+        throw new Error("Failed to create project: No project ID returned");
+      }
 
       const projectId = projectResponse.data.id;
 
@@ -236,9 +241,8 @@ const Templates: React.FC = () => {
       navigate(`/project/${projectId}/discovery`);
     } catch (error: any) {
       console.error("Failed to create project from template:", error);
-      alert(
-        `Failed to create project: ${error.response?.data?.detail || error.message}`
-      );
+      const errorMessage = error?.response?.data?.detail || error?.message || "Unknown error occurred";
+      alert(`Failed to create project: ${errorMessage}`);
     } finally {
       setIsCreating(null);
     }
@@ -333,5 +337,3 @@ const Templates: React.FC = () => {
 };
 
 export default Templates;
-
-
