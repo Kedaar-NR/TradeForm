@@ -13,7 +13,7 @@ const Landing: React.FC = () => {
   const [submissionMessage, setSubmissionMessage] = useState<string | null>(
     null
   );
-  const [hasScrolled, setHasScrolled] = useState(false);
+  const heroContentRef = useRef<HTMLDivElement | null>(null);
 
   const videos = useMemo(
     () => [
@@ -73,17 +73,19 @@ const Landing: React.FC = () => {
   }, [useA, currentVideoIndex, videos]);
   // No source swapping inside the element anymore — handled by refs & .src
 
-  // Track scroll to show footer
+  // Move hero content up slightly as user scrolls
   useEffect(() => {
     const handleScroll = () => {
-      if (window.scrollY > 0) {
-        setHasScrolled(true);
-      } else {
-        setHasScrolled(false);
+      // Move hero content up slightly as user scrolls
+      if (heroContentRef.current) {
+        const scrollY = window.scrollY;
+        const maxScroll = window.innerHeight;
+        const translateY = Math.min(scrollY * 0.3, maxScroll * 0.3);
+        heroContentRef.current.style.transform = `translateY(-${translateY}px)`;
       }
     };
 
-    window.addEventListener("scroll", handleScroll);
+    window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
@@ -188,8 +190,24 @@ const Landing: React.FC = () => {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative z-10 h-screen flex items-center justify-center">
-        <div className="max-w-5xl mx-auto px-6 lg:px-8 text-center w-full -mt-28">
+      <section
+        className="fixed inset-0 z-10 pointer-events-none"
+        style={{
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          willChange: "transform",
+          position: "fixed",
+        }}
+      >
+        <div
+          ref={heroContentRef}
+          className="max-w-5xl mx-auto px-6 lg:px-8 text-center w-full pointer-events-auto"
+        >
           <h1
             className="text-white mb-6 leading-tight tracking-tight px-4"
             style={{
@@ -197,9 +215,18 @@ const Landing: React.FC = () => {
               fontWeight: 800,
               fontSize: "clamp(40px, 8vw, 68px)",
               lineHeight: "1.04",
+              marginTop: "40px",
             }}
           >
-            Trade Studies Simplified
+            Trade Studies{" "}
+            <span
+              style={{
+                borderBottom: "4px solid currentColor",
+                paddingBottom: "4px",
+              }}
+            >
+              Simplified
+            </span>
           </h1>
           <p className="text-lg sm:text-xl md:text-2xl text-white/95 mb-10 max-w-3xl mx-auto leading-relaxed px-4">
             <span className="font-bold">Automate</span> component evaluation and
@@ -268,13 +295,8 @@ const Landing: React.FC = () => {
       {/* Spacer to allow scrolling */}
       <div className="h-screen"></div>
 
-      {/* Footer Section - Only shows after scroll */}
-      <footer
-        className={`fixed bottom-0 left-0 right-0 z-20 bg-black py-12 border-t border-gray-800 ${
-          hasScrolled ? "opacity-100" : "opacity-0 pointer-events-none"
-        }`}
-        style={{ transition: "none" }}
-      >
+      {/* Footer Section - Appears below video when scrolling */}
+      <footer className="relative z-20 bg-black py-12 border-t border-gray-800">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <p className="text-center text-white text-base sm:text-lg md:text-xl font-medium mb-8 tracking-wide">
             Trusted By R&D Departments at Major U.S. Companies
