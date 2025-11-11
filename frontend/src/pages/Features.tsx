@@ -1,12 +1,22 @@
-import React from "react";
+import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Logo from "../components/Logo";
 
 const Features: React.FC = () => {
   const navigate = useNavigate();
 
+  // Disable scrolling on mount
+  useEffect(() => {
+    document.body.style.overflow = "hidden";
+    document.documentElement.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = "";
+      document.documentElement.style.overflow = "";
+    };
+  }, []);
+
   return (
-    <div className="min-h-screen bg-white">
+    <div className="h-screen bg-white overflow-hidden">
       {/* Navigation */}
       <nav className="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
@@ -163,7 +173,7 @@ const Features: React.FC = () => {
       </section>
 
       {/* Footer Section */}
-      <footer className="bg-white border-t border-gray-200 py-12">
+      <footer className="bg-white border-t border-gray-200 pt-12 pb-8">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-8">
             {/* Left Column - Brand Information */}
@@ -219,7 +229,7 @@ const Features: React.FC = () => {
           <div className="border-t border-gray-200 mb-6"></div>
 
           {/* Copyright */}
-          <p className="text-xs text-gray-500 text-center">
+          <p className="text-xs text-gray-500 text-center pb-4">
             © 2025 TradeForm. All rights reserved.
           </p>
         </div>
