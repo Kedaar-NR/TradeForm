@@ -1,45 +1,160 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Logo from '../components/Logo';
+import React, { useState, useRef, useEffect, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import Logo from "../components/Logo";
 
 const Landing: React.FC = () => {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState("");
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submissionMessage, setSubmissionMessage] = useState<string | null>(
+    null
+  );
 
-  const handleGetStarted = (e: React.FormEvent) => {
+  const videos = useMemo(
+    () => [
+      "/videos/2249554-uhd_3840_2160_24fps.mp4",
+      "/videos/2252797-uhd_3840_2160_30fps.mp4",
+      "/videos/4990233-hd_1920_1080_30fps.mp4",
+      "/videos/854274-hd_1280_720_30fps.mp4",
+    ],
+    []
+  );
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    const handleVideoEnd = () => {
+      setCurrentVideoIndex((prevIndex) => (prevIndex + 1) % videos.length);
+    };
+
+    video.addEventListener("ended", handleVideoEnd);
+
+    return () => {
+      video.removeEventListener("ended", handleVideoEnd);
+    };
+  }, [videos]);
+
+  // Update video source when currentVideoIndex changes
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    // Remove old source
+    const oldSource = video.querySelector("source");
+    if (oldSource) {
+      oldSource.remove();
+    }
+
+    // Add new source
+    const newSource = document.createElement("source");
+    newSource.src = videos[currentVideoIndex];
+    newSource.type = "video/mp4";
+    video.appendChild(newSource);
+
+    // Load and play
+    video.load();
+
+    const playPromise = video.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(() => {
+        // Handle autoplay restrictions silently
+      });
+    }
+  }, [currentVideoIndex, videos]);
+
+  const handleJoinWaitlist = async (e: React.FormEvent) => {
     e.preventDefault();
-    navigate('/signup', { state: { email } });
+    if (!email || isSubmitting) return;
+
+    setIsSubmitting(true);
+    setSubmissionMessage(null);
+
+    const formEndpoint =
+      "https://docs.google.com/forms/d/e/1FAIpQLSfXrsjpGirgzi4iahSiimOBzYJqk2cRTg5z2gINDcsGocDmlw/formResponse";
+
+    const formData = new FormData();
+    formData.append("entry.1716911821", email);
+
+    try {
+      await fetch(formEndpoint, {
+        method: "POST",
+        mode: "no-cors",
+        body: formData,
+      });
+      setSubmissionMessage("You're on the waitlist. We'll be in touch soon!");
+      setEmail("");
+    } catch (error) {
+      setSubmissionMessage(
+        "Couldn't join the waitlist right now. Please try again."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
-    <div className="min-h-screen">
+    <div className="h-screen overflow-hidden relative">
+      {/* Full Page Video Background */}
+      <div className="fixed inset-0 w-full h-full z-0">
+        <video
+          ref={videoRef}
+          autoPlay
+          muted
+          playsInline
+          loop={false}
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{
+            objectFit: "cover",
+            width: "100%",
+            height: "100%",
+          }}
+        >
+          <source src={videos[currentVideoIndex]} type="video/mp4" />
+        </video>
+        {/* Overlay for better text readability */}
+        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50"></div>
+      </div>
+
       {/* Navigation */}
-      <nav className="bg-white border-b border-gray-200">
+      <nav className="z-50 sticky top-0 font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <Logo />
+            <Logo textColor="white" />
 
-            <div className="flex items-center gap-6">
-              <a href="#features" className="text-sm text-gray-700 hover:text-gray-900">
-                Features
-              </a>
-              <a href="#pricing" className="text-sm text-gray-700 hover:text-gray-900">
-                Pricing
-              </a>
-              <a href="#docs" className="text-sm text-gray-700 hover:text-gray-900">
-                Docs
-              </a>
+            <div className="flex items-center gap-4">
               <button
-                onClick={() => navigate('/login')}
-                className="text-sm text-gray-700 hover:text-gray-900 font-medium"
+                onClick={() => navigate("/features")}
+                className="text-[14px] text-white font-medium hover:text-white/80 transition-colors px-2 py-1 font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]"
               >
-                Log in
+                Features
               </button>
               <button
-                onClick={() => navigate('/signup')}
-                className="btn-primary"
+                onClick={() => window.open("https://calendly.com", "_blank")}
+                className="text-[14px] text-white font-medium px-5 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif] flex items-center gap-2"
               >
-                Start for free
+                Schedule Demo
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                  />
+                </svg>
+              </button>
+              <button
+                onClick={() => navigate("/login")}
+                className="text-[14px] text-white font-medium px-5 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]"
+              >
+                Log In
               </button>
             </div>
           </div>
@@ -47,233 +162,74 @@ const Landing: React.FC = () => {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden bg-gradient-to-br from-emerald-400 via-teal-500 to-cyan-500 min-h-[650px]">
-        {/* Background Video - Optional: uncomment and add your video file */}
-        {/*
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          className="absolute inset-0 w-full h-full object-cover opacity-20"
-        >
-          <source src="/videos/background.mp4" type="video/mp4" />
-        </video>
-        */}
-
-        {/* Decorative cloud elements */}
-        <div className="absolute inset-0 overflow-hidden">
-          {/* Large puffy cloud cluster - left side */}
-          <div className="absolute top-32 -left-40 w-[600px] h-[400px]">
-            <div className="absolute top-0 left-0 w-80 h-80 bg-teal-300 rounded-full opacity-50 blur-[100px]"></div>
-            <div className="absolute top-20 left-40 w-96 h-96 bg-cyan-300 rounded-full opacity-45 blur-[120px]"></div>
-            <div className="absolute top-60 left-20 w-72 h-72 bg-emerald-300 rounded-full opacity-40 blur-[90px]"></div>
-          </div>
-
-          {/* Right side cloud cluster */}
-          <div className="absolute top-40 -right-32 w-[500px] h-[350px]">
-            <div className="absolute top-0 right-0 w-72 h-72 bg-teal-300 rounded-full opacity-50 blur-[90px]"></div>
-            <div className="absolute top-32 right-24 w-80 h-80 bg-cyan-200 rounded-full opacity-45 blur-[100px]"></div>
-          </div>
-
-          {/* Large bottom left cloud */}
-          <div className="absolute -bottom-40 -left-20 w-[700px] h-[500px]">
-            <div className="absolute bottom-0 left-0 w-[500px] h-[400px] bg-teal-200 rounded-full opacity-60 blur-[130px]"></div>
-            <div className="absolute bottom-32 left-40 w-96 h-96 bg-cyan-200 rounded-full opacity-55 blur-[110px]"></div>
-            <div className="absolute bottom-64 left-80 w-80 h-80 bg-emerald-200 rounded-full opacity-50 blur-[100px]"></div>
-          </div>
-
-          {/* Bottom right cloud cluster */}
-          <div className="absolute -bottom-32 right-20 w-[450px] h-[400px]">
-            <div className="absolute bottom-0 right-0 w-96 h-96 bg-cyan-100 rounded-full opacity-60 blur-[100px]"></div>
-            <div className="absolute bottom-40 right-32 w-80 h-80 bg-teal-200 rounded-full opacity-55 blur-[90px]"></div>
-          </div>
-
-          {/* Center accent clouds for depth */}
-          <div className="absolute top-1/2 left-1/3 w-64 h-64 bg-emerald-200 rounded-full opacity-30 blur-[80px]"></div>
-          <div className="absolute top-2/3 right-1/4 w-56 h-56 bg-cyan-200 rounded-full opacity-35 blur-[70px]"></div>
-        </div>
-
-        <div className="relative max-w-5xl mx-auto px-6 lg:px-8 py-24 md:py-32 text-center z-10">
-          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight">
-            Engineering Trade Studies
-            <br />
-            <span className="underline decoration-4 underline-offset-8">Simplified</span>
+      <section className="relative z-10 h-screen flex items-center justify-center">
+        <div className="max-w-5xl mx-auto px-6 lg:px-8 text-center w-full -mt-28">
+          <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold text-white mb-6 leading-tight tracking-tight">
+            Trade Studies{" "}
+            <span className="underline decoration-4 underline-offset-8 decoration-white/80">
+              Simplified
+            </span>
           </h1>
-          <p className="text-xl md:text-2xl text-white mb-12 max-w-3xl mx-auto leading-relaxed">
-            Automate component evaluation and scoring. Make data-driven decisions faster.
+          <p className="text-xl md:text-2xl text-white/95 mb-10 max-w-3xl mx-auto leading-relaxed">
+            <span className="font-bold">Automate</span> component evaluation and
+            scoring.
+            <br />
+            <span className="font-bold">Faster</span> data-driven decisions.
           </p>
 
           {/* CTA Buttons and Email Form */}
           <div className="max-w-2xl mx-auto space-y-4">
-            {/* Buttons */}
-            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+            {/* Button */}
+            <div className="flex justify-center -mt-6 mb-4">
               <button
-                onClick={() => navigate('/signup')}
-                className="bg-white text-teal-700 px-8 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors whitespace-nowrap"
+                onClick={() => window.open("https://calendly.com", "_blank")}
+                className="text-base text-white font-bold px-8 py-3 rounded-lg bg-white/15 hover:bg-white/25 transition-all backdrop-blur-sm whitespace-nowrap font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif] flex items-center gap-2"
               >
-                Start now
-              </button>
-              <button
-                onClick={() => window.open('https://calendly.com', '_blank')}
-                className="bg-white text-teal-700 px-8 py-3 rounded-lg font-semibold hover:bg-gray-50 transition-colors whitespace-nowrap"
-              >
-                Book a demo
+                Schedule Demo
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
+                  />
+                </svg>
               </button>
             </div>
 
             {/* Email Form */}
-            <form onSubmit={handleGetStarted} className="max-w-md mx-auto">
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="Email address"
-                className="w-full px-5 py-3 rounded-lg border-0 focus:ring-2 focus:ring-white outline-none text-gray-900 placeholder-gray-500"
-                required
-              />
-            </form>
-
-            <p className="text-white text-sm mt-4">
-              Free to get started. No credit card required.
-            </p>
-          </div>
-        </div>
-      </section>
-
-      {/* Features Section */}
-      <section id="features" className="py-24 bg-white">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
-              Trade study features
-            </h2>
-            <p className="text-xl text-gray-600">
-              Tools for systematic component evaluation
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-3 gap-6">
-            <div className="p-6 bg-white border border-gray-200 rounded-lg hover:shadow-sm transition-all">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Automated Scoring
-              </h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Score and rank components against weighted criteria
-              </p>
-            </div>
-
-            <div className="p-6 bg-white border border-gray-200 rounded-lg hover:shadow-sm transition-all">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Fast Results
-              </h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Complete trade studies in minutes vs. weeks
-              </p>
-            </div>
-
-            <div className="p-6 bg-white border border-gray-200 rounded-lg hover:shadow-sm transition-all">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Reports & Exports
-              </h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Generate reports with visualizations and data tables
-              </p>
-            </div>
-
-            <div className="p-6 bg-white border border-gray-200 rounded-lg hover:shadow-sm transition-all">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Custom Criteria
-              </h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Define weighted criteria for your requirements
-              </p>
-            </div>
-
-            <div className="p-6 bg-white border border-gray-200 rounded-lg hover:shadow-sm transition-all">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Version History
-              </h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Track changes and compare study iterations
-              </p>
-            </div>
-
-            <div className="p-6 bg-white border border-gray-200 rounded-lg hover:shadow-sm transition-all">
-              <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Team Collaboration
-              </h3>
-              <p className="text-sm text-gray-600 leading-relaxed">
-                Share studies and collaborate on decisions
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-24 bg-gray-50">
-        <div className="max-w-4xl mx-auto px-6 lg:px-8 text-center">
-          <h2 className="text-4xl font-bold text-gray-900 mb-6">
-            Start your first trade study
-          </h2>
-          <p className="text-xl text-gray-600 mb-8">
-            Used by engineering teams for component evaluation
-          </p>
-          <button
-            onClick={() => navigate('/signup')}
-            className="bg-emerald-500 hover:bg-emerald-600 text-white px-8 py-4 rounded-lg text-lg font-semibold transition-colors"
-          >
-            Get started
-          </button>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="bg-white border-t border-gray-200 py-12">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="grid md:grid-cols-4 gap-8">
-            <div>
-              <div className="mb-4">
-                <Logo />
+            <form onSubmit={handleJoinWaitlist} className="max-w-md mx-auto">
+              <div className="flex gap-2.5 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg px-2 py-1.5">
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your email"
+                  className="flex-1 px-4 py-2.5 rounded-lg border-0 focus:ring-0 outline-none text-gray-900 placeholder-gray-500 bg-transparent"
+                  required
+                />
+                <button
+                  type="submit"
+                  className="bg-black hover:bg-black/90 text-white px-9 py-2.5 rounded-lg font-semibold transition-colors whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
+                  disabled={isSubmitting}
+                >
+                  Join Waitlist
+                </button>
               </div>
-              <p className="text-sm text-gray-600">
-                Trade study platform for engineering teams
-              </p>
-            </div>
-
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-4">Product</h4>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li><a href="#" className="hover:text-gray-900">Features</a></li>
-                <li><a href="#" className="hover:text-gray-900">Pricing</a></li>
-                <li><a href="#" className="hover:text-gray-900">Documentation</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-4">Company</h4>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li><a href="#" className="hover:text-gray-900">About</a></li>
-                <li><a href="#" className="hover:text-gray-900">Blog</a></li>
-                <li><a href="#" className="hover:text-gray-900">Contact</a></li>
-              </ul>
-            </div>
-
-            <div>
-              <h4 className="font-semibold text-gray-900 mb-4">Legal</h4>
-              <ul className="space-y-2 text-sm text-gray-600">
-                <li><a href="#" className="hover:text-gray-900">Privacy</a></li>
-                <li><a href="#" className="hover:text-gray-900">Terms</a></li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="border-t border-gray-200 mt-12 pt-8 text-center text-sm text-gray-600">
-            © 2025 TradeForm. All rights reserved.
+              {submissionMessage && (
+                <p className="mt-3 text-sm text-white/80">
+                  {submissionMessage}
+                </p>
+              )}
+            </form>
           </div>
         </div>
-      </footer>
+      </section>
     </div>
   );
 };
