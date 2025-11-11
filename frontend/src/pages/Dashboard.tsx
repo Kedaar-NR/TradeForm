@@ -1,13 +1,57 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useStore } from '../store/useStore';
-import { Project } from '../types';
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { useStore } from "../store/useStore";
+import { Project } from "../types";
+import { projectsApi, componentsApi } from "../services/api";
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { projects } = useStore();
-  const [searchTerm, setSearchTerm] = useState('');
-  const [filterStatus, setFilterStatus] = useState<string>('all');
+  const { projects, setProjects } = useStore();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+  const [componentCounts, setComponentCounts] = useState<
+    Record<string, number>
+  >({});
+  const [deletingProjectId, setDeletingProjectId] = useState<string | null>(
+    null
+  );
+
+  const loadProjects = React.useCallback(async () => {
+    try {
+      const response = await projectsApi.getAll();
+      const transformedProjects = response.data.map((p: any) => ({
+        id: p.id,
+        name: p.name,
+        componentType: p.component_type,
+        description: p.description,
+        status: p.status,
+        createdAt: p.created_at,
+        updatedAt: p.updated_at,
+      }));
+      setProjects(transformedProjects);
+
+      // Load component counts for each project
+      const counts: Record<string, number> = {};
+      await Promise.all(
+        transformedProjects.map(async (project: Project) => {
+          try {
+            const compRes = await componentsApi.getByProject(project.id);
+            counts[project.id] = compRes.data.length;
+          } catch (error) {
+            counts[project.id] = 0;
+          }
+        })
+      );
+      setComponentCounts(counts);
+    } catch (error) {
+      console.error("Failed to load projects:", error);
+    }
+  }, [setProjects]);
+
+  // Load projects from API
+  useEffect(() => {
+    loadProjects();
+  }, [loadProjects]);
 
   // Filter projects based on search and status
   const filteredProjects = projects.filter((project) => {
@@ -16,22 +60,22 @@ const Dashboard: React.FC = () => {
       project.componentType.toLowerCase().includes(searchTerm.toLowerCase());
 
     const matchesStatus =
-      filterStatus === 'all' || project.status === filterStatus;
+      filterStatus === "all" || project.status === filterStatus;
 
     return matchesSearch && matchesStatus;
   });
 
-  const getStatusBadge = (status: Project['status']) => {
+  const getStatusBadge = (status: Project["status"]) => {
     const styles = {
-      draft: 'bg-gray-100 text-gray-700',
-      in_progress: 'bg-blue-100 text-blue-700',
-      completed: 'bg-emerald-100 text-emerald-700',
+      draft: "bg-gray-100 text-gray-700",
+      in_progress: "bg-blue-100 text-blue-700",
+      completed: "bg-emerald-100 text-emerald-700",
     };
 
     const labels = {
-      draft: 'Draft',
-      in_progress: 'In Progress',
-      completed: 'Completed',
+      draft: "Draft",
+      in_progress: "In Progress",
+      completed: "Completed",
     };
 
     return (
@@ -44,29 +88,57 @@ const Dashboard: React.FC = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
+    return new Date(dateString).toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
     });
+  };
+
+  const handleDeleteProject = async (
+    projectId: string,
+    projectName: string
+  ) => {
+    if (
+      !window.confirm(
+        `Are you sure you want to delete "${projectName}"? This action cannot be undone.`
+      )
+    ) {
+      return;
+    }
+
+    try {
+      setDeletingProjectId(projectId);
+      await projectsApi.delete(projectId);
+      // Reload projects after deletion
+      await loadProjects();
+    } catch (error: any) {
+      console.error("Failed to delete project:", error);
+      alert(
+        `Failed to delete project: ${
+          error.response?.data?.detail || error.message
+        }`
+      );
+    } finally {
+      setDeletingProjectId(null);
+    }
   };
 
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Page Header */}
       <div>
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Trade Studies
-        </h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Trade Studies</h1>
         <p className="text-gray-600">
-          Automate your engineering component evaluations with AI-powered analysis
+          Automate your engineering component evaluations with AI-powered
+          analysis
         </p>
       </div>
 
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <button
-          onClick={() => navigate('/new-project')}
+          onClick={() => navigate("/new-project")}
           className="card p-6 hover:border-emerald-300 group cursor-pointer text-left"
         >
           <h3 className="font-semibold text-gray-900 mb-1">New Trade Study</h3>
@@ -75,19 +147,21 @@ const Dashboard: React.FC = () => {
           </p>
         </button>
 
-        <div className="card p-6">
+        <button
+          onClick={() => navigate("/documentation")}
+          className="card p-6 hover:border-emerald-300 group cursor-pointer text-left"
+        >
           <h3 className="font-semibold text-gray-900 mb-1">Documentation</h3>
-          <p className="text-sm text-gray-600">
-            Learn how to use TradeForm
-          </p>
-        </div>
+          <p className="text-sm text-gray-600">Learn how to use TradeForm</p>
+        </button>
 
-        <div className="card p-6">
+        <button
+          onClick={() => navigate("/templates")}
+          className="card p-6 hover:border-emerald-300 group cursor-pointer text-left"
+        >
           <h3 className="font-semibold text-gray-900 mb-1">Templates</h3>
-          <p className="text-sm text-gray-600">
-            Browse study templates
-          </p>
-        </div>
+          <p className="text-sm text-gray-600">Browse study templates</p>
+        </button>
       </div>
 
       {/* Filter bar */}
@@ -130,13 +204,13 @@ const Dashboard: React.FC = () => {
               No trade studies found
             </h3>
             <p className="text-sm text-gray-600 mb-6 max-w-sm mx-auto">
-              {searchTerm || filterStatus !== 'all'
-                ? 'Try adjusting your search or filter criteria'
-                : 'Get started by creating your first trade study'}
+              {searchTerm || filterStatus !== "all"
+                ? "Try adjusting your search or filter criteria"
+                : "Get started by creating your first trade study"}
             </p>
-            {!searchTerm && filterStatus === 'all' && (
+            {!searchTerm && filterStatus === "all" && (
               <button
-                onClick={() => navigate('/new-project')}
+                onClick={() => navigate("/new-project")}
                 className="btn-primary"
               >
                 Create Your First Study
@@ -148,12 +222,29 @@ const Dashboard: React.FC = () => {
             {filteredProjects.map((project) => (
               <div
                 key={project.id}
-                className="card p-5 cursor-pointer group"
+                className={`card p-5 cursor-pointer group ${
+                  project.status === "completed"
+                    ? "border-emerald-200 bg-emerald-50/30"
+                    : ""
+                }`}
                 onClick={() => navigate(`/project/${project.id}`)}
               >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2">
+                      {project.status === "completed" && (
+                        <svg
+                          className="w-5 h-5 text-emerald-600 flex-shrink-0"
+                          fill="currentColor"
+                          viewBox="0 0 20 20"
+                        >
+                          <path
+                            fillRule="evenodd"
+                            d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                            clipRule="evenodd"
+                          />
+                        </svg>
+                      )}
                       <h3 className="text-base font-semibold text-gray-900 truncate">
                         {project.name}
                       </h3>
@@ -167,21 +258,64 @@ const Dashboard: React.FC = () => {
                         {project.description}
                       </p>
                     )}
-                    <p className="text-xs text-gray-500">
-                      Updated {formatDate(project.updatedAt)}
-                    </p>
+                    <div className="flex items-center gap-4 mt-2">
+                      <span className="text-xs text-gray-500">
+                        {componentCounts[project.id] || 0} component
+                        {componentCounts[project.id] !== 1 ? "s" : ""}
+                      </span>
+                      <span className="text-xs text-gray-400">•</span>
+                      <span className="text-xs text-gray-500">
+                        Updated {formatDate(project.updatedAt)}
+                      </span>
+                    </div>
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      navigate(`/project/${project.id}`);
-                    }}
-                    className="text-gray-400 group-hover:text-emerald-600 transition-colors"
-                  >
-                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
-                  </button>
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteProject(project.id, project.name);
+                      }}
+                      disabled={deletingProjectId === project.id}
+                      className="text-gray-400 hover:text-red-600 transition-colors disabled:opacity-50"
+                      title="Delete study"
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate(`/project/${project.id}`);
+                      }}
+                      className="text-gray-400 group-hover:text-emerald-600 transition-colors"
+                      title="Open study"
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 5l7 7-7 7"
+                        />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               </div>
             ))}
