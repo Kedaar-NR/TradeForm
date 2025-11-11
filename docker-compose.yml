@@ -1,0 +1,86 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: tradeform_postgres
+    environment:
+      POSTGRES_DB: tradeform
+      POSTGRES_USER: tradeform_user
+      POSTGRES_PASSWORD: tradeform_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - tradeform_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tradeform_user -d tradeform"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis for caching and Celery
+  redis:
+    image: redis:7-alpine
+    container_name: tradeform_redis
+    ports:
+      - "6379:6379"
+    networks:
+      - tradeform_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # FastAPI Backend
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: tradeform_backend
+    environment:
+      DATABASE_URL: postgresql://tradeform_user:tradeform_password@postgres:5432/tradeform
+      REDIS_URL: redis://redis:6379
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-your_openai_key_here}
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-your_anthropic_key_here}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - tradeform_network
+    volumes:
+      - ./backend:/app
+      - backend_uploads:/app/uploads
+
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: tradeform_frontend
+    environment:
+      REACT_APP_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    networks:
+      - tradeform_network
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+
+networks:
+  tradeform_network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  backend_uploads:
