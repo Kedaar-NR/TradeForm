@@ -47,7 +47,7 @@ def health_check():
 @app.post("/api/projects", response_model=schemas.Project, status_code=status.HTTP_201_CREATED)
 def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)):
     """Create a new trade study project"""
-    db_project = models.Project(**project.dict())
+    db_project = models.Project(**project.model_dump())
     db.add(db_project)
     db.commit()
     db.refresh(db_project)
@@ -74,7 +74,7 @@ def update_project(project_id: UUID, project_update: schemas.ProjectUpdate, db: 
     if not db_project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    for key, value in project_update.dict(exclude_unset=True).items():
+    for key, value in project_update.model_dump(exclude_unset=True).items():
         setattr(db_project, key, value)
 
     db.commit()
@@ -104,7 +104,7 @@ def add_criterion(project_id: UUID, criterion: schemas.CriterionBase, db: Sessio
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    db_criterion = models.Criterion(**criterion.dict(), project_id=project_id)
+    db_criterion = models.Criterion(**criterion.model_dump(), project_id=project_id)
     db.add(db_criterion)
     db.commit()
     db.refresh(db_criterion)
@@ -123,7 +123,7 @@ def update_criterion(criterion_id: UUID, criterion_update: schemas.CriterionBase
     if not db_criterion:
         raise HTTPException(status_code=404, detail="Criterion not found")
 
-    for key, value in criterion_update.dict(exclude_unset=True).items():
+    for key, value in criterion_update.model_dump(exclude_unset=True).items():
         setattr(db_criterion, key, value)
 
     db.commit()
@@ -154,7 +154,7 @@ def add_component(project_id: UUID, component: schemas.ComponentBase, db: Sessio
         raise HTTPException(status_code=404, detail="Project not found")
 
     db_component = models.Component(
-        **component.dict(),
+        **component.model_dump(),
         project_id=project_id,
         source=models.ComponentSource.MANUALLY_ADDED
     )
@@ -168,6 +168,20 @@ def list_components(project_id: UUID, db: Session = Depends(get_db)):
     """List all components for a project"""
     components = db.query(models.Component).filter(models.Component.project_id == project_id).all()
     return components
+
+@app.put("/api/components/{component_id}", response_model=schemas.Component)
+def update_component(component_id: UUID, component_update: schemas.ComponentBase, db: Session = Depends(get_db)):
+    """Update a component"""
+    db_component = db.query(models.Component).filter(models.Component.id == component_id).first()
+    if not db_component:
+        raise HTTPException(status_code=404, detail="Component not found")
+
+    for key, value in component_update.model_dump(exclude_unset=True).items():
+        setattr(db_component, key, value)
+
+    db.commit()
+    db.refresh(db_component)
+    return db_component
 
 @app.delete("/api/components/{component_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_component(component_id: UUID, db: Session = Depends(get_db)):
@@ -187,7 +201,7 @@ def delete_component(component_id: UUID, db: Session = Depends(get_db)):
 @app.post("/api/scores", response_model=schemas.Score, status_code=status.HTTP_201_CREATED)
 def create_score(score: schemas.ScoreCreate, db: Session = Depends(get_db)):
     """Create or update a score for a component-criterion pair"""
-    db_score = models.Score(**score.dict())
+    db_score = models.Score(**score.model_dump())
     db.add(db_score)
     db.commit()
     db.refresh(db_score)
@@ -208,7 +222,7 @@ def update_score(score_id: UUID, score_update: schemas.ScoreUpdate, db: Session 
     if not db_score:
         raise HTTPException(status_code=404, detail="Score not found")
 
-    for key, value in score_update.dict(exclude_unset=True).items():
+    for key, value in score_update.model_dump(exclude_unset=True).items():
         setattr(db_score, key, value)
 
     db.commit()
@@ -272,11 +286,115 @@ def get_project_results(project_id: UUID, db: Session = Depends(get_db)):
 
 @app.post("/api/projects/{project_id}/discover")
 def discover_components(project_id: UUID, db: Session = Depends(get_db)):
-    """Trigger AI component discovery"""
-    return {
-        "message": "Component discovery feature coming soon",
-        "status": "not_implemented"
-    }
+    """Trigger AI component discovery using Anthropic Claude"""
+    import os
+    from anthropic import Anthropic
+    
+    # Verify project exists
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # Get criteria for context
+    criteria = db.query(models.Criterion).filter(models.Criterion.project_id == project_id).all()
+    criteria_names = [c.name for c in criteria] if criteria else []
+    
+    # Initialize Anthropic client
+    api_key = os.getenv("ANTHROPIC_API_KEY", "REMOVED_API_KEY")
+    client = Anthropic(api_key=api_key)
+    
+    # Build prompt for component discovery
+    prompt = f"""You are an expert component engineer helping to discover components for a trade study.
+
+Project Details:
+- Component Type: {project.component_type}
+- Project Name: {project.name}
+{f"- Description: {project.description}" if project.description else ""}
+{f"- Evaluation Criteria: {', '.join(criteria_names)}" if criteria_names else ""}
+
+Task: Discover 5-10 commercially available components that match this component type. For each component, provide:
+1. Manufacturer name
+2. Part number
+3. Brief description (1-2 sentences)
+4. Datasheet URL if available (prefer manufacturer or distributor sites like Digi-Key, Mouser, Octopart)
+
+Format your response as a JSON array of objects with these fields:
+- manufacturer (string)
+- part_number (string)
+- description (string)
+- datasheet_url (string, optional)
+- availability (one of: "in_stock", "limited", "obsolete")
+
+Return ONLY valid JSON, no markdown formatting, no explanations."""
+
+    try:
+        # Call Anthropic API
+        message = client.messages.create(
+            model="claude-3-5-sonnet-20241022",
+            max_tokens=2000,
+            messages=[
+                {"role": "user", "content": prompt}
+            ]
+        )
+        
+        # Parse response
+        import json
+        response_text = message.content[0].text.strip()
+        
+        # Remove markdown code blocks if present
+        if response_text.startswith("```"):
+            response_text = response_text.split("```")[1]
+            if response_text.startswith("json"):
+                response_text = response_text[4:]
+            response_text = response_text.strip()
+        
+        components_data = json.loads(response_text)
+        
+        # Validate and save components
+        discovered_components = []
+        for comp_data in components_data:
+            if not isinstance(comp_data, dict) or "manufacturer" not in comp_data or "part_number" not in comp_data:
+                continue
+                
+            # Check if component already exists
+            existing = db.query(models.Component).filter(
+                models.Component.project_id == project_id,
+                models.Component.manufacturer == comp_data["manufacturer"],
+                models.Component.part_number == comp_data["part_number"]
+            ).first()
+            
+            if existing:
+                continue
+            
+            # Create component
+            db_component = models.Component(
+                manufacturer=comp_data["manufacturer"],
+                part_number=comp_data["part_number"],
+                description=comp_data.get("description"),
+                datasheet_url=comp_data.get("datasheet_url"),
+                availability=models.ComponentAvailability(comp_data.get("availability", "in_stock")),
+                project_id=project_id,
+                source=models.ComponentSource.AI_DISCOVERED
+            )
+            db.add(db_component)
+            discovered_components.append(db_component)
+        
+        db.commit()
+        
+        # Refresh components to get IDs
+        for comp in discovered_components:
+            db.refresh(comp)
+        
+        return {
+            "status": "success",
+            "discovered_count": len(discovered_components),
+            "components": [schemas.Component.model_validate(c) for c in discovered_components]
+        }
+        
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=500, detail=f"Failed to parse AI response: {str(e)}")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"AI discovery failed: {str(e)}")
 
 @app.post("/api/components/{component_id}/datasheet")
 def upload_datasheet(component_id: UUID, db: Session = Depends(get_db)):
