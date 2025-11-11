@@ -119,16 +119,16 @@ const Signup: React.FC = () => {
               <div className="flex items-start">
                 <input
                   type="checkbox"
-                  className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500 mt-0.5"
+                  className="w-4 h-4 text-black rounded border-gray-300 focus:ring-gray-1000 mt-0.5"
                   required
                 />
                 <label className="ml-2 text-sm text-gray-600">
                   I agree to the{' '}
-                  <button type="button" className="text-emerald-600 hover:text-emerald-700">
+                  <button type="button" className="text-black hover:text-gray-900">
                     Terms of Service
                   </button>{' '}
                   and{' '}
-                  <button type="button" className="text-emerald-600 hover:text-emerald-700">
+                  <button type="button" className="text-black hover:text-gray-900">
                     Privacy Policy
                   </button>
                 </label>
@@ -144,7 +144,7 @@ const Signup: React.FC = () => {
                 Already have an account?{' '}
                 <button
                   onClick={() => navigate('/login')}
-                  className="text-emerald-600 hover:text-emerald-700 font-medium"
+                  className="text-black hover:text-gray-900 font-medium"
                 >
                   Log in
                 </button>

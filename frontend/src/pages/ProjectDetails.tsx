@@ -237,7 +237,7 @@ const ProjectDetails: React.FC = () => {
 
   const getAvailabilityBadge = (availability: Component["availability"]) => {
     const styles = {
-      in_stock: "bg-emerald-100 text-emerald-700",
+      in_stock: "bg-gray-200 text-gray-900",
       limited: "bg-yellow-100 text-yellow-700",
       obsolete: "bg-red-100 text-red-700",
     };
@@ -333,7 +333,7 @@ const ProjectDetails: React.FC = () => {
           <div className="text-sm text-gray-600">Criteria</div>
         </div>
         <div className="card p-6">
-          <div className="text-2xl font-bold text-emerald-600 mb-1">
+          <div className="text-2xl font-bold text-black mb-1">
             {project.status === "completed"
               ? "✓"
               : project.status === "in_progress"
@@ -481,7 +481,7 @@ const ProjectDetails: React.FC = () => {
                           href={component.datasheetUrl}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="text-sm text-emerald-600 hover:text-emerald-700 inline-flex items-center gap-1"
+                          className="text-sm text-black hover:text-gray-900 inline-flex items-center gap-1"
                         >
                           View Datasheet →
                         </a>
@@ -490,7 +490,7 @@ const ProjectDetails: React.FC = () => {
                     <div className="flex gap-2">
                       <button
                         onClick={() => handleEditComponent(component)}
-                        className="text-gray-400 hover:text-emerald-600 transition-colors"
+                        className="text-gray-400 hover:text-black transition-colors"
                         title="Edit component"
                       >
                         <svg
@@ -586,7 +586,7 @@ const ProjectDetails: React.FC = () => {
             onClick={() => setActiveTab("overview")}
             className={`pb-3 px-1 border-b-2 font-medium text-sm ${
               activeTab === "overview"
-                ? "border-emerald-500 text-emerald-600"
+                ? "border-gray-1000 text-black"
                 : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
           >
@@ -596,7 +596,7 @@ const ProjectDetails: React.FC = () => {
             onClick={() => setActiveTab("versions")}
             className={`pb-3 px-1 border-b-2 font-medium text-sm ${
               activeTab === "versions"
-                ? "border-emerald-500 text-emerald-600"
+                ? "border-gray-1000 text-black"
                 : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
           >
@@ -606,7 +606,7 @@ const ProjectDetails: React.FC = () => {
             onClick={() => setActiveTab("collaboration")}
             className={`pb-3 px-1 border-b-2 font-medium text-sm ${
               activeTab === "collaboration"
-                ? "border-emerald-500 text-emerald-600"
+                ? "border-gray-1000 text-black"
                 : "border-transparent text-gray-500 hover:text-gray-700"
             }`}
           >
@@ -809,7 +809,7 @@ const ProjectDetails: React.FC = () => {
                       <span className="text-sm text-gray-700">
                         User ID: {share.shared_with_user_id}
                       </span>
-                      <span className="text-xs px-2 py-1 bg-emerald-100 text-emerald-700 rounded">
+                      <span className="text-xs px-2 py-1 bg-gray-200 text-gray-900 rounded">
                         {share.permission}
                       </span>
                     </div>
@@ -842,14 +842,14 @@ const ProjectDetails: React.FC = () => {
           {project.status !== "completed" && (
             <button
               onClick={handleMarkAsDone}
-              className="btn-primary bg-emerald-600 hover:bg-emerald-700"
+              className="btn-primary bg-black hover:bg-gray-900"
               disabled={isSaving || components.length === 0}
             >
               {isSaving ? "Saving..." : "✓ Mark as Done"}
             </button>
           )}
           {project.status === "completed" && (
-            <div className="flex items-center gap-2 text-emerald-600">
+            <div className="flex items-center gap-2 text-black">
               <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
                 <path
                   fillRule="evenodd"

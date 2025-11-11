@@ -331,16 +331,16 @@ const CriteriaDefinition: React.FC = () => {
       <div className="mb-8">
         <div className="flex items-center gap-2">
           <div className="flex items-center">
-            <div className="w-8 h-8 bg-emerald-500 text-white rounded-lg flex items-center justify-center text-sm">
+            <div className="w-8 h-8 bg-gray-1000 text-white rounded-lg flex items-center justify-center text-sm">
               ✓
             </div>
             <span className="ml-2 text-sm font-medium text-gray-500">
               Setup
             </span>
           </div>
-          <div className="w-16 h-0.5 bg-emerald-500"></div>
+          <div className="w-16 h-0.5 bg-gray-1000"></div>
           <div className="flex items-center">
-            <div className="w-8 h-8 bg-emerald-500 text-white rounded-lg flex items-center justify-center font-semibold text-sm">
+            <div className="w-8 h-8 bg-gray-1000 text-white rounded-lg flex items-center justify-center font-semibold text-sm">
               2
             </div>
             <span className="ml-2 text-sm font-medium text-gray-900">
@@ -393,7 +393,7 @@ const CriteriaDefinition: React.FC = () => {
       {/* Main Card */}
       <div className="card p-8">
         {/* Weight Summary */}
-        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-5 mb-6">
+        <div className="bg-gray-100 border border-gray-300 rounded-lg p-5 mb-6">
           <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2 mb-3">
             <span className="font-semibold text-gray-900">
               Total Weight: {getTotalWeight()}
@@ -404,7 +404,7 @@ const CriteriaDefinition: React.FC = () => {
           </div>
           <div className="bg-white rounded-full h-2 overflow-hidden">
             <div
-              className="h-full bg-emerald-500 transition-all duration-300"
+              className="h-full bg-gray-1000 transition-all duration-300"
               style={{
                 width: `${Math.min((getTotalWeight() / 50) * 100, 100)}%`,
               }}
@@ -417,7 +417,7 @@ const CriteriaDefinition: React.FC = () => {
           {criteria.map((criterion, index) => (
             <div
               key={index}
-              className="border border-gray-200 rounded-lg p-5 hover:border-emerald-200 transition-all bg-white"
+              className="border border-gray-200 rounded-lg p-5 hover:border-gray-300 transition-all bg-white"
             >
               <div className="grid grid-cols-12 gap-4">
                 {/* Criterion Name */}
@@ -572,7 +572,7 @@ const CriteriaDefinition: React.FC = () => {
         {/* Add Criterion Button */}
         <button
           onClick={addCriterion}
-          className="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-gray-600 hover:border-emerald-400 hover:bg-emerald-50 hover:text-emerald-700 transition-all font-medium text-sm"
+          className="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-gray-600 hover:border-gray-400 hover:bg-gray-100 hover:text-gray-900 transition-all font-medium text-sm"
         >
           + Add Another Criterion
         </button>

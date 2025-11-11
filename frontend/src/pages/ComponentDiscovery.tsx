@@ -260,7 +260,7 @@ const ComponentDiscovery: React.FC = () => {
 
   const getAvailabilityBadge = (availability: Component["availability"]) => {
     const styles = {
-      in_stock: "bg-emerald-100 text-emerald-700",
+      in_stock: "bg-gray-200 text-gray-900",
       limited: "bg-yellow-100 text-yellow-700",
       obsolete: "bg-red-100 text-red-700",
     };
@@ -315,7 +315,7 @@ const ComponentDiscovery: React.FC = () => {
       </div>
 
       {/* AI Discovery Section */}
-      <div className="card p-6 mb-8 bg-gradient-to-r from-emerald-50 to-teal-50 border-emerald-200">
+      <div className="card p-6 mb-8 bg-gradient-to-r from-gray-100 to-teal-50 border-gray-300">
         <div className="flex items-start justify-between">
           <div className="flex-1">
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
@@ -605,7 +605,7 @@ const ComponentDiscovery: React.FC = () => {
                         href={component.datasheetUrl}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="text-sm text-emerald-600 hover:text-emerald-700 flex items-center gap-1 font-medium"
+                        className="text-sm text-black hover:text-gray-900 flex items-center gap-1 font-medium"
                         title={component.datasheetUrl}
                       >
                         View Datasheet

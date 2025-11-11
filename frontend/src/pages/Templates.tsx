@@ -327,7 +327,7 @@ const Templates: React.FC = () => {
       </div>
 
       {/* Custom Template Info */}
-      <div className="card p-6 bg-emerald-50 border-emerald-200">
+      <div className="card p-6 bg-gray-100 border-gray-300">
         <h3 className="font-semibold text-gray-900 mb-2">
           Don't see a template for your use case?
         </h3>

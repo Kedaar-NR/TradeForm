@@ -149,7 +149,7 @@ const ProjectSetup: React.FC = () => {
       <div className="mb-8">
         <div className="flex items-center gap-2">
           <div className="flex items-center">
-            <div className="w-8 h-8 bg-emerald-500 text-white rounded-lg flex items-center justify-center font-semibold text-sm">
+            <div className="w-8 h-8 bg-gray-1000 text-white rounded-lg flex items-center justify-center font-semibold text-sm">
               1
             </div>
             <span className="ml-2 text-sm font-medium text-gray-900">
@@ -231,9 +231,9 @@ const ProjectSetup: React.FC = () => {
 
           {/* AI Suggested Criteria */}
           {showSuggestions && suggestedCriteria.length > 0 && (
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-5 animate-slide-up">
+            <div className="bg-gray-100 border border-gray-300 rounded-lg p-5 animate-slide-up">
               <div className="flex items-start gap-3">
-                <div className="text-emerald-600 shrink-0">
+                <div className="text-black shrink-0">
                   <svg
                     className="w-5 h-5"
                     fill="none"
@@ -256,7 +256,7 @@ const ProjectSetup: React.FC = () => {
                     {suggestedCriteria.map((criterion) => (
                       <span
                         key={criterion}
-                        className="bg-white px-3 py-1 rounded-md text-xs font-medium text-gray-700 border border-emerald-200"
+                        className="bg-white px-3 py-1 rounded-md text-xs font-medium text-gray-700 border border-gray-300"
                       >
                         {criterion}
                       </span>

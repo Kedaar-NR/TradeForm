@@ -125,7 +125,7 @@ const Help: React.FC = () => {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <button
           onClick={() => navigate("/documentation")}
-          className="card p-6 hover:border-emerald-300 cursor-pointer text-left"
+          className="card p-6 hover:border-gray-400 cursor-pointer text-left"
         >
           <h3 className="font-semibold text-gray-900 mb-1">📚 Documentation</h3>
           <p className="text-sm text-gray-600">
@@ -134,7 +134,7 @@ const Help: React.FC = () => {
         </button>
         <button
           onClick={() => navigate("/templates")}
-          className="card p-6 hover:border-emerald-300 cursor-pointer text-left"
+          className="card p-6 hover:border-gray-400 cursor-pointer text-left"
         >
           <h3 className="font-semibold text-gray-900 mb-1">📋 Templates</h3>
           <p className="text-sm text-gray-600">
