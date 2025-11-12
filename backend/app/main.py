@@ -8,6 +8,7 @@ from uuid import UUID
 from datetime import timedelta
 import pandas as pd
 import io
+import os
 
 from app import models, schemas, auth
 from app.database import engine, get_db
@@ -22,10 +23,16 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS middleware
+# CORS configuration - read from environment variables
+# Default to localhost for development, but allow production URLs via env vars
+cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:3001").split(",")
+# Also allow any origin if ALLOW_ALL_ORIGINS is set (for development/testing)
+if os.getenv("ALLOW_ALL_ORIGINS", "false").lower() == "true":
+    cors_origins = ["*"]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],
+    allow_origins=cors_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
