@@ -21,7 +21,12 @@ const Features: React.FC = () => {
                 Features
               </button>
               <button
-                onClick={() => window.open("https://calendly.com", "_blank")}
+                onClick={() =>
+                  window.open(
+                    "https://calendly.com/aryan_mishra-berkeley/30min",
+                    "_blank"
+                  )
+                }
                 className="text-xs sm:text-sm text-gray-700 hover:text-gray-900 font-medium px-3 sm:px-5 py-2 rounded-lg border border-gray-300 hover:border-gray-400 bg-white hover:bg-gray-50 transition-all shadow-sm hover:shadow-md flex items-center gap-1.5 sm:gap-2"
               >
                 <span className="hidden sm:inline">Schedule Demo</span>
