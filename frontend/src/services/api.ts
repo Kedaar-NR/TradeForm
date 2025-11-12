@@ -14,7 +14,7 @@ if (!API_BASE_URL) {
         // User must set REACT_APP_API_URL in deployment platform settings
         API_BASE_URL = '';
         console.warn(
-            '⚠️ REACT_APP_API_URL is not set in production! ' +
+            'REACT_APP_API_URL is not set in production! ' +
             'Please set this environment variable in your deployment platform. ' +
             'API calls may fail without it.'
         );
@@ -50,7 +50,7 @@ api.interceptors.response.use(
             const errorMsg = API_BASE_URL
                 ? `Network error - cannot reach backend at ${API_BASE_URL}. Is it running?`
                 : 'Network error - REACT_APP_API_URL is not set. Please configure your backend URL.';
-            console.error('❌', errorMsg);
+            console.error(errorMsg);
 
             // Show user-friendly error in production
             if (process.env.NODE_ENV === 'production' && typeof window !== 'undefined') {

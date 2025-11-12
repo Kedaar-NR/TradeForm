@@ -159,7 +159,12 @@ const Landing: React.FC = () => {
                 Features
               </button>
               <button
-                onClick={() => window.open("https://calendly.com", "_blank")}
+                onClick={() =>
+                  window.open(
+                    "https://calendly.com/aryan_mishra-berkeley/30min",
+                    "_blank"
+                  )
+                }
                 className="text-xs sm:text-[14px] text-white font-medium px-3 sm:px-5 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif] flex items-center gap-1.5 sm:gap-2"
               >
                 <span className="hidden sm:inline">Schedule Demo</span>
@@ -240,7 +245,12 @@ const Landing: React.FC = () => {
             {/* Button */}
             <div className="flex justify-center -mt-6 mb-4 px-4">
               <button
-                onClick={() => window.open("https://calendly.com", "_blank")}
+                onClick={() =>
+                  window.open(
+                    "https://calendly.com/aryan_mishra-berkeley/30min",
+                    "_blank"
+                  )
+                }
                 className="text-sm sm:text-base text-white font-bold px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg bg-white/15 hover:bg-white/25 transition-all backdrop-blur-sm whitespace-nowrap font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif] flex items-center gap-2"
               >
                 Schedule Demo
