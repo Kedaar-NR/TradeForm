@@ -256,22 +256,30 @@ const CriteriaDefinition: React.FC = () => {
     if (!projectId) return;
     try {
       const response = await criteriaApi.exportExcel(projectId);
-      const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const blob = new Blob([response.data], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
       const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
+      const a = document.createElement("a");
       a.href = url;
-      a.download = `criteria_${new Date().toISOString().split('T')[0]}.xlsx`;
+      a.download = `criteria_${new Date().toISOString().split("T")[0]}.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (error: any) {
-      console.error('Failed to export criteria:', error);
-      alert(`Failed to export criteria: ${error.response?.data?.detail || error.message}`);
+      console.error("Failed to export criteria:", error);
+      alert(
+        `Failed to export criteria: ${
+          error.response?.data?.detail || error.message
+        }`
+      );
     }
   };
 
-  const handleImportExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportExcel = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file || !projectId) return;
 
@@ -292,14 +300,18 @@ const CriteriaDefinition: React.FC = () => {
         isCustom: false,
       }));
       setCriteria(transformedCriteria);
-      alert('Criteria imported successfully!');
+      alert("Criteria imported successfully!");
     } catch (error: any) {
-      console.error('Failed to import criteria:', error);
-      alert(`Failed to import criteria: ${error.response?.data?.detail || error.message}`);
+      console.error("Failed to import criteria:", error);
+      alert(
+        `Failed to import criteria: ${
+          error.response?.data?.detail || error.message
+        }`
+      );
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        fileInputRef.current.value = "";
       }
     }
   };
@@ -331,16 +343,16 @@ const CriteriaDefinition: React.FC = () => {
       <div className="mb-8">
         <div className="flex items-center gap-2">
           <div className="flex items-center">
-            <div className="w-8 h-8 bg-gray-1000 text-white rounded-lg flex items-center justify-center text-sm">
+            <div className="w-8 h-8 bg-gray-900 text-white rounded-lg flex items-center justify-center text-sm">
               ✓
             </div>
             <span className="ml-2 text-sm font-medium text-gray-500">
               Setup
             </span>
           </div>
-          <div className="w-16 h-0.5 bg-gray-1000"></div>
+          <div className="w-16 h-0.5 bg-gray-900"></div>
           <div className="flex items-center">
-            <div className="w-8 h-8 bg-gray-1000 text-white rounded-lg flex items-center justify-center font-semibold text-sm">
+            <div className="w-8 h-8 bg-gray-900 text-white rounded-lg flex items-center justify-center font-semibold text-sm">
               2
             </div>
             <span className="ml-2 text-sm font-medium text-gray-900">
@@ -373,18 +385,38 @@ const CriteriaDefinition: React.FC = () => {
           disabled={isUploading}
           className="btn-secondary flex items-center gap-2"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+            />
           </svg>
-          {isUploading ? 'Uploading...' : 'Import from Excel'}
+          {isUploading ? "Uploading..." : "Import from Excel"}
         </button>
         <button
           onClick={handleExportExcel}
           disabled={criteria.length === 0}
           className="btn-secondary flex items-center gap-2 disabled:opacity-50"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
+            />
           </svg>
           Export to Excel
         </button>
@@ -404,7 +436,7 @@ const CriteriaDefinition: React.FC = () => {
           </div>
           <div className="bg-white rounded-full h-2 overflow-hidden">
             <div
-              className="h-full bg-gray-1000 transition-all duration-300"
+              className="h-full bg-gray-900 transition-all duration-300"
               style={{
                 width: `${Math.min((getTotalWeight() / 50) * 100, 100)}%`,
               }}
