@@ -81,7 +81,7 @@ const Features: React.FC = () => {
                 </span>
                 Automated Scoring
               </h3>
-              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-4 sm:ml-12">
+              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-6">
                 <li>Score and rank components against weighted criteria</li>
                 <li>
                   Adjust weights in real-time, see instant ranking updates
@@ -101,7 +101,7 @@ const Features: React.FC = () => {
                 </span>
                 Fast Results
               </h3>
-              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-4 sm:ml-12">
+              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-6">
                 <li>Complete trade studies in minutes instead of weeks</li>
                 <li>Parallel AI-assisted component discovery</li>
                 <li>Automated technical specification gathering</li>
@@ -116,7 +116,7 @@ const Features: React.FC = () => {
                 </span>
                 Reports & Exports
               </h3>
-              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-4 sm:ml-12">
+              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-6">
                 <li>Presentation-ready reports with professional charts</li>
                 <li>Sensitivity analysis and trade-off visualizations</li>
                 <li>CSV/Excel export for further processing</li>
@@ -131,7 +131,7 @@ const Features: React.FC = () => {
                 </span>
                 Custom Criteria
               </h3>
-              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-4 sm:ml-12">
+              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-6">
                 <li>Define bespoke criteria tailored to your decisions</li>
                 <li>Templates for common trade study types</li>
                 <li>Custom scoring rubrics and thresholds</li>
@@ -146,7 +146,7 @@ const Features: React.FC = () => {
                 </span>
                 Version History
               </h3>
-              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-4 sm:ml-12">
+              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-6">
                 <li>Track every design iteration and decision point</li>
                 <li>Compare alternatives side-by-side with visual diffs</li>
                 <li>Roll back to previous versions or explore branches</li>
@@ -161,7 +161,7 @@ const Features: React.FC = () => {
                 </span>
                 Team Collaboration
               </h3>
-              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-4 sm:ml-12">
+              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-6">
                 <li>Share studies with team members and stakeholders</li>
                 <li>Comment inline on specific criteria or components</li>
                 <li>Capture decision rationale and approval trails</li>
