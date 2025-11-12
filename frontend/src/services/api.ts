@@ -47,7 +47,22 @@ api.interceptors.response.use(
     (response) => response,
     (error) => {
         if (error.code === 'ERR_NETWORK' || error.message === 'Network Error') {
-            console.error('Network error - is the backend running?', API_BASE_URL);
+            const errorMsg = API_BASE_URL
+                ? `Network error - cannot reach backend at ${API_BASE_URL}. Is it running?`
+                : 'Network error - REACT_APP_API_URL is not set. Please configure your backend URL.';
+            console.error('❌', errorMsg);
+
+            // Show user-friendly error in production
+            if (process.env.NODE_ENV === 'production' && typeof window !== 'undefined') {
+                // You could dispatch a toast notification here if you have a notification system
+                console.error('Backend connection failed. Please check your deployment configuration.');
+            }
+        } else if (error.response) {
+            // Server responded with error status
+            console.error(`API Error ${error.response.status}:`, error.response.data);
+        } else if (error.request) {
+            // Request made but no response
+            console.error('No response from server:', error.request);
         }
         return Promise.reject(error);
     }
