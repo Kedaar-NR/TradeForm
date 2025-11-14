@@ -154,7 +154,7 @@ const Landing: React.FC = () => {
             <div className="flex items-center gap-2 sm:gap-4">
               <button
                 onClick={() => navigate("/features")}
-                className="text-xs sm:text-[14px] text-white font-medium hover:text-white/80 transition-colors px-2 py-1 font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]"
+                className="text-xs sm:text-[14px] text-white font-medium hover:text-white/80 transition-colors px-2 py-1 whitespace-nowrap font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]"
               >
                 Features
               </button>
@@ -165,7 +165,7 @@ const Landing: React.FC = () => {
                     "_blank"
                   )
                 }
-                className="text-xs sm:text-[14px] text-white font-medium px-3 sm:px-5 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif] flex items-center gap-1.5 sm:gap-2"
+                className="text-xs sm:text-[14px] text-white font-medium px-3 sm:px-5 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm whitespace-nowrap font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif] flex items-center gap-1.5 sm:gap-2"
               >
                 <span className="hidden sm:inline">Schedule Demo</span>
                 <span className="sm:hidden">Demo</span>
@@ -185,7 +185,7 @@ const Landing: React.FC = () => {
               </button>
               <button
                 onClick={() => navigate("/login")}
-                className="text-xs sm:text-[14px] text-white font-medium px-3 sm:px-5 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]"
+                className="text-xs sm:text-[14px] text-white font-medium px-3 sm:px-5 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm whitespace-nowrap font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]"
               >
                 Log In
               </button>
