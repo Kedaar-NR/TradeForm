@@ -90,15 +90,15 @@
   }
 
   .btn-primary {
-    @apply bg-gray-900 hover:bg-black text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-all;
+    @apply bg-gray-900 hover:bg-black text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap;
   }
 
   .btn-secondary {
-    @apply bg-white text-gray-700 px-5 py-2.5 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-all;
+    @apply bg-white text-gray-700 px-5 py-2.5 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-all whitespace-nowrap;
   }
 
   .btn-pill {
-    @apply bg-white text-gray-700 px-5 py-2.5 rounded-lg text-sm font-medium border border-gray-200 hover:bg-gray-50 hover:border-gray-400 transition-all;
+    @apply bg-white text-gray-700 px-5 py-2.5 rounded-lg text-sm font-medium border border-gray-200 hover:bg-gray-50 hover:border-gray-400 transition-all whitespace-nowrap;
   }
 
   .input-field {
