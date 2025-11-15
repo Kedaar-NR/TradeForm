@@ -638,7 +638,7 @@ def export_full_trade_study(project_id: UUID, db: Session = Depends(get_db)):
 
         # Sheet 6: Score Breakdown (transposed for easier viewing)
         if components and criteria:
-            breakdown_data = {
+            breakdown_data: dict = {
                 'Component': [f"{c.manufacturer} {c.part_number}" for c in components]
             }
             for criterion in criteria:
@@ -648,7 +648,7 @@ def export_full_trade_study(project_id: UUID, db: Session = Depends(get_db)):
                         models.Score.component_id == component.id,
                         models.Score.criterion_id == criterion.id
                     ).first()
-                    breakdown_data[criterion.name].append(score.score if score else 0)
+                    breakdown_data[criterion.name].append(int(score.score) if score else 0)
 
             df_breakdown = pd.DataFrame(breakdown_data)
             df_breakdown.to_excel(writer, sheet_name='Score Matrix', index=False)
