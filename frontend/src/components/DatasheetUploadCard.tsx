@@ -1,13 +1,14 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef } from "react";
+import { getApiUrl, getAuthHeaders } from "../utils/apiHelpers";
 
 interface DatasheetUploadCardProps {
   onUploadSuccess: () => void;
   testComponentId: string;
 }
 
-const DatasheetUploadCard: React.FC<DatasheetUploadCardProps> = ({ 
-  onUploadSuccess, 
-  testComponentId 
+const DatasheetUploadCard: React.FC<DatasheetUploadCardProps> = ({
+  onUploadSuccess,
+  testComponentId,
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -28,15 +29,18 @@ const DatasheetUploadCard: React.FC<DatasheetUploadCardProps> = ({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
-    
+
     const files = e.dataTransfer.files;
     if (files.length > 0) {
       const file = files[0];
-      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      if (
+        file.type === "application/pdf" ||
+        file.name.toLowerCase().endsWith(".pdf")
+      ) {
         setSelectedFile(file);
         setError(null);
       } else {
-        setError('Please select a PDF file');
+        setError("Please select a PDF file");
       }
     }
   };
@@ -45,11 +49,14 @@ const DatasheetUploadCard: React.FC<DatasheetUploadCardProps> = ({
     const files = e.target.files;
     if (files && files.length > 0) {
       const file = files[0];
-      if (file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf')) {
+      if (
+        file.type === "application/pdf" ||
+        file.name.toLowerCase().endsWith(".pdf")
+      ) {
         setSelectedFile(file);
         setError(null);
       } else {
-        setError('Please select a PDF file');
+        setError("Please select a PDF file");
       }
     }
   };
@@ -62,30 +69,33 @@ const DatasheetUploadCard: React.FC<DatasheetUploadCardProps> = ({
 
     try {
       const formData = new FormData();
-      formData.append('file', selectedFile);
+      formData.append("file", selectedFile);
 
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/components/${testComponentId}/datasheet`,
+        getApiUrl(`/api/components/${testComponentId}/datasheet`),
         {
-          method: 'POST',
+          method: "POST",
+          headers: {
+            ...getAuthHeaders(),
+          },
           body: formData,
         }
       );
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.detail || 'Upload failed');
+        throw new Error(errorData.detail || "Upload failed");
       }
 
       // Success
       onUploadSuccess();
       setSelectedFile(null);
       if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        fileInputRef.current.value = "";
       }
     } catch (err: any) {
-      console.error('Upload error:', err);
-      setError(err.message || 'Failed to upload datasheet');
+      console.error("Upload error:", err);
+      setError(err.message || "Failed to upload datasheet");
     } finally {
       setIsUploading(false);
     }
@@ -104,8 +114,8 @@ const DatasheetUploadCard: React.FC<DatasheetUploadCardProps> = ({
         onDrop={handleDrop}
         className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors ${
           isDragging
-            ? 'border-indigo-500 bg-indigo-50'
-            : 'border-gray-300 bg-gray-50'
+            ? "border-indigo-500 bg-indigo-50"
+            : "border-gray-300 bg-gray-50"
         }`}
       >
         <svg
@@ -140,9 +150,7 @@ const DatasheetUploadCard: React.FC<DatasheetUploadCardProps> = ({
           />
         </div>
 
-        <p className="mt-2 text-xs text-gray-500">
-          PDF files only, up to 50MB
-        </p>
+        <p className="mt-2 text-xs text-gray-500">PDF files only, up to 50MB</p>
       </div>
 
       {/* Selected File Display */}
@@ -168,13 +176,23 @@ const DatasheetUploadCard: React.FC<DatasheetUploadCardProps> = ({
             onClick={() => {
               setSelectedFile(null);
               if (fileInputRef.current) {
-                fileInputRef.current.value = '';
+                fileInputRef.current.value = "";
               }
             }}
             className="text-gray-500 hover:text-gray-700"
           >
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M6 18L18 6M6 6l12 12"
+              />
             </svg>
           </button>
         </div>
@@ -184,7 +202,11 @@ const DatasheetUploadCard: React.FC<DatasheetUploadCardProps> = ({
       {error && (
         <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
           <div className="flex">
-            <svg className="h-5 w-5 text-red-400 mr-2" fill="currentColor" viewBox="0 0 20 20">
+            <svg
+              className="h-5 w-5 text-red-400 mr-2"
+              fill="currentColor"
+              viewBox="0 0 20 20"
+            >
               <path
                 fillRule="evenodd"
                 d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
@@ -249,4 +271,3 @@ const DatasheetUploadCard: React.FC<DatasheetUploadCardProps> = ({
 };
 
 export default DatasheetUploadCard;
-
