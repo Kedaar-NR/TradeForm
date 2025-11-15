@@ -211,16 +211,16 @@ const Landing: React.FC = () => {
       >
         <div
           ref={heroContentRef}
-          className="max-w-5xl mx-auto px-6 lg:px-8 text-center w-full pointer-events-auto"
+          className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full pointer-events-auto"
         >
           <h1
-            className="text-white mb-6 leading-tight tracking-tight px-4"
+            className="text-white mb-4 sm:mb-6 leading-tight tracking-tight px-2 sm:px-4"
             style={{
               fontFamily: "AllianceNo2, sans-serif",
               fontWeight: 800,
-              fontSize: "clamp(40px, 8vw, 68px)",
+              fontSize: "clamp(32px, 8vw, 68px)",
               lineHeight: "1.04",
-              marginTop: "40px",
+              marginTop: "clamp(20px, 5vh, 40px)",
             }}
           >
             Trade Studies{" "}
@@ -233,7 +233,7 @@ const Landing: React.FC = () => {
               Simplified
             </span>
           </h1>
-          <p className="text-lg sm:text-xl md:text-2xl text-white/95 mb-10 max-w-3xl mx-auto leading-relaxed px-4">
+          <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/95 mb-6 sm:mb-8 md:mb-10 max-w-3xl mx-auto leading-relaxed px-2 sm:px-4">
             <span className="font-bold">Automate</span> component evaluation and
             scoring.
             <br />
@@ -241,9 +241,9 @@ const Landing: React.FC = () => {
           </p>
 
           {/* CTA Buttons and Email Form */}
-          <div className="max-w-2xl mx-auto space-y-4">
+          <div className="max-w-2xl mx-auto space-y-4 sm:space-y-5">
             {/* Button */}
-            <div className="flex justify-center -mt-6 mb-4 px-4">
+            <div className="flex justify-center -mt-4 sm:-mt-6 mb-3 sm:mb-4 px-2 sm:px-4">
               <button
                 onClick={() =>
                   window.open(
@@ -251,11 +251,11 @@ const Landing: React.FC = () => {
                     "_blank"
                   )
                 }
-                className="text-sm sm:text-base text-white font-bold px-6 sm:px-8 py-2.5 sm:py-3 rounded-lg bg-white/15 hover:bg-white/25 transition-all backdrop-blur-sm whitespace-nowrap font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif] flex items-center gap-2"
+                className="text-sm sm:text-base text-white font-bold px-5 sm:px-6 md:px-8 py-2.5 sm:py-3 rounded-lg bg-white/15 hover:bg-white/25 active:bg-white/30 transition-all backdrop-blur-sm whitespace-nowrap min-h-[44px] font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif] flex items-center justify-center gap-2"
               >
                 Schedule Demo
                 <svg
-                  className="w-4 h-4 sm:w-5 sm:h-5"
+                  className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -273,27 +273,27 @@ const Landing: React.FC = () => {
             {/* Email Form */}
             <form
               onSubmit={handleJoinWaitlist}
-              className="max-w-md mx-auto px-4"
+              className="max-w-md mx-auto px-2 sm:px-4"
             >
-              <div className="flex flex-col sm:flex-row gap-2.5 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg px-2 py-1.5">
+              <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg px-3 sm:px-4 py-2 sm:py-2.5">
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
-                  className="flex-1 px-4 py-2.5 rounded-lg border-0 focus:ring-0 outline-none text-gray-900 placeholder-gray-500 bg-transparent text-sm sm:text-base"
+                  className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border-0 focus:ring-0 outline-none text-gray-900 placeholder-gray-500 bg-transparent text-sm sm:text-base min-h-[44px]"
                   required
                 />
                 <button
                   type="submit"
-                  className="bg-black hover:bg-black/90 text-white px-6 sm:px-9 py-2.5 rounded-lg font-semibold transition-colors whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed text-sm sm:text-base"
+                  className="bg-black hover:bg-black/90 active:bg-black/80 text-white px-5 sm:px-6 md:px-9 py-2.5 sm:py-3 rounded-lg font-semibold transition-colors whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed text-sm sm:text-base min-h-[44px] flex items-center justify-center"
                   disabled={isSubmitting}
                 >
                   Join Waitlist
                 </button>
               </div>
               {submissionMessage && (
-                <p className="mt-3 text-sm text-white/80 text-center">
+                <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-white/80 text-center px-2">
                   {submissionMessage}
                 </p>
               )}
