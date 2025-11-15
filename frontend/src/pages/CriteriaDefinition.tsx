@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Criterion } from "../types";
-import { criteriaApi } from "../services/api";
+import { criteriaApi, projectsApi } from "../services/api";
 
 interface CriterionForm extends Omit<Criterion, "id" | "projectId"> {
   id?: string;
@@ -123,6 +123,18 @@ const CriteriaDefinition: React.FC = () => {
     ]);
   };
 
+  const saveProjectStatus = useCallback(
+    async (status: "draft" | "in_progress" | "completed" = "in_progress") => {
+      if (!projectId) return;
+      try {
+        await projectsApi.update(projectId, { status });
+      } catch (error: any) {
+        console.error("Failed to update project status:", error);
+      }
+    },
+    [projectId]
+  );
+
   const saveCriteria = useCallback(
     async (criteriaToSave: CriterionForm[]) => {
       if (!projectId || !criteriaToSave.length) return;
@@ -154,13 +166,15 @@ const CriteriaDefinition: React.FC = () => {
             await criteriaApi.create(projectId, criterionData);
           }
         }
+        // Auto-save project status to in_progress when criteria are saved
+        await saveProjectStatus("in_progress");
       } catch (error: any) {
         console.error("Failed to save criteria:", error);
       } finally {
         setIsSaving(false);
       }
     },
-    [projectId]
+    [projectId, saveProjectStatus]
   );
 
   const updateCriterion = (index: number, updates: Partial<CriterionForm>) => {
@@ -239,9 +253,19 @@ const CriteriaDefinition: React.FC = () => {
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [isFormValid, isSaving, handleContinue]);
 
-  // Save on navigation away
+  // Save on navigation away and page exit
   useEffect(() => {
+    const handleBeforeUnload = () => {
+      // Save project status before leaving
+      if (projectId) {
+        saveProjectStatus("in_progress").catch(console.error);
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
     return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
       if (saveTimeout) {
         clearTimeout(saveTimeout);
       }
@@ -249,33 +273,14 @@ const CriteriaDefinition: React.FC = () => {
       if (criteria.length > 0) {
         saveCriteria(criteria).catch(console.error);
       }
+      // Save project status on unmount
+      if (projectId) {
+        saveProjectStatus("in_progress").catch(console.error);
+      }
     };
-  }, [criteria, saveCriteria, saveTimeout]);
+  }, [criteria, saveCriteria, saveTimeout, projectId, saveProjectStatus]);
 
-  const handleExportExcel = async () => {
-    if (!projectId) return;
-    try {
-      const response = await criteriaApi.exportExcel(projectId);
-      const blob = new Blob([response.data], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `criteria_${new Date().toISOString().split("T")[0]}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    } catch (error: any) {
-      console.error("Failed to export criteria:", error);
-      alert(
-        `Failed to export criteria: ${
-          error.response?.data?.detail || error.message
-        }`
-      );
-    }
-  };
+  // Removed handleExportExcel - export is now only on ProjectDetails
 
   const handleImportExcel = async (
     event: React.ChangeEvent<HTMLInputElement>
@@ -399,26 +404,6 @@ const CriteriaDefinition: React.FC = () => {
             />
           </svg>
           {isUploading ? "Uploading..." : "Import from Excel"}
-        </button>
-        <button
-          onClick={handleExportExcel}
-          disabled={criteria.length === 0}
-          className="btn-secondary flex items-center gap-2 disabled:opacity-50"
-        >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
-            />
-          </svg>
-          Export to Excel
         </button>
       </div>
 
