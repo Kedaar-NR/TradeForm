@@ -1,634 +1,314 @@
-import React, { useState, useEffect, useCallback } from "react";
+/**
+ * Criteria Definition page.
+ * 
+ * Allows users to define and manage evaluation criteria for a trade study project.
+ * Includes auto-save functionality and common criteria suggestions.
+ */
+
+import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Criterion } from "../types";
-import { criteriaApi, projectsApi } from "../services/api";
-
-interface CriterionForm extends Omit<Criterion, "id" | "projectId"> {
-  id?: string;
-  isCustom?: boolean; // Track if using "Other" option
-}
-
-const COMMON_CRITERIA = [
-  "Cost",
-  "Gain",
-  "Size",
-  "Power Consumption",
-  "Frequency Range",
-  "Bandwidth",
-  "Efficiency",
-  "Temperature Range",
-  "Reliability",
-  "Availability",
-  "Weight",
-  "Voltage",
-  "Current",
-  "Impedance",
-  "Noise",
-  "Sensitivity",
-  "Other",
-];
+import { useCriteriaManagement, CriterionForm } from "../hooks/useCriteriaManagement";
+import { CriterionCard } from "../components/CriteriaDefinition/CriterionCard";
+import { WeightSummary } from "../components/CriteriaDefinition/WeightSummary";
+import { COMMON_CRITERIA } from "../utils/criteriaHelpers";
 
 const CriteriaDefinition: React.FC = () => {
   const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
+  const [showSuggestions, setShowSuggestions] = useState(false);
 
-  const [criteria, setCriteria] = useState<CriterionForm[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false);
-  const [saveTimeout, setSaveTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
-  const fileInputRef = React.useRef<HTMLInputElement>(null);
-
-  // Load existing criteria with retry logic
-  useEffect(() => {
-    const loadCriteria = async (retryCount = 0) => {
-      if (!projectId) {
-        setIsLoading(false);
-        return;
-      }
-      try {
-        setIsLoading(true);
-        const response = await criteriaApi.getByProject(projectId);
-        const transformedCriteria = response.data.map((crit: any) => ({
-          name: crit.name,
-          description: crit.description,
-          weight: crit.weight,
-          unit: crit.unit,
-          higherIsBetter: crit.higher_is_better,
-          minimumRequirement: crit.minimum_requirement,
-          maximumRequirement: crit.maximum_requirement,
-          id: crit.id,
-          isCustom: false,
-        }));
-        if (transformedCriteria.length > 0) {
-          setCriteria(transformedCriteria);
-        } else {
-          // If no criteria and we just came from a template, wait a bit and retry
-          if (retryCount < 2) {
-            setTimeout(() => {
-              loadCriteria(retryCount + 1);
-            }, 1000);
-            return;
-          }
-          // Default criterion if none exist after retries
-          setCriteria([
-            {
-              name: "Cost",
-              description: "Total component cost",
-              weight: 10,
-              unit: "USD",
-              higherIsBetter: false,
-              isCustom: false,
-            },
-          ]);
-        }
-      } catch (error) {
-        console.error("Failed to load criteria:", error);
-        // Retry on error if we haven't retried too many times
-        if (retryCount < 2) {
-          setTimeout(() => {
-            loadCriteria(retryCount + 1);
-          }, 1000);
-          return;
-        }
-        // Default criterion on error after retries
-        setCriteria([
-          {
-            name: "Cost",
-            description: "Total component cost",
-            weight: 10,
-            unit: "USD",
-            higherIsBetter: false,
-            isCustom: false,
-          },
-        ]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    loadCriteria();
-  }, [projectId]);
-
-  const addCriterion = () => {
-    setCriteria([
-      ...criteria,
-      {
-        name: "",
-        description: "",
-        weight: 5,
-        unit: "",
-        higherIsBetter: true,
-        isCustom: false,
-      },
-    ]);
-  };
-
-  const saveProjectStatus = useCallback(
-    async (status: "draft" | "in_progress" | "completed" = "in_progress") => {
-      if (!projectId) return;
-      try {
-        await projectsApi.update(projectId, { status });
-      } catch (error: any) {
-        console.error("Failed to update project status:", error);
-      }
-    },
-    [projectId]
-  );
-
-  const saveCriteria = useCallback(
-    async (criteriaToSave: CriterionForm[]) => {
-      if (!projectId || !criteriaToSave.length) return;
-
-      try {
-        setIsSaving(true);
-        // Get existing criteria to update/delete
-        const existingResponse = await criteriaApi.getByProject(projectId);
-        const existingCriteria = existingResponse.data;
-        const existingIds = new Set(existingCriteria.map((c: any) => c.id));
-
-        // Save/update each criterion
-        for (const criterion of criteriaToSave) {
-          const criterionData = {
-            name: criterion.name,
-            description: criterion.description || undefined,
-            weight: criterion.weight,
-            unit: criterion.unit || undefined,
-            higherIsBetter: criterion.higherIsBetter,
-            minimumRequirement: criterion.minimumRequirement || undefined,
-            maximumRequirement: criterion.maximumRequirement || undefined,
-          };
-
-          if (criterion.id && existingIds.has(criterion.id)) {
-            // Update existing
-            await criteriaApi.update(criterion.id, criterionData);
-          } else {
-            // Create new
-            await criteriaApi.create(projectId, criterionData);
-          }
-        }
-        // Auto-save project status to in_progress when criteria are saved
-        await saveProjectStatus("in_progress");
-      } catch (error: any) {
-        console.error("Failed to save criteria:", error);
-      } finally {
-        setIsSaving(false);
-      }
-    },
-    [projectId, saveProjectStatus]
-  );
-
-  const updateCriterion = (index: number, updates: Partial<CriterionForm>) => {
-    const newCriteria = [...criteria];
-    newCriteria[index] = { ...newCriteria[index], ...updates };
-    setCriteria(newCriteria);
-
-    // Auto-save after 1.5 seconds
-    if (saveTimeout) {
-      clearTimeout(saveTimeout);
-    }
-    const timeout = setTimeout(() => {
-      saveCriteria(newCriteria);
-    }, 1500);
-    setSaveTimeout(timeout);
-  };
-
-  const removeCriterion = (index: number) => {
-    setCriteria(criteria.filter((_, i) => i !== index));
-  };
-
-  const getTotalWeight = () => {
-    return criteria.reduce((sum, c) => sum + (c.weight || 0), 0);
-  };
-
-  const isFormValid = criteria.every((c) => c.name.trim() && c.weight > 0);
-
-  const handleContinue = useCallback(async () => {
-    if (!isFormValid || isSaving || !projectId) return;
-
-    // Clear any pending auto-save
-    if (saveTimeout) {
-      clearTimeout(saveTimeout);
-      setSaveTimeout(null);
-    }
-
-    try {
-      setIsSaving(true);
-      // Save criteria before navigating
-      await saveCriteria(criteria);
-      // Small delay to ensure save completes
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      // Navigate to component discovery page
-      const discoveryPath = `/project/${projectId}/discovery`;
-      console.log("Navigating to:", discoveryPath);
-      navigate(discoveryPath);
-    } catch (error: any) {
-      console.error("Failed to save criteria:", error);
-      alert(
-        `Failed to save criteria: ${
-          error.response?.data?.detail || error.message
-        }`
-      );
-      setIsSaving(false);
-    }
-  }, [
+  // Use custom hook for criteria management
+  const {
     criteria,
-    navigate,
-    projectId,
-    saveCriteria,
-    saveTimeout,
-    isFormValid,
+    isLoading,
     isSaving,
-  ]);
+    isDirty,
+    updateCriteria,
+    addCriterion,
+    removeCriterion,
+  } = useCriteriaManagement(projectId);
 
-  // Allow Enter key to continue when valid
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === "Enter" && isFormValid && !isSaving) {
-        e.preventDefault();
-        handleContinue();
-      }
+  /**
+   * Update a criterion field
+   */
+  const handleUpdateCriterion = (
+    index: number,
+    field: keyof CriterionForm,
+    value: any
+  ) => {
+    const updated = [...criteria];
+    updated[index] = { ...updated[index], [field]: value };
+    updateCriteria(updated);
+  };
+
+  /**
+   * Add a new criterion
+   */
+  const handleAddCriterion = (name?: string) => {
+    const newCriterion: CriterionForm = {
+      name: name || "",
+      description: "",
+      weight: 10,
+      unit: "",
+      higherIsBetter: true,
+      minimumRequirement: undefined,
+      maximumRequirement: undefined,
     };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [isFormValid, isSaving, handleContinue]);
+    addCriterion(newCriterion);
+    setShowSuggestions(false);
+  };
 
-  // Save on navigation away and page exit
-  useEffect(() => {
-    const handleBeforeUnload = () => {
-      // Save project status before leaving
-      if (projectId) {
-        saveProjectStatus("in_progress").catch(console.error);
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
-
-    return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-      if (saveTimeout) {
-        clearTimeout(saveTimeout);
-      }
-      // Save any pending changes
-      if (criteria.length > 0) {
-        saveCriteria(criteria).catch(console.error);
-      }
-      // Save project status on unmount
-      if (projectId) {
-        saveProjectStatus("in_progress").catch(console.error);
-      }
-    };
-  }, [criteria, saveCriteria, saveTimeout, projectId, saveProjectStatus]);
-
-  // Removed handleExportExcel - export is now only on ProjectDetails
-
+  /**
+   * Handle Excel import
+   */
   const handleImportExcel = async (
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
     if (!file || !projectId) return;
 
+    const formData = new FormData();
+    formData.append("file", file);
+
     try {
-      setIsUploading(true);
-      await criteriaApi.uploadExcel(projectId, file);
-      // Reload criteria after import
-      const response = await criteriaApi.getByProject(projectId);
-      const transformedCriteria = response.data.map((crit: any) => ({
-        name: crit.name,
-        description: crit.description,
-        weight: crit.weight,
-        unit: crit.unit,
-        higherIsBetter: crit.higher_is_better,
-        minimumRequirement: crit.minimum_requirement,
-        maximumRequirement: crit.maximum_requirement,
-        id: crit.id,
-        isCustom: false,
-      }));
-      setCriteria(transformedCriteria);
-      alert("Criteria imported successfully!");
-    } catch (error: any) {
-      console.error("Failed to import criteria:", error);
-      alert(
-        `Failed to import criteria: ${
-          error.response?.data?.detail || error.message
-        }`
+      const response = await fetch(
+        `${process.env.REACT_APP_API_URL || "http://localhost:8000"}/api/projects/${projectId}/criteria/upload`,
+        {
+          method: "POST",
+          body: formData,
+        }
       );
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
+
+      if (!response.ok) {
+        throw new Error("Upload failed");
       }
+
+      const result = await response.json();
+      alert(`Successfully imported ${result.count} criteria`);
+      window.location.reload();
+    } catch (error: any) {
+      console.error("Failed to import Excel:", error);
+      alert(`Failed to import: ${error.message}`);
     }
+
+    // Reset input
+    event.target.value = "";
   };
 
-  if (isLoading && criteria.length === 0) {
+  if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="text-gray-500 mb-2">Loading criteria...</div>
-          <div className="text-xs text-gray-400">This may take a moment</div>
+          <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+          <p className="mt-4 text-gray-600">Loading criteria...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl animate-fade-in">
-      {/* Page Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Define Evaluation Criteria
-        </h1>
-        <p className="text-gray-600">
-          Specify what matters most when evaluating components
-        </p>
-      </div>
-
-      {/* Progress indicator */}
-      <div className="mb-8">
-        <div className="flex items-center gap-2">
-          <div className="flex items-center">
-            <div className="w-8 h-8 bg-gray-900 text-white rounded-lg flex items-center justify-center text-sm">
-              ✓
-            </div>
-            <span className="ml-2 text-sm font-medium text-gray-500">
-              Setup
-            </span>
-          </div>
-          <div className="w-16 h-0.5 bg-gray-900"></div>
-          <div className="flex items-center">
-            <div className="w-8 h-8 bg-gray-900 text-white rounded-lg flex items-center justify-center font-semibold text-sm">
-              2
-            </div>
-            <span className="ml-2 text-sm font-medium text-gray-900">
-              Criteria
-            </span>
-          </div>
-          <div className="w-16 h-0.5 bg-gray-300"></div>
-          <div className="flex items-center">
-            <div className="w-8 h-8 bg-gray-200 text-gray-500 rounded-lg flex items-center justify-center font-semibold text-sm">
-              3
-            </div>
-            <span className="ml-2 text-sm font-medium text-gray-500">
-              Components
-            </span>
-          </div>
-        </div>
-      </div>
-
-      {/* Import/Export Actions */}
-      <div className="flex gap-3 mb-6">
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept=".xlsx,.xls"
-          onChange={handleImportExcel}
-          className="hidden"
-        />
-        <button
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isUploading}
-          className="btn-secondary flex items-center gap-2"
-        >
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 py-8 px-4">
+      <div className="max-w-5xl mx-auto">
+        {/* Header */}
+        <div className="mb-8">
+          <button
+            onClick={() => navigate(`/projects/${projectId}`)}
+            className="text-gray-700 hover:text-gray-900 mb-4 flex items-center gap-2 text-sm font-medium"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-            />
-          </svg>
-          {isUploading ? "Uploading..." : "Import from Excel"}
-        </button>
-      </div>
-
-      {/* Main Card */}
-      <div className="card p-8">
-        {/* Weight Summary */}
-        <div className="bg-gray-100 border border-gray-300 rounded-lg p-5 mb-6">
-          <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2 mb-3">
-            <span className="font-semibold text-gray-900">
-              Total Weight: {getTotalWeight()}
-            </span>
-            <span className="text-xs text-gray-600">
-              Higher weights = more important
-            </span>
-          </div>
-          <div className="bg-white rounded-full h-2 overflow-hidden">
-            <div
-              className="h-full bg-gray-900 transition-all duration-300"
-              style={{
-                width: `${Math.min((getTotalWeight() / 50) * 100, 100)}%`,
-              }}
-            />
-          </div>
-        </div>
-
-        {/* Criteria List */}
-        <div className="space-y-4 mb-6">
-          {criteria.map((criterion, index) => (
-            <div
-              key={index}
-              className="border border-gray-200 rounded-lg p-5 hover:border-gray-300 transition-all bg-white"
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              <div className="grid grid-cols-12 gap-4">
-                {/* Criterion Name */}
-                <div className="col-span-12 md:col-span-4">
-                  <label className="label">Criterion Name *</label>
-                  <select
-                    value={criterion.isCustom ? "Other" : criterion.name || ""}
-                    onChange={(e) => {
-                      const selectedValue = e.target.value;
-                      if (selectedValue === "Other") {
-                        updateCriterion(index, {
-                          name: "",
-                          isCustom: true,
-                        });
-                      } else {
-                        updateCriterion(index, {
-                          name: selectedValue,
-                          isCustom: false,
-                        });
-                      }
-                    }}
-                    className="input-field"
-                    required
-                  >
-                    <option value="">Select a criterion...</option>
-                    {COMMON_CRITERIA.map((criterionName) => (
-                      <option key={criterionName} value={criterionName}>
-                        {criterionName}
-                      </option>
-                    ))}
-                  </select>
-                  {criterion.isCustom && (
-                    <input
-                      type="text"
-                      value={criterion.name}
-                      onChange={(e) =>
-                        updateCriterion(index, { name: e.target.value })
-                      }
-                      placeholder="Enter custom criterion name"
-                      className="input-field mt-2"
-                      autoFocus
-                      required
-                    />
-                  )}
-                </div>
-
-                {/* Description - Full width on its own row on mobile */}
-                <div className="col-span-12 md:col-span-8">
-                  <label className="label">Description</label>
-                  <input
-                    type="text"
-                    value={criterion.description}
-                    onChange={(e) =>
-                      updateCriterion(index, { description: e.target.value })
-                    }
-                    placeholder="e.g., Antenna gain in dBi, important for signal strength"
-                    className="input-field"
-                  />
-                </div>
-
-                {/* Weight with Slider */}
-                <div className="col-span-6 md:col-span-2">
-                  <label className="label">Weight *</label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="range"
-                      min="1"
-                      max="10"
-                      value={criterion.weight}
-                      onChange={(e) =>
-                        updateCriterion(index, {
-                          weight: parseInt(e.target.value) || 0,
-                        })
-                      }
-                      className="flex-1 h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer"
-                      style={{
-                        background: `linear-gradient(to right, #10b981 0%, #10b981 ${
-                          ((criterion.weight - 1) / 9) * 100
-                        }%, #e5e7eb ${
-                          ((criterion.weight - 1) / 9) * 100
-                        }%, #e5e7eb 100%)`,
-                      }}
-                    />
-                    <input
-                      type="number"
-                      min="1"
-                      max="10"
-                      value={criterion.weight}
-                      onChange={(e) =>
-                        updateCriterion(index, {
-                          weight: parseInt(e.target.value) || 0,
-                        })
-                      }
-                      className="w-16 input-field text-center"
-                      required
-                    />
-                  </div>
-                  <p className="text-xs text-gray-500 mt-1">
-                    Higher weight = more important
-                  </p>
-                </div>
-
-                {/* Unit */}
-                <div className="col-span-6 md:col-span-2">
-                  <label className="label">Unit</label>
-                  <input
-                    type="text"
-                    value={criterion.unit}
-                    onChange={(e) =>
-                      updateCriterion(index, { unit: e.target.value })
-                    }
-                    placeholder="dBi, MHz"
-                    className="input-field"
-                  />
-                </div>
-
-                {/* Higher is Better */}
-                <div className="col-span-12 md:col-span-3 flex items-end">
-                  <label className="flex items-center cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={criterion.higherIsBetter}
-                      onChange={(e) =>
-                        updateCriterion(index, {
-                          higherIsBetter: e.target.checked,
-                        })
-                      }
-                      className="w-4 h-4 text-purple-600 rounded focus:ring-purple-500"
-                    />
-                    <span className="ml-2 text-sm text-gray-700 whitespace-nowrap">
-                      Higher is better
-                    </span>
-                  </label>
-                </div>
-
-                {/* Remove Button */}
-                <div className="col-span-12 md:col-span-1 flex items-end justify-end">
-                  {criteria.length > 1 && (
-                    <button
-                      onClick={() => removeCriterion(index)}
-                      className="text-red-600 hover:text-red-700 font-semibold text-sm whitespace-nowrap"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+            Back to Project
+          </button>
+          <h1 className="text-4xl font-bold text-gray-900 mb-2">
+            Define Evaluation Criteria
+          </h1>
+          <p className="text-gray-600">
+            Set up the criteria that will be used to evaluate and score
+            components in your trade study.
+          </p>
         </div>
 
-        {/* Add Criterion Button */}
-        <button
-          onClick={addCriterion}
-          className="w-full border-2 border-dashed border-gray-300 rounded-lg p-6 text-gray-600 hover:border-gray-400 hover:bg-gray-100 hover:text-gray-900 transition-all font-medium text-sm"
-        >
-          + Add Another Criterion
-        </button>
+        {/* Save Status */}
+        {isDirty && (
+          <div className="card p-4 mb-6 bg-yellow-50 border-yellow-200">
+            <div className="flex items-center gap-2 text-sm text-yellow-700">
+              {isSaving ? (
+                <>
+                  <svg
+                    className="w-4 h-4 animate-spin"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    />
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    />
+                  </svg>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                    />
+                  </svg>
+                  Changes will be auto-saved
+                </>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Weight Summary */}
+        {criteria.length > 0 && (
+          <div className="mb-6">
+            <WeightSummary criteria={criteria} />
+          </div>
+        )}
 
         {/* Action Buttons */}
-        <div className="flex justify-between items-center pt-6 mt-6 border-t border-gray-200">
-          <button onClick={() => navigate("/")} className="btn-secondary">
-            ← Back
-          </button>
-          <div className="flex items-center gap-3">
-            {isSaving && (
-              <span className="text-sm text-gray-500">Auto-saving...</span>
-            )}
-            <button
-              onClick={handleContinue}
-              disabled={!isFormValid || isSaving}
-              className={`btn-primary ${
-                (!isFormValid || isSaving) && "opacity-50 cursor-not-allowed"
-              }`}
+        <div className="flex flex-wrap gap-3 mb-6">
+          <button
+            onClick={() => handleAddCriterion()}
+            className="btn-primary flex items-center gap-2"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
             >
-              {isSaving ? "Saving..." : "Continue to Component Discovery →"}
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+              />
+            </svg>
+            Add Criterion
+          </button>
+          <button
+            onClick={() => setShowSuggestions(!showSuggestions)}
+            className="btn-secondary flex items-center gap-2"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+              />
+            </svg>
+            {showSuggestions ? "Hide" : "Show"} Suggestions
+          </button>
+          <label className="btn-secondary flex items-center gap-2 cursor-pointer">
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+              />
+            </svg>
+            Import from Excel
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              onChange={handleImportExcel}
+              className="hidden"
+            />
+          </label>
+        </div>
+
+        {/* Common Criteria Suggestions */}
+        {showSuggestions && (
+          <div className="card p-5 mb-6">
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">
+              Common Criteria
+            </h3>
+            <div className="flex flex-wrap gap-2">
+              {COMMON_CRITERIA.map((name) => (
+                <button
+                  key={name}
+                  onClick={() => handleAddCriterion(name)}
+                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-sm font-medium transition-colors"
+                >
+                  + {name}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Criteria List */}
+        {criteria.length === 0 ? (
+          <div className="card p-12 text-center">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              No criteria defined yet
+            </h3>
+            <p className="text-sm text-gray-600 mb-6 max-w-sm mx-auto">
+              Add evaluation criteria to score and compare components in your
+              trade study.
+            </p>
+            <button
+              onClick={() => handleAddCriterion()}
+              className="btn-primary"
+            >
+              Add First Criterion
             </button>
           </div>
-        </div>
-      </div>
-
-      {/* Help Section */}
-      <div className="mt-6 card p-6 bg-gray-50">
-        <h3 className="font-semibold text-gray-900 mb-2 text-sm">
-          How Criteria Work
-        </h3>
-        <ul className="text-sm text-gray-600 space-y-1 list-disc list-inside">
-          <li>Each criterion represents an evaluation parameter</li>
-          <li>Weights determine relative importance (1-10 scale)</li>
-          <li>
-            Check "Higher is better" for criteria where bigger values are
-            preferred
-          </li>
-        </ul>
+        ) : (
+          <div className="space-y-4">
+            {criteria.map((criterion, index) => (
+              <CriterionCard
+                key={index}
+                criterion={criterion}
+                index={index}
+                onUpdate={handleUpdateCriterion}
+                onRemove={removeCriterion}
+              />
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
