@@ -12,6 +12,7 @@
 /build
 
 # misc
+.cursor/rules
 .DS_Store
 .env
 .env.local
