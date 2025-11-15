@@ -42,6 +42,41 @@ const ComponentDiscovery: React.FC = () => {
     [projectId]
   );
 
+  // Load datasheet statuses for components (defined before loadComponents to avoid reference errors)
+  const loadDatasheetStatuses = React.useCallback(async (componentsToCheck: Component[]) => {
+    if (componentsToCheck.length === 0) {
+      setDatasheetStatuses({});
+      return;
+    }
+
+    const statuses: Record<string, DatasheetStatus> = {};
+    
+    // Load statuses in parallel
+    await Promise.all(
+      componentsToCheck.map(async (component) => {
+        try {
+          const response = await datasheetsApi.getStatus(component.id);
+          statuses[component.id] = {
+            hasDatasheet: response.data.has_datasheet,
+            parsed: response.data.parsed,
+            numPages: response.data.num_pages,
+            parsedAt: response.data.parsed_at,
+            parseStatus: response.data.parse_status,
+            parseError: response.data.parse_error,
+          };
+        } catch (error) {
+          // If status check fails, assume no datasheet (backend may not be running)
+          statuses[component.id] = {
+            hasDatasheet: false,
+            parsed: false,
+          };
+        }
+      })
+    );
+    
+    setDatasheetStatuses(statuses);
+  }, []);
+
   const loadComponents = React.useCallback(async () => {
     if (!projectId) {
       setIsLoading(false);
@@ -76,8 +111,8 @@ const ComponentDiscovery: React.FC = () => {
         source: comp.source,
       }));
       setComponents(transformedComponents);
-
-      // Load datasheet statuses for all components
+      
+      // Load datasheet statuses for all components (silently fails if backend unavailable)
       loadDatasheetStatuses(transformedComponents);
     } catch (error: any) {
       console.error("Failed to load components:", error);
@@ -95,36 +130,7 @@ const ComponentDiscovery: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [projectId, navigate]);
-
-  const loadDatasheetStatuses = async (componentsToCheck: Component[]) => {
-    const statuses: Record<string, DatasheetStatus> = {};
-
-    // Load statuses in parallel
-    await Promise.all(
-      componentsToCheck.map(async (component) => {
-        try {
-          const response = await datasheetsApi.getStatus(component.id);
-          statuses[component.id] = {
-            hasDatasheet: response.data.has_datasheet,
-            parsed: response.data.parsed,
-            numPages: response.data.num_pages,
-            parsedAt: response.data.parsed_at,
-            parseStatus: response.data.parse_status,
-            parseError: response.data.parse_error,
-          };
-        } catch (error) {
-          // If status check fails, assume no datasheet
-          statuses[component.id] = {
-            hasDatasheet: false,
-            parsed: false,
-          };
-        }
-      })
-    );
-
-    setDatasheetStatuses(statuses);
-  };
+  }, [projectId, navigate, loadDatasheetStatuses]);
 
   // Load components on mount
   useEffect(() => {

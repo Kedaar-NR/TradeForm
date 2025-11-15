@@ -45,7 +45,7 @@ class ProjectBase(BaseModel):
     description: Optional[str] = None
 
 class ProjectCreate(ProjectBase):
-    pass
+    status: Optional[ProjectStatus] = ProjectStatus.DRAFT
 
 class ProjectUpdate(BaseModel):
     name: Optional[str] = None
@@ -90,6 +90,10 @@ class ComponentBase(BaseModel):
     description: Optional[str] = None
     datasheet_url: Optional[str] = None
     availability: ComponentAvailability = ComponentAvailability.IN_STOCK
+
+class ComponentCreateInput(ComponentBase):
+    """Schema for component creation from API request (without project_id)"""
+    source: ComponentSource = ComponentSource.MANUALLY_ADDED
 
 class ComponentCreate(ComponentBase):
     project_id: UUID

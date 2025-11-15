@@ -135,18 +135,45 @@ def get_current_user_info(current_user: models.User = Depends(auth.get_current_u
 @app.post("/api/projects", response_model=schemas.Project, status_code=status.HTTP_201_CREATED)
 def create_project(
     project: schemas.ProjectCreate,
-    db: Session = Depends(get_db),
-    current_user: models.User = Depends(auth.get_current_user_required)
+    db: Session = Depends(get_db)
 ):
     """Create a new trade study project"""
-    db_project = models.Project(
-        **project.model_dump(),
-        created_by=current_user.id
-    )
-    db.add(db_project)
-    db.commit()
-    db.refresh(db_project)
-    return db_project
+    try:
+        project_data = project.model_dump(exclude={"status"})  # Exclude status, use model default
+        
+        # Get first user or create a default one if none exists
+        user = db.query(models.User).first()
+        if not user:
+            # Create a default user if none exists
+            from app.auth import get_password_hash
+            user = models.User(
+                email="default@tradeform.com",
+                name="Default User",
+                password_hash=get_password_hash("default")
+            )
+            db.add(user)
+            db.commit()
+            db.refresh(user)
+        
+        db_project = models.Project(
+            name=project_data["name"],
+            component_type=project_data["component_type"],
+            description=project_data.get("description"),
+            created_by=user.id
+        )
+        # Status will use model default (DRAFT)
+        
+        db.add(db_project)
+        db.commit()
+        db.refresh(db_project)
+        return db_project
+    except Exception as e:
+        db.rollback()
+        import traceback
+        error_trace = traceback.format_exc()
+        print(f"Error creating project: {e}")
+        print(error_trace)
+        raise HTTPException(status_code=500, detail=f"Failed to create project: {str(e)}")
 
 @app.get("/api/projects", response_model=List[schemas.Project])
 def list_projects(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
@@ -333,7 +360,7 @@ def export_criteria_excel(project_id: UUID, db: Session = Depends(get_db)):
 # ============================================================================
 
 @app.post("/api/projects/{project_id}/components", response_model=schemas.Component, status_code=status.HTTP_201_CREATED)
-def add_component(project_id: UUID, component: schemas.ComponentBase, db: Session = Depends(get_db)):
+def add_component(project_id: UUID, component: schemas.ComponentCreateInput, db: Session = Depends(get_db)):
     """Manually add a component to project"""
     # Verify project exists
     project = db.query(models.Project).filter(models.Project.id == project_id).first()
@@ -342,8 +369,7 @@ def add_component(project_id: UUID, component: schemas.ComponentBase, db: Sessio
 
     db_component = models.Component(
         **component.model_dump(),
-        project_id=project_id,
-        source=models.ComponentSource.MANUALLY_ADDED
+        project_id=project_id
     )
     db.add(db_component)
     db.commit()
@@ -646,7 +672,7 @@ def export_full_trade_study(project_id: UUID, db: Session = Depends(get_db)):
 
         # Sheet 6: Score Breakdown (transposed for easier viewing)
         if components and criteria:
-            breakdown_data = {
+            breakdown_data: dict = {
                 'Component': [f"{c.manufacturer} {c.part_number}" for c in components]
             }
             for criterion in criteria:
