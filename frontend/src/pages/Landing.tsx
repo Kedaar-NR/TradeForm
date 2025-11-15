@@ -151,10 +151,10 @@ const Landing: React.FC = () => {
           <div className="flex justify-between items-center h-14 sm:h-16 min-h-[44px]">
             <Logo textColor="white" />
 
-            <div className="flex items-center gap-1.5 sm:gap-2 md:gap-4 flex-shrink-0">
+            <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 flex-shrink-0">
               <button
                 onClick={() => navigate("/features")}
-                className="text-xs sm:text-[14px] text-white font-medium hover:text-white/80 transition-colors px-2 sm:px-3 py-1.5 sm:py-2 whitespace-nowrap min-h-[44px] flex items-center font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]"
+                className="text-xs sm:text-[13px] text-white font-medium hover:text-white/80 transition-colors px-2 sm:px-2.5 py-1 sm:py-1.5 whitespace-nowrap min-h-[32px] flex items-center font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]"
               >
                 Features
               </button>
@@ -165,12 +165,12 @@ const Landing: React.FC = () => {
                     "_blank"
                   )
                 }
-                className="text-xs sm:text-[14px] text-white font-medium px-2.5 sm:px-4 md:px-5 py-1.5 sm:py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm whitespace-nowrap min-h-[44px] flex items-center justify-center font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif] gap-1 sm:gap-1.5 md:gap-2"
+                className="text-xs sm:text-[13px] text-white font-medium px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 rounded-md bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm whitespace-nowrap min-h-[32px] flex items-center justify-center font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif] gap-1 sm:gap-1.5"
               >
                 <span className="hidden sm:inline">Schedule Demo</span>
                 <span className="sm:hidden">Demo</span>
                 <svg
-                  className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0"
+                  className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -185,7 +185,7 @@ const Landing: React.FC = () => {
               </button>
               <button
                 onClick={() => navigate("/login")}
-                className="text-xs sm:text-[14px] text-white font-medium px-2.5 sm:px-4 md:px-5 py-1.5 sm:py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm whitespace-nowrap min-h-[44px] flex items-center justify-center font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]"
+                className="text-xs sm:text-[13px] text-white font-medium px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 rounded-md bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm whitespace-nowrap min-h-[32px] flex items-center justify-center font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]"
               >
                 Log In
               </button>
@@ -275,18 +275,18 @@ const Landing: React.FC = () => {
               onSubmit={handleJoinWaitlist}
               className="max-w-md mx-auto px-2 sm:px-4"
             >
-              <div className="flex flex-col sm:flex-row gap-2.5 sm:gap-3 bg-white/95 backdrop-blur-sm rounded-xl shadow-lg px-3 sm:px-4 py-2 sm:py-2.5">
+              <div className="flex flex-col sm:flex-row gap-2 sm:gap-2 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg px-2.5 sm:px-3 py-1.5 sm:py-2">
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
-                  className="flex-1 px-3 sm:px-4 py-2.5 sm:py-3 rounded-lg border-0 focus:ring-0 outline-none text-gray-900 placeholder-gray-500 bg-transparent text-sm sm:text-base min-h-[44px]"
+                  className="flex-1 px-3 sm:px-3 py-1.5 sm:py-2 rounded-md border-0 focus:ring-0 outline-none text-gray-900 placeholder-gray-500 bg-transparent text-sm min-h-[36px]"
                   required
                 />
                 <button
                   type="submit"
-                  className="bg-black hover:bg-black/90 active:bg-black/80 text-white px-5 sm:px-6 md:px-9 py-2.5 sm:py-3 rounded-lg font-semibold transition-colors whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed text-sm sm:text-base min-h-[44px] flex items-center justify-center"
+                  className="bg-black hover:bg-black/90 active:bg-black/80 text-white px-4 sm:px-5 md:px-7 py-1.5 sm:py-2 rounded-md font-semibold transition-colors whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed text-sm min-h-[36px] flex items-center justify-center"
                   disabled={isSubmitting}
                 >
                   Join Waitlist
