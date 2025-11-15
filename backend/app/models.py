@@ -82,6 +82,7 @@ class Component(Base):
     # Relationships
     project = relationship("Project", back_populates="components")
     scores = relationship("Score", back_populates="component", cascade="all, delete-orphan")
+    datasheet_document = relationship("DatasheetDocument", back_populates="component", uselist=False, cascade="all, delete-orphan")
 
 class Score(Base):
     __tablename__ = "scores"
@@ -170,3 +171,55 @@ class ProjectChange(Base):
     # Relationships
     project = relationship("Project")
     user = relationship("User")
+
+# ============================================================================
+# DATASHEET PARSING MODELS
+# ============================================================================
+
+class DatasheetDocument(Base):
+    """Represents one processed datasheet per component"""
+    __tablename__ = "datasheet_documents"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    component_id = Column(UUID(as_uuid=True), ForeignKey("components.id"), nullable=False, unique=True)
+    original_filename = Column(String, nullable=False)
+    file_path = Column(String, nullable=False)
+    num_pages = Column(Integer)
+    parsed_at = Column(DateTime(timezone=True), server_default=func.now())
+    parse_status = Column(String, nullable=False, default="pending")  # pending, success, failed
+    parse_error = Column(Text)
+
+    # Relationships
+    component = relationship("Component", back_populates="datasheet_document")
+    pages = relationship("DatasheetPage", back_populates="datasheet", cascade="all, delete-orphan")
+
+class DatasheetPage(Base):
+    """Represents extracted text per page"""
+    __tablename__ = "datasheet_pages"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    datasheet_id = Column(UUID(as_uuid=True), ForeignKey("datasheet_documents.id"), nullable=False)
+    page_number = Column(Integer, nullable=False)
+    raw_text = Column(Text)
+    section_title = Column(String)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    datasheet = relationship("DatasheetDocument", back_populates="pages")
+
+class DatasheetParameter(Base):
+    """Represents structured key-value pairs extracted from datasheets"""
+    __tablename__ = "datasheet_parameters"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    component_id = Column(UUID(as_uuid=True), ForeignKey("components.id"), nullable=False)
+    name = Column(String, nullable=False)
+    value = Column(String)
+    numeric_value = Column(Float)
+    unit = Column(String)
+    page_number = Column(Integer)
+    source_snippet = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    component = relationship("Component")

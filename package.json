@@ -1,0 +1,18 @@
+{
+  "name": "tradeform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AI-powered trade study analysis platform",
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:backend": "cd backend && pip install -r requirements.txt && uvicorn app.main:app --reload --host 0.0.0.0 --port 8000",
+    "dev:frontend": "cd frontend && npm install && npm start",
+    "setup": "npm install && cd frontend && npm install && cd ../backend && pip install -r requirements.txt",
+    "build": "cd frontend && npm run build",
+    "start": "concurrently \"cd backend && uvicorn app.main:app --host 0.0.0.0 --port 8000\" \"cd frontend && npm start\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
+

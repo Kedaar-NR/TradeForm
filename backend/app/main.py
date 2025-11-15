@@ -835,12 +835,335 @@ Return ONLY valid JSON, no markdown formatting, no explanations."""
         raise HTTPException(status_code=500, detail=f"AI discovery failed: {str(e)}")
 
 @app.post("/api/components/{component_id}/datasheet")
-def upload_datasheet(component_id: UUID, db: Session = Depends(get_db)):
-    """Upload and extract datasheet"""
-    return {
-        "message": "Datasheet extraction feature coming soon",
-        "status": "not_implemented"
+async def upload_datasheet(
+    component_id: UUID,
+    file: UploadFile = File(...),
+    db: Session = Depends(get_db)
+):
+    """Upload and parse a datasheet PDF for a component"""
+    from app.datasheets import parser
+    import shutil
+    from pathlib import Path
+    
+    # Verify component exists
+    component = db.query(models.Component).filter(models.Component.id == component_id).first()
+    if not component:
+        raise HTTPException(status_code=404, detail="Component not found")
+    
+    # Validate file type
+    if not file.filename.lower().endswith('.pdf'):
+        raise HTTPException(
+            status_code=400,
+            detail="Only PDF files are supported. Please upload a PDF datasheet."
+        )
+    
+    # Check file size (limit to 50MB)
+    file.file.seek(0, 2)  # Seek to end
+    file_size = file.file.tell()
+    file.file.seek(0)  # Reset to beginning
+    
+    max_size = 50 * 1024 * 1024  # 50MB
+    if file_size > max_size:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large. Maximum size is {max_size // (1024*1024)}MB."
+        )
+    
+    try:
+        # Create datasheets directory if it doesn't exist
+        datasheets_dir = Path("datasheets")
+        datasheets_dir.mkdir(exist_ok=True)
+        
+        # Save file with deterministic name
+        file_path = datasheets_dir / f"{component_id}.pdf"
+        
+        with open(file_path, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        
+        # Check if datasheet document already exists
+        existing_doc = db.query(models.DatasheetDocument).filter(
+            models.DatasheetDocument.component_id == component_id
+        ).first()
+        
+        if existing_doc:
+            # Delete existing pages
+            db.query(models.DatasheetPage).filter(
+                models.DatasheetPage.datasheet_id == existing_doc.id
+            ).delete()
+            
+            # Update existing document
+            existing_doc.original_filename = file.filename
+            existing_doc.file_path = str(file_path)
+            existing_doc.parse_status = "pending"
+            existing_doc.parse_error = None
+            existing_doc.num_pages = None
+            db.commit()
+            datasheet_doc = existing_doc
+        else:
+            # Create new datasheet document
+            datasheet_doc = models.DatasheetDocument(
+                component_id=component_id,
+                original_filename=file.filename,
+                file_path=str(file_path),
+                parse_status="pending"
+            )
+            db.add(datasheet_doc)
+            db.commit()
+            db.refresh(datasheet_doc)
+        
+        # Parse PDF
+        try:
+            parsed_pages = parser.parse_pdf_to_pages(str(file_path))
+            
+            # Save pages to database
+            for parsed_page in parsed_pages:
+                db_page = models.DatasheetPage(
+                    datasheet_id=datasheet_doc.id,
+                    page_number=parsed_page.page_number,
+                    raw_text=parsed_page.raw_text,
+                    section_title=parsed_page.section_title
+                )
+                db.add(db_page)
+            
+            # Update document status
+            datasheet_doc.parse_status = "success"
+            datasheet_doc.num_pages = len(parsed_pages)
+            
+            # Update component datasheet_file_path
+            component.datasheet_file_path = str(file_path)
+            
+            db.commit()
+            db.refresh(datasheet_doc)
+            
+            return {
+                "status": "success",
+                "message": "Datasheet uploaded and parsed successfully",
+                "datasheet": {
+                    "num_pages": datasheet_doc.num_pages,
+                    "parsed_at": datasheet_doc.parsed_at,
+                    "parse_status": datasheet_doc.parse_status
+                }
+            }
+            
+        except Exception as parse_error:
+            # Update document with error
+            datasheet_doc.parse_status = "failed"
+            datasheet_doc.parse_error = str(parse_error)
+            db.commit()
+            
+            raise HTTPException(
+                status_code=500,
+                detail=f"Failed to parse PDF: {str(parse_error)}"
+            )
+    
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to upload datasheet: {str(e)}"
+        )
+
+@app.get("/api/components/{component_id}/datasheet/status", response_model=schemas.DatasheetStatus)
+def get_datasheet_status(component_id: UUID, db: Session = Depends(get_db)):
+    """Get datasheet status for a component"""
+    component = db.query(models.Component).filter(models.Component.id == component_id).first()
+    if not component:
+        raise HTTPException(status_code=404, detail="Component not found")
+    
+    # Check if datasheet document exists
+    datasheet_doc = db.query(models.DatasheetDocument).filter(
+        models.DatasheetDocument.component_id == component_id
+    ).first()
+    
+    if not datasheet_doc:
+        return schemas.DatasheetStatus(
+            has_datasheet=False,
+            parsed=False
+        )
+    
+    return schemas.DatasheetStatus(
+        has_datasheet=True,
+        parsed=(datasheet_doc.parse_status == "success"),
+        num_pages=datasheet_doc.num_pages,
+        parsed_at=datasheet_doc.parsed_at,
+        parse_status=datasheet_doc.parse_status,
+        parse_error=datasheet_doc.parse_error
+    )
+
+@app.post("/api/components/{component_id}/datasheet/query", response_model=schemas.DatasheetQueryAnswer)
+async def query_datasheet(
+    component_id: UUID,
+    request: schemas.DatasheetQueryRequest,
+    db: Session = Depends(get_db)
+):
+    """Ask a question about a component's datasheet using AI"""
+    from app.datasheets import parser
+    from app.ai import datasheet_client
+    
+    # Verify component exists
+    component = db.query(models.Component).filter(models.Component.id == component_id).first()
+    if not component:
+        raise HTTPException(status_code=404, detail="Component not found")
+    
+    # Get datasheet document
+    datasheet_doc = db.query(models.DatasheetDocument).filter(
+        models.DatasheetDocument.component_id == component_id
+    ).first()
+    
+    if not datasheet_doc:
+        raise HTTPException(
+            status_code=400,
+            detail="No datasheet uploaded for this component. Please upload a datasheet first."
+        )
+    
+    if datasheet_doc.parse_status != "success":
+        raise HTTPException(
+            status_code=400,
+            detail=f"Datasheet parsing failed or incomplete. Status: {datasheet_doc.parse_status}"
+        )
+    
+    # Get datasheet pages
+    pages = db.query(models.DatasheetPage).filter(
+        models.DatasheetPage.datasheet_id == datasheet_doc.id
+    ).order_by(models.DatasheetPage.page_number).all()
+    
+    if not pages:
+        raise HTTPException(status_code=400, detail="No datasheet content available")
+    
+    # Get project and criteria
+    project = db.query(models.Project).filter(models.Project.id == component.project_id).first()
+    criteria = db.query(models.Criterion).filter(
+        models.Criterion.project_id == component.project_id
+    ).all()
+    
+    # Get primary criterion if specified
+    primary_criterion = None
+    if request.criterion_id:
+        primary_criterion = db.query(models.Criterion).filter(
+            models.Criterion.id == request.criterion_id
+        ).first()
+    
+    # Retrieve relevant chunks from datasheet
+    relevant_chunks = parser.retrieve_relevant_chunks(request.question, pages, max_chunks=8)
+    
+    # Build context for AI
+    context = {
+        "project": {
+            "name": project.name,
+            "component_type": project.component_type,
+            "description": project.description
+        },
+        "component": {
+            "manufacturer": component.manufacturer,
+            "part_number": component.part_number,
+            "description": component.description
+        },
+        "criteria": [
+            {
+                "name": c.name,
+                "description": c.description,
+                "unit": c.unit,
+                "higher_is_better": c.higher_is_better,
+                "weight": c.weight
+            }
+            for c in criteria
+        ],
+        "datasheet_chunks": relevant_chunks,
+        "primary_criterion": {
+            "name": primary_criterion.name,
+            "description": primary_criterion.description,
+            "unit": primary_criterion.unit,
+            "higher_is_better": primary_criterion.higher_is_better
+        } if primary_criterion else None
     }
+    
+    # Call AI to get answer
+    try:
+        ai_response = datasheet_client.ask_datasheet_ai(
+            context=context,
+            question=request.question,
+            mode="qa"
+        )
+        
+        # Convert to response model
+        citations = [
+            schemas.DatasheetCitation(
+                page_number=cite["page_number"],
+                snippet=cite["snippet"]
+            )
+            for cite in ai_response.get("citations", [])
+        ]
+        
+        return schemas.DatasheetQueryAnswer(
+            answer=ai_response.get("answer", ""),
+            citations=citations,
+            confidence=ai_response.get("confidence")
+        )
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to process question: {str(e)}"
+        )
+
+@app.get("/api/components/{component_id}/datasheet/suggestions", response_model=schemas.DatasheetSuggestionsResponse)
+def get_datasheet_suggestions(component_id: UUID, db: Session = Depends(get_db)):
+    """Get AI-suggested questions for a component's datasheet"""
+    from app.ai import datasheet_client
+    
+    # Verify component exists
+    component = db.query(models.Component).filter(models.Component.id == component_id).first()
+    if not component:
+        raise HTTPException(status_code=404, detail="Component not found")
+    
+    # Get project and criteria
+    project = db.query(models.Project).filter(models.Project.id == component.project_id).first()
+    criteria = db.query(models.Criterion).filter(
+        models.Criterion.project_id == component.project_id
+    ).all()
+    
+    # Build context for AI
+    context = {
+        "project": {
+            "name": project.name,
+            "component_type": project.component_type,
+            "description": project.description
+        },
+        "component": {
+            "manufacturer": component.manufacturer,
+            "part_number": component.part_number,
+            "description": component.description
+        },
+        "criteria": [
+            {
+                "name": c.name,
+                "description": c.description,
+                "unit": c.unit,
+                "higher_is_better": c.higher_is_better,
+                "weight": c.weight
+            }
+            for c in criteria
+        ]
+    }
+    
+    # Call AI to get suggestions
+    try:
+        ai_response = datasheet_client.ask_datasheet_ai(
+            context=context,
+            question="",  # Not used in suggestions mode
+            mode="suggestions"
+        )
+        
+        return schemas.DatasheetSuggestionsResponse(
+            suggestions=ai_response.get("suggestions", [])
+        )
+    
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to generate suggestions: {str(e)}"
+        )
 
 @app.post("/api/projects/{project_id}/score")
 async def score_all_components(project_id: UUID, db: Session = Depends(get_db)):

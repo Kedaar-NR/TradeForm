@@ -65,3 +65,27 @@ export interface ProjectWithDetails extends Project {
   criteria: Criterion[];
   components: ComponentWithScores[];
 }
+
+export interface DatasheetStatus {
+  hasDatasheet: boolean;
+  parsed: boolean;
+  numPages?: number;
+  parsedAt?: string;
+  parseStatus?: string;
+  parseError?: string;
+}
+
+export interface DatasheetCitation {
+  pageNumber: number;
+  snippet: string;
+}
+
+export interface DatasheetQueryAnswer {
+  answer: string;
+  citations: DatasheetCitation[];
+  confidence?: number;
+}
+
+export interface DatasheetSuggestionsResponse {
+  suggestions: string[];
+}

@@ -211,3 +211,36 @@ class ProjectChange(ProjectChangeBase):
 
     class Config:
         from_attributes = True
+
+# ============================================================================
+# DATASHEET SCHEMAS
+# ============================================================================
+
+class DatasheetStatus(BaseModel):
+    """Datasheet status for a component"""
+    has_datasheet: bool
+    parsed: bool
+    num_pages: Optional[int] = None
+    parsed_at: Optional[datetime] = None
+    parse_status: Optional[str] = None
+    parse_error: Optional[str] = None
+
+class DatasheetQueryRequest(BaseModel):
+    """Request for datasheet Q&A"""
+    question: str
+    criterion_id: Optional[UUID] = None
+
+class DatasheetCitation(BaseModel):
+    """Citation reference from datasheet"""
+    page_number: int
+    snippet: str
+
+class DatasheetQueryAnswer(BaseModel):
+    """Response from datasheet Q&A"""
+    answer: str
+    citations: List[DatasheetCitation]
+    confidence: Optional[float] = None
+
+class DatasheetSuggestionsResponse(BaseModel):
+    """Suggested questions for datasheet"""
+    suggestions: List[str]
