@@ -130,6 +130,7 @@ export const componentsApi = {
             description: component.description,
             datasheet_url: component.datasheetUrl,
             availability: component.availability,
+            source: component.source || 'manually_added',
         }),
     update: (id: string, component: Partial<Omit<Component, 'id' | 'projectId'>>) =>
         api.put<Component>(`/api/components/${id}`, {
