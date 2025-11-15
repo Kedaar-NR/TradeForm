@@ -207,8 +207,62 @@ const Templates: React.FC = () => {
   const handleUseTemplate = async (template: Template) => {
     if (!template) return;
 
+    // Check if user is authenticated
+    const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
+    const authToken = localStorage.getItem("authToken");
+
+    if (!isAuthenticated || !authToken) {
+      alert("Please log in first to create a project from a template.");
+      navigate("/login");
+      return;
+    }
+
     try {
       setIsCreating(template.id);
+
+      // Verify backend is reachable and token is valid
+      const apiBaseUrl =
+        process.env.REACT_APP_API_URL || "http://localhost:8000";
+      try {
+        const healthResponse = await fetch(`${apiBaseUrl}/health`);
+        if (!healthResponse.ok) {
+          throw new Error("Backend health check failed");
+        }
+
+        // Verify token is still valid
+        try {
+          const meResponse = await fetch(`${apiBaseUrl}/api/auth/me`, {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+              "Content-Type": "application/json",
+            },
+          });
+
+          if (meResponse.status === 401) {
+            // Token is invalid, clear auth and redirect to login
+            localStorage.removeItem("isAuthenticated");
+            localStorage.removeItem("authToken");
+            localStorage.removeItem("currentUser");
+            throw new Error("Your session has expired. Please log in again.");
+          }
+        } catch (authError: any) {
+          if (authError.message.includes("session has expired")) {
+            alert(authError.message);
+            navigate("/login");
+            return;
+          }
+          // If /api/auth/me fails for other reasons, continue anyway
+        }
+      } catch (healthError: any) {
+        if (healthError.message.includes("session has expired")) {
+          alert(healthError.message);
+          navigate("/login");
+          return;
+        }
+        throw new Error(
+          `Cannot reach backend at ${apiBaseUrl}. Please ensure the backend is running.`
+        );
+      }
 
       // Create project from template
       const projectResponse = await projectsApi.create({
@@ -244,10 +298,57 @@ const Templates: React.FC = () => {
       navigate(`/project/${projectId}/criteria`);
     } catch (error: any) {
       console.error("Failed to create project from template:", error);
-      const errorMessage =
-        error?.response?.data?.detail ||
-        error?.message ||
-        "Unknown error occurred";
+
+      // Extract error message properly
+      let errorMessage = "Unknown error occurred";
+      if (
+        error?.code === "ERR_NETWORK" ||
+        error?.message === "Network Error" ||
+        error?.message?.includes("Network Error")
+      ) {
+        // Check if backend is actually reachable
+        try {
+          const apiBaseUrl =
+            process.env.REACT_APP_API_URL || "http://localhost:8000";
+          const healthCheck = await fetch(`${apiBaseUrl}/health`);
+          if (healthCheck.ok) {
+            errorMessage =
+              "Network Error - Backend is running but request failed. This might be an authentication issue. Please try logging in again.";
+          } else {
+            errorMessage = `Network Error - Cannot reach backend at ${apiBaseUrl}. Please check if the backend is running.`;
+          }
+        } catch (healthErr) {
+          errorMessage = `Network Error - Cannot reach backend. Please check if the backend is running on http://localhost:8000`;
+        }
+      } else if (error?.response?.status === 401) {
+        errorMessage = "Authentication required. Please log in first.";
+        // Redirect to login
+        setTimeout(() => {
+          window.location.href = "/login";
+        }, 2000);
+      } else if (error?.response?.data) {
+        const data = error.response.data;
+        if (typeof data.detail === "string") {
+          errorMessage = data.detail;
+        } else if (typeof data.detail === "object" && data.detail !== null) {
+          if (Array.isArray(data.detail)) {
+            errorMessage = data.detail
+              .map((e: any) =>
+                typeof e === "string" ? e : e.msg || JSON.stringify(e)
+              )
+              .join(", ");
+          } else if (data.detail.message) {
+            errorMessage = data.detail.message;
+          } else {
+            errorMessage = JSON.stringify(data.detail);
+          }
+        } else if (data.message) {
+          errorMessage = data.message;
+        }
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+
       alert(`Failed to create project: ${errorMessage}`);
     } finally {
       setIsCreating(null);
@@ -273,7 +374,6 @@ const Templates: React.FC = () => {
           <div key={template.id} className="card p-6">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <span className="text-3xl">{template.icon}</span>
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900">
                     {template.name}
