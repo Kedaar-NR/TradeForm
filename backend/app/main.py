@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
-from typing import List
+from typing import List, Optional
 from uuid import UUID
 from datetime import timedelta
 import pandas as pd
@@ -133,9 +133,16 @@ def get_current_user_info(current_user: models.User = Depends(auth.get_current_u
 # ============================================================================
 
 @app.post("/api/projects", response_model=schemas.Project, status_code=status.HTTP_201_CREATED)
-def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)):
+def create_project(
+    project: schemas.ProjectCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user_required)
+):
     """Create a new trade study project"""
-    db_project = models.Project(**project.model_dump())
+    db_project = models.Project(
+        **project.model_dump(),
+        created_by=current_user.id
+    )
     db.add(db_project)
     db.commit()
     db.refresh(db_project)
@@ -350,7 +357,7 @@ def list_components(project_id: UUID, db: Session = Depends(get_db)):
     return components
 
 @app.put("/api/components/{component_id}", response_model=schemas.Component)
-def update_component(component_id: UUID, component_update: schemas.ComponentBase, db: Session = Depends(get_db)):
+def update_component(component_id: UUID, component_update: schemas.ComponentUpdate, db: Session = Depends(get_db)):
     """Update a component"""
     db_component = db.query(models.Component).filter(models.Component.id == component_id).first()
     if not db_component:
@@ -534,12 +541,13 @@ def export_full_trade_study(project_id: UUID, db: Session = Depends(get_db)):
             if criterion.id in score_dict:
                 weighted_sum += score_dict[criterion.id].score * criterion.weight
 
-        total_score = weighted_sum / total_weight if total_weight > 0 else 0
+        total_weight_val = float(total_weight)  # type: ignore
+        total_score = weighted_sum / total_weight_val if total_weight_val > 0 else 0
 
         results.append({
             "component": component,
             "scores": score_dict,
-            "total_score": round(total_score, 2)
+            "total_score": round(float(total_score), 2)  # type: ignore
         })
 
     # Sort by total score
@@ -642,13 +650,13 @@ def export_full_trade_study(project_id: UUID, db: Session = Depends(get_db)):
                 'Component': [f"{c.manufacturer} {c.part_number}" for c in components]
             }
             for criterion in criteria:
-                breakdown_data[criterion.name] = []
+                breakdown_data[str(criterion.name)] = []  # type: ignore
                 for component in components:
                     score = db.query(models.Score).filter(
                         models.Score.component_id == component.id,
                         models.Score.criterion_id == criterion.id
                     ).first()
-                    breakdown_data[criterion.name].append(score.score if score else 0)
+                    breakdown_data[str(criterion.name)].append(int(score.score) if score else 0)  # type: ignore
 
             df_breakdown = pd.DataFrame(breakdown_data)
             df_breakdown.to_excel(writer, sheet_name='Score Matrix', index=False)
@@ -695,12 +703,13 @@ def get_project_results(project_id: UUID, db: Session = Depends(get_db)):
             if criterion.id in score_dict:
                 weighted_sum += score_dict[criterion.id].score * criterion.weight
 
-        total_score = weighted_sum / total_weight if total_weight > 0 else 0
+        total_weight_val = float(total_weight)  # type: ignore
+        total_score = weighted_sum / total_weight_val if total_weight_val > 0 else 0
 
         results.append({
             "component": component,
             "scores": scores,
-            "total_score": round(total_score, 2)
+            "total_score": round(float(total_score), 2)  # type: ignore
         })
 
     # Sort by total score (descending)
@@ -747,27 +756,39 @@ def discover_components(project_id: UUID, db: Session = Depends(get_db)):
 Project Details:
 - Component Type: {project.component_type}
 - Project Name: {project.name}
-{f"- Description: {project.description}" if project.description else ""}
-{f"- Evaluation Criteria: {', '.join(criteria_names)}" if criteria_names else ""}
+{f"- Description: {project.description}" if project.description is not None and str(project.description) != "" else ""}  # type: ignore
+{f"- Evaluation Criteria: {', '.join([str(c) for c in criteria_names])}" if criteria_names else ""}  # type: ignore
 
-Task: Discover 5-10 commercially available components that match this component type. For each component, provide:
+Task: Discover 5-10 commercially available components that match this component type. For each component, you MUST:
+1. Search the web to find the actual manufacturer's website
+2. Find the best/specific manufacturer page for that exact part number
+3. Prioritize finding a direct PDF datasheet link from the manufacturer (e.g., manufacturer.com/datasheets/partnumber.pdf)
+4. If no PDF is available, provide the specific product page URL from the manufacturer (not just the homepage)
+5. As a last resort, provide distributor links (Digi-Key, Mouser, Octopart) but ONLY if manufacturer links are unavailable
+
+For each component, provide:
 1. Manufacturer name
 2. Part number
 3. Brief description (1-2 sentences)
-4. Datasheet URL if available (prefer manufacturer or distributor sites like Digi-Key, Mouser, Octopart)
+4. Datasheet URL - MUST be one of:
+   - Direct PDF link from manufacturer (preferred)
+   - Specific manufacturer product page URL (second choice)
+   - Distributor product page URL (last resort, only if manufacturer unavailable)
+
+IMPORTANT: Do NOT provide generic manufacturer homepage URLs. Always find the specific product page or datasheet PDF for the exact part number.
 
 Format your response as a JSON array of objects with these fields:
 - manufacturer (string)
 - part_number (string)
 - description (string)
-- datasheet_url (string, optional)
+- datasheet_url (string, MUST be specific product/datasheet page, not homepage)
 - availability (one of: "in_stock", "limited", "obsolete")
 
 Return ONLY valid JSON, no markdown formatting, no explanations."""
 
     try:
         # Call Anthropic API
-        message = client.messages.create(
+        message = client.messages.create(  # type: ignore
             model="claude-3-5-sonnet-20241022",
             max_tokens=2000,
             messages=[
@@ -851,7 +872,7 @@ async def upload_datasheet(
         raise HTTPException(status_code=404, detail="Component not found")
     
     # Validate file type
-    if not file.filename.lower().endswith('.pdf'):
+    if not file.filename or not file.filename.lower().endswith('.pdf'):  # type: ignore
         raise HTTPException(
             status_code=400,
             detail="Only PDF files are supported. Please upload a PDF datasheet."
@@ -892,11 +913,11 @@ async def upload_datasheet(
             ).delete()
             
             # Update existing document
-            existing_doc.original_filename = file.filename
-            existing_doc.file_path = str(file_path)
-            existing_doc.parse_status = "pending"
-            existing_doc.parse_error = None
-            existing_doc.num_pages = None
+            existing_doc.original_filename = file.filename  # type: ignore
+            existing_doc.file_path = str(file_path)  # type: ignore
+            existing_doc.parse_status = "pending"  # type: ignore
+            existing_doc.parse_error = None  # type: ignore
+            existing_doc.num_pages = None  # type: ignore
             db.commit()
             datasheet_doc = existing_doc
         else:
@@ -926,11 +947,11 @@ async def upload_datasheet(
                 db.add(db_page)
             
             # Update document status
-            datasheet_doc.parse_status = "success"
-            datasheet_doc.num_pages = len(parsed_pages)
+            datasheet_doc.parse_status = "success"  # type: ignore
+            datasheet_doc.num_pages = len(parsed_pages)  # type: ignore
             
             # Update component datasheet_file_path
-            component.datasheet_file_path = str(file_path)
+            component.datasheet_file_path = str(file_path)  # type: ignore
             
             db.commit()
             db.refresh(datasheet_doc)
@@ -947,8 +968,8 @@ async def upload_datasheet(
             
         except Exception as parse_error:
             # Update document with error
-            datasheet_doc.parse_status = "failed"
-            datasheet_doc.parse_error = str(parse_error)
+            datasheet_doc.parse_status = "failed"  # type: ignore
+            datasheet_doc.parse_error = str(parse_error)  # type: ignore
             db.commit()
             
             raise HTTPException(
@@ -984,11 +1005,11 @@ def get_datasheet_status(component_id: UUID, db: Session = Depends(get_db)):
     
     return schemas.DatasheetStatus(
         has_datasheet=True,
-        parsed=(datasheet_doc.parse_status == "success"),
-        num_pages=datasheet_doc.num_pages,
-        parsed_at=datasheet_doc.parsed_at,
-        parse_status=datasheet_doc.parse_status,
-        parse_error=datasheet_doc.parse_error
+        parsed=(str(datasheet_doc.parse_status) == "success"),  # type: ignore
+        num_pages=int(datasheet_doc.num_pages) if datasheet_doc.num_pages else None,  # type: ignore
+        parsed_at=datasheet_doc.parsed_at,  # type: ignore
+        parse_status=str(datasheet_doc.parse_status),  # type: ignore
+        parse_error=str(datasheet_doc.parse_error) if datasheet_doc.parse_error else None  # type: ignore
     )
 
 @app.post("/api/components/{component_id}/datasheet/query", response_model=schemas.DatasheetQueryAnswer)
@@ -1017,7 +1038,7 @@ async def query_datasheet(
             detail="No datasheet uploaded for this component. Please upload a datasheet first."
         )
     
-    if datasheet_doc.parse_status != "success":
+    if str(datasheet_doc.parse_status) != "success":  # type: ignore
         raise HTTPException(
             status_code=400,
             detail=f"Datasheet parsing failed or incomplete. Status: {datasheet_doc.parse_status}"
@@ -1033,6 +1054,9 @@ async def query_datasheet(
     
     # Get project and criteria
     project = db.query(models.Project).filter(models.Project.id == component.project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
     criteria = db.query(models.Criterion).filter(
         models.Criterion.project_id == component.project_id
     ).all()
@@ -1050,9 +1074,9 @@ async def query_datasheet(
     # Build context for AI
     context = {
         "project": {
-            "name": project.name,
-            "component_type": project.component_type,
-            "description": project.description
+            "name": project.name if project.name is not None else "",
+            "component_type": project.component_type if project.component_type is not None else "",
+            "description": project.description if project.description is not None else ""
         },
         "component": {
             "manufacturer": component.manufacturer,
@@ -1119,6 +1143,9 @@ def get_datasheet_suggestions(component_id: UUID, db: Session = Depends(get_db))
     
     # Get project and criteria
     project = db.query(models.Project).filter(models.Project.id == component.project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
     criteria = db.query(models.Criterion).filter(
         models.Criterion.project_id == component.project_id
     ).all()
@@ -1126,9 +1153,9 @@ def get_datasheet_suggestions(component_id: UUID, db: Session = Depends(get_db))
     # Build context for AI
     context = {
         "project": {
-            "name": project.name,
-            "component_type": project.component_type,
-            "description": project.description
+            "name": project.name if project.name is not None else "",
+            "component_type": project.component_type if project.component_type is not None else "",
+            "description": project.description if project.description is not None else ""
         },
         "component": {
             "manufacturer": component.manufacturer,
@@ -1211,15 +1238,15 @@ Component:
 - Manufacturer: {component.manufacturer}
 - Part Number: {component.part_number}
 - Description: {component.description or 'No description provided'}
-{f"- Datasheet URL: {component.datasheet_url}" if component.datasheet_url else ""}
+{f"- Datasheet URL: {component.datasheet_url}" if component.datasheet_url is not None and str(component.datasheet_url) != "" else ""}  # type: ignore
 
 Evaluation Criterion:
 - Name: {criterion.name}
 - Description: {criterion.description or 'No description provided'}
 - Unit: {criterion.unit or 'N/A'}
-- Higher is Better: {'Yes' if criterion.higher_is_better else 'No'}
-{f"- Minimum Requirement: {criterion.minimum_requirement} {criterion.unit or ''}" if criterion.minimum_requirement else ""}
-{f"- Maximum Requirement: {criterion.maximum_requirement} {criterion.unit or ''}" if criterion.maximum_requirement else ""}
+- Higher is Better: {'Yes' if bool(criterion.higher_is_better) else 'No'}  # type: ignore
+{f"- Minimum Requirement: {criterion.minimum_requirement} {criterion.unit or ''}" if criterion.minimum_requirement is not None and str(criterion.minimum_requirement) != "" else ""}  # type: ignore
+{f"- Maximum Requirement: {criterion.maximum_requirement} {criterion.unit or ''}" if criterion.maximum_requirement is not None and str(criterion.maximum_requirement) != "" else ""}  # type: ignore
 
 Task: Evaluate this component on a scale of 1-10 for the criterion "{criterion.name}". Provide:
 1. A score from 1-10 (where 1 is worst, 10 is best)
@@ -1238,7 +1265,7 @@ Be realistic and critical in your evaluation. If you don't have enough informati
 
                 try:
                     # Call Anthropic API
-                    message = client.messages.create(
+                    message = client.messages.create(  # type: ignore
                         model="claude-3-5-sonnet-20241022",
                         max_tokens=500,
                         messages=[{"role": "user", "content": prompt}]
@@ -1262,7 +1289,7 @@ Be realistic and critical in your evaluation. If you don't have enough informati
 
                     if existing_score:
                         # Update existing score
-                        existing_score.score = score_value
+                        existing_score.score = score_value  # type: ignore
                         existing_score.rationale = score_data.get("rationale", "")
                         existing_score.raw_value = score_data.get("raw_value")
                         existing_score.extraction_confidence = score_data.get("confidence", 0.5)
@@ -1374,7 +1401,12 @@ def get_version(project_id: UUID, version_id: UUID, db: Session = Depends(get_db
 # ============================================================================
 
 @app.post("/api/projects/{project_id}/shares", response_model=schemas.ProjectShare, status_code=status.HTTP_201_CREATED)
-def share_project(project_id: UUID, share: schemas.ProjectShareCreate, db: Session = Depends(get_db)):
+def share_project(
+    project_id: UUID,
+    share: schemas.ProjectShareCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user_required)
+):
     """Share a project with another user"""
     project = db.query(models.Project).filter(models.Project.id == project_id).first()
     if not project:
@@ -1391,7 +1423,7 @@ def share_project(project_id: UUID, share: schemas.ProjectShareCreate, db: Sessi
     db_share = models.ProjectShare(
         project_id=project_id,
         shared_with_user_id=share.shared_with_user_id,
-        shared_by_user_id=None,  # TODO: Get from auth context
+        shared_by_user_id=current_user.id,
         permission=share.permission
     )
     db.add(db_share)
@@ -1408,7 +1440,12 @@ def list_shares(project_id: UUID, db: Session = Depends(get_db)):
     return shares
 
 @app.post("/api/projects/{project_id}/comments", response_model=schemas.ProjectComment, status_code=status.HTTP_201_CREATED)
-def add_comment(project_id: UUID, comment: schemas.ProjectCommentCreate, db: Session = Depends(get_db)):
+def add_comment(
+    project_id: UUID,
+    comment: schemas.ProjectCommentCreate,
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user_required)
+):
     """Add a comment to a project"""
     project = db.query(models.Project).filter(models.Project.id == project_id).first()
     if not project:
@@ -1416,7 +1453,7 @@ def add_comment(project_id: UUID, comment: schemas.ProjectCommentCreate, db: Ses
     
     db_comment = models.ProjectComment(
         project_id=project_id,
-        user_id=None,  # TODO: Get from auth context
+        user_id=current_user.id,
         content=comment.content,
         component_id=comment.component_id,
         criterion_id=comment.criterion_id
@@ -1481,7 +1518,7 @@ Respond in JSON format:
     "description": "<detailed description>"
 }}"""
 
-        message = client.messages.create(
+        message = client.messages.create(  # type: ignore
             model="claude-3-5-sonnet-20241022",
             max_tokens=500,
             messages=[{"role": "user", "content": prompt}]
@@ -1552,7 +1589,7 @@ Respond in JSON format:
     ]
 }}"""
 
-        message = client.messages.create(
+        message = client.messages.create(  # type: ignore
             model="claude-3-5-sonnet-20241022",
             max_tokens=1500,
             messages=[{"role": "user", "content": prompt}]
@@ -1630,7 +1667,7 @@ You MUST:
 
 If asked about anything else, politely redirect to TradeForm topics."""
 
-        message = client.messages.create(
+        message = client.messages.create(  # type: ignore
             model="claude-3-5-sonnet-20241022",
             max_tokens=1000,
             system=system_prompt,
@@ -1646,3 +1683,36 @@ If asked about anything else, politely redirect to TradeForm topics."""
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"AI chat failed: {str(e)}")
+
+@app.get("/api/proxy-pdf")
+async def proxy_pdf(url: str):
+    """Proxy endpoint to download PDFs that may have CORS restrictions"""
+    import httpx
+    
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(url, follow_redirects=True)
+            
+            if response.status_code != 200:
+                raise HTTPException(
+                    status_code=response.status_code,
+                    detail=f"Failed to download PDF: {response.status_code}"
+                )
+            
+            # Check if it's likely a PDF
+            content_type = response.headers.get("content-type", "").lower()
+            if "pdf" not in content_type and not url.lower().endswith(".pdf"):
+                # Still allow it, but warn
+                pass
+            
+            return StreamingResponse(
+                io.BytesIO(response.content),
+                media_type="application/pdf",
+                headers={
+                    "Content-Disposition": f'attachment; filename="{url.split("/")[-1]}"'
+                }
+            )
+    except httpx.TimeoutException:
+        raise HTTPException(status_code=504, detail="Request timeout while downloading PDF")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to proxy PDF: {str(e)}")
