@@ -79,7 +79,7 @@ const ProjectSetup: React.FC = () => {
       setIsOptimizing(true);
 
       // Call backend to use AI to suggest description and component type
-      const response = await fetch('http://localhost:8000/api/ai/optimize-project', {
+      const response = await fetch(`${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/ai/optimize-project`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
