@@ -2,8 +2,8 @@
  * Criteria section for project details page.
  */
 
-import React from "react";
 import { Criterion } from "../../types";
+import { calculateTotalWeight } from "../../utils/criteriaHelpers";
 
 interface CriteriaSectionProps {
   criteria: Criterion[];
@@ -30,7 +30,7 @@ export const CriteriaSection: React.FC<CriteriaSectionProps> = ({
     );
   }
 
-  const totalWeight = criteria.reduce((sum, c) => sum + c.weight, 0);
+  const totalWeight = calculateTotalWeight(criteria);
 
   return (
     <div className="card overflow-hidden">

@@ -72,6 +72,14 @@ export const getDatasheetStatusBadge = (status?: DatasheetStatus) => {
 };
 
 /**
+ * Format enum value by replacing underscores with spaces
+ */
+export const formatEnumValue = (value: string, capitalize: boolean = false): string => {
+  const formatted = value.replace(/_/g, " ");
+  return capitalize ? formatted.toUpperCase() : formatted;
+};
+
+/**
  * Get availability badge properties
  */
 export const getAvailabilityBadge = (availability: "in_stock" | "limited" | "obsolete") => {

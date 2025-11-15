@@ -1,18 +1,11 @@
 const envUrl = process.env.REACT_APP_API_URL?.trim();
-let resolvedUrl = envUrl;
+const resolvedUrl = envUrl || "http://localhost:8000";
 
-if (!resolvedUrl) {
-  if (process.env.NODE_ENV === "development") {
-    resolvedUrl = "http://localhost:8000";
-  } else {
-    resolvedUrl = "http://localhost:8000";
-    if (typeof window !== "undefined") {
-      console.warn(
-        "REACT_APP_API_URL is not set. Falling back to http://localhost:8000. " +
-          "Set REACT_APP_API_URL in your environment for production deployments."
-      );
-    }
-  }
+if (!envUrl && typeof window !== "undefined") {
+  console.warn(
+    "REACT_APP_API_URL is not set. Falling back to http://localhost:8000. " +
+      "Set REACT_APP_API_URL in your environment for production deployments."
+  );
 }
 
 const API_BASE_URL = resolvedUrl;

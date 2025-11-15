@@ -1,13 +1,13 @@
-import React from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import type { ReactNode } from "react";
 import Logo from "./Logo";
 import FloatingAIAssistant from "./FloatingAIAssistant";
 
 interface LayoutProps {
-  children: React.ReactNode;
+  children: ReactNode;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children }) => {
+const Layout = ({ children }: LayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -16,7 +16,7 @@ const Layout: React.FC<LayoutProps> = ({ children }) => {
   const navigation: Array<{
     name: string;
     path: string;
-    icon: React.ReactElement;
+    icon: ReactNode;
     badge?: string;
     hidden?: boolean;
   }> = [

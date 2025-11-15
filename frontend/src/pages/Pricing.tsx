@@ -1,8 +1,7 @@
-import React from "react";
 import { useNavigate } from "react-router-dom";
 import Logo from "../components/Logo";
 
-const Pricing: React.FC = () => {
+const Pricing = () => {
   const navigate = useNavigate();
 
   return (

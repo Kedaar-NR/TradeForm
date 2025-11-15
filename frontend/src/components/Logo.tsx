@@ -1,4 +1,3 @@
-import React from "react";
 import { useNavigate } from "react-router-dom";
 
 interface LogoProps {
@@ -8,7 +7,7 @@ interface LogoProps {
   textColor?: "dark" | "white";
 }
 
-const Logo: React.FC<LogoProps> = ({
+const Logo = ({
   size = "md",
   showText = true,
   clickable = true,

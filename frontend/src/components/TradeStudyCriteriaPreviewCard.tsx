@@ -1,4 +1,3 @@
-import React from 'react';
 
 export interface MockCriterion {
   id: string;
@@ -40,7 +39,7 @@ export const MOCK_CRITERIA: MockCriterion[] = [
   },
 ];
 
-const TradeStudyCriteriaPreviewCard: React.FC = () => {
+const TradeStudyCriteriaPreviewCard = () => {
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <div className="flex items-center justify-between mb-4">

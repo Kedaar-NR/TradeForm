@@ -5,12 +5,13 @@
  * criteria, and navigation to other project features.
  */
 
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { resultsApi } from "../services/api";
 import { useProjectData } from "../hooks/useProjectData";
 import { ComponentsSection } from "../components/ProjectDetails/ComponentsSection";
 import { CriteriaSection } from "../components/ProjectDetails/CriteriaSection";
+import { formatEnumValue } from "../utils/datasheetHelpers";
 
 type TabType = "overview" | "versions" | "collaboration";
 
@@ -122,7 +123,7 @@ const ProjectDetails: React.FC = () => {
                       : "bg-gray-100 text-gray-700"
                   }`}
                 >
-                  {project.status.replace("_", " ").toUpperCase()}
+                  {formatEnumValue(project.status, true)}
                 </span>
               </div>
               {project.description && (

@@ -2,7 +2,6 @@
  * Criterion card component for displaying and editing a single criterion.
  */
 
-import React from "react";
 import { CriterionForm } from "../../hooks/useCriteriaManagement";
 
 interface CriterionCardProps {
@@ -12,7 +11,7 @@ interface CriterionCardProps {
   onRemove: (index: number) => void;
 }
 
-export const CriterionCard: React.FC<CriterionCardProps> = ({
+export const CriterionCard = ({
   criterion,
   index,
   onUpdate,
