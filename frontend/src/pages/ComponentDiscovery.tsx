@@ -1,8 +1,9 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Component, DatasheetStatus } from "../types";
-import { componentsApi, datasheetsApi } from "../services/api";
+import { componentsApi, datasheetsApi, projectsApi } from "../services/api";
 import ComponentDetailDrawer from "../components/ComponentDetailDrawer";
+import { API_BASE_URL, getAuthHeaders } from "../utils/apiHelpers";
 
 const ComponentDiscovery: React.FC = () => {
   const navigate = useNavigate();
@@ -15,8 +16,12 @@ const ComponentDiscovery: React.FC = () => {
   const [isScoring, setIsScoring] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
-  const [selectedComponent, setSelectedComponent] = useState<Component | null>(null);
-  const [datasheetStatuses, setDatasheetStatuses] = useState<Record<string, DatasheetStatus>>({});
+  const [selectedComponent, setSelectedComponent] = useState<Component | null>(
+    null
+  );
+  const [datasheetStatuses, setDatasheetStatuses] = useState<
+    Record<string, DatasheetStatus>
+  >({});
   const [formData, setFormData] = useState({
     manufacturer: "",
     partNumber: "",
@@ -25,10 +30,33 @@ const ComponentDiscovery: React.FC = () => {
     availability: "in_stock" as Component["availability"],
   });
 
+  const saveProjectStatus = useCallback(
+    async (status: "draft" | "in_progress" | "completed" = "in_progress") => {
+      if (!projectId) return;
+      try {
+        await projectsApi.update(projectId, { status });
+      } catch (error: any) {
+        console.error("Failed to update project status:", error);
+      }
+    },
+    [projectId]
+  );
+
   const loadComponents = React.useCallback(async () => {
     if (!projectId) {
       setIsLoading(false);
       setComponents([]);
+      return;
+    }
+
+    // Validate UUID format - if invalid, redirect silently
+    const uuidRegex =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+    if (!uuidRegex.test(projectId)) {
+      setIsLoading(false);
+      setComponents([]);
+      // Redirect to dashboard without alert for better UX
+      setTimeout(() => navigate("/dashboard"), 100);
       return;
     }
 
@@ -48,7 +76,7 @@ const ComponentDiscovery: React.FC = () => {
         source: comp.source,
       }));
       setComponents(transformedComponents);
-      
+
       // Load datasheet statuses for all components
       loadDatasheetStatuses(transformedComponents);
     } catch (error: any) {
@@ -67,11 +95,11 @@ const ComponentDiscovery: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [projectId]);
+  }, [projectId, navigate]);
 
   const loadDatasheetStatuses = async (componentsToCheck: Component[]) => {
     const statuses: Record<string, DatasheetStatus> = {};
-    
+
     // Load statuses in parallel
     await Promise.all(
       componentsToCheck.map(async (component) => {
@@ -94,7 +122,7 @@ const ComponentDiscovery: React.FC = () => {
         }
       })
     );
-    
+
     setDatasheetStatuses(statuses);
   };
 
@@ -112,13 +140,131 @@ const ComponentDiscovery: React.FC = () => {
     }
   }, [projectId, loadComponents]);
 
+  // Auto-save on page exit
+  useEffect(() => {
+    const handleBeforeUnload = () => {
+      if (projectId) {
+        saveProjectStatus("in_progress").catch(console.error);
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+      // Save on unmount
+      if (projectId) {
+        saveProjectStatus("in_progress").catch(console.error);
+      }
+    };
+  }, [projectId, saveProjectStatus]);
+
+  const uploadDatasheetFromUrl = async (componentId: string, url: string) => {
+    try {
+      console.log("Downloading PDF from URL:", url);
+
+      const apiUrl = API_BASE_URL;
+      let response: Response;
+
+      // Try direct download first
+      try {
+        response = await fetch(url, {
+          method: "GET",
+          mode: "cors",
+        });
+
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+      } catch (fetchError: any) {
+        // If CORS fails, use backend proxy
+        console.log(
+          "Direct fetch failed, using backend proxy:",
+          fetchError.message
+        );
+        response = await fetch(
+          `${apiUrl}/api/proxy-pdf?url=${encodeURIComponent(url)}`,
+          {
+            method: "GET",
+            headers: {
+              ...getAuthHeaders(),
+            },
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `Proxy download failed: ${response.status} ${response.statusText}`
+          );
+        }
+      }
+
+      const blob = await response.blob();
+
+      // Ensure filename ends with .pdf for backend validation
+      let fileName = url.split("/").pop() || "datasheet.pdf";
+      // Remove query parameters and fragments
+      fileName = fileName.split("?")[0].split("#")[0];
+      // Ensure .pdf extension
+      if (!fileName.toLowerCase().endsWith(".pdf")) {
+        fileName = fileName + ".pdf";
+      }
+
+      // Create a File object from the blob with explicit PDF type
+      const file = new File([blob], fileName, { type: "application/pdf" });
+
+      console.log("Uploading file:", fileName, "Size:", file.size, "bytes");
+
+      // Upload using the same endpoint
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const uploadResponse = await fetch(
+        `${apiUrl}/api/components/${componentId}/datasheet`,
+        {
+          method: "POST",
+          headers: {
+            ...getAuthHeaders(),
+          },
+          body: formData,
+        }
+      );
+
+      if (!uploadResponse.ok) {
+        let errorMessage = "Upload failed";
+        try {
+          const errorData = await uploadResponse.json();
+          errorMessage = errorData.detail || errorData.message || errorMessage;
+        } catch (e) {
+          errorMessage = `Upload failed with status ${uploadResponse.status}`;
+        }
+        throw new Error(errorMessage);
+      }
+
+      console.log("Successfully uploaded datasheet from URL");
+      return true;
+    } catch (err: any) {
+      console.error("Upload from URL error:", err);
+      console.error("Error details:", {
+        message: err.message,
+        stack: err.stack,
+        url: url,
+        componentId: componentId,
+      });
+      return false;
+    }
+  };
+
   const handleAddComponent = async () => {
     if (!formData.manufacturer.trim() || !formData.partNumber.trim()) {
       alert("Please fill in manufacturer and part number");
       return;
     }
 
-    if (!projectId) return;
+    if (!projectId) {
+      alert("Project ID is missing. Please navigate to a valid project.");
+      return;
+    }
 
     try {
       setIsSaving(true);
@@ -146,8 +292,10 @@ const ComponentDiscovery: React.FC = () => {
       };
 
       setComponents([...components, newComponent]);
+      // Auto-save project status to in_progress
+      await saveProjectStatus("in_progress");
 
-      // Reset form
+      // Reset form immediately so button doesn't stay stuck
       setFormData({
         manufacturer: "",
         partNumber: "",
@@ -156,14 +304,70 @@ const ComponentDiscovery: React.FC = () => {
         availability: "in_stock" as Component["availability"],
       });
       setShowAddForm(false);
+      setIsSaving(false); // Reset saving state immediately
+
+      // Auto-upload datasheet if URL is a PDF (do this asynchronously, don't block)
+      if (formData.datasheetUrl && formData.datasheetUrl.trim()) {
+        const url = formData.datasheetUrl.trim();
+        const isPdfUrl =
+          url.toLowerCase().endsWith(".pdf") ||
+          url.toLowerCase().includes(".pdf");
+
+        if (isPdfUrl) {
+          // Upload in background, don't block the UI
+          uploadDatasheetFromUrl(newComponent.id, url)
+            .then((uploadSuccess) => {
+              if (uploadSuccess) {
+                alert("Datasheet uploaded");
+                // Reload components to get updated datasheet status
+                loadComponents();
+              } else {
+                console.warn(
+                  "Failed to auto-upload datasheet, but component was added"
+                );
+              }
+            })
+            .catch((err) => {
+              console.error("Error uploading datasheet:", err);
+            });
+        }
+      }
     } catch (error: any) {
       console.error("Failed to add component:", error);
-      const errorMessage =
-        error.response?.data?.detail || error.message || "Unknown error";
+
+      // Extract error message properly, handling objects
+      let errorMessage = "Unknown error";
+      if (error.response?.data) {
+        const data = error.response.data;
+        if (typeof data.detail === "string") {
+          errorMessage = data.detail;
+        } else if (typeof data.detail === "object" && data.detail !== null) {
+          // Handle object details (e.g., validation errors)
+          if (Array.isArray(data.detail)) {
+            errorMessage = data.detail
+              .map((e: any) =>
+                typeof e === "string" ? e : e.msg || JSON.stringify(e)
+              )
+              .join(", ");
+          } else if (data.detail.message) {
+            errorMessage = data.detail.message;
+          } else {
+            errorMessage = JSON.stringify(data.detail);
+          }
+        } else if (data.message) {
+          errorMessage = data.message;
+        } else if (typeof data === "string") {
+          errorMessage = data;
+        }
+      } else if (error.message) {
+        errorMessage = error.message;
+      } else if (typeof error === "string") {
+        errorMessage = error;
+      }
+
       alert(
         `Failed to add component: ${errorMessage}. Please check if the backend is running.`
       );
-    } finally {
       setIsSaving(false);
     }
   };
@@ -179,6 +383,8 @@ const ComponentDiscovery: React.FC = () => {
     try {
       await componentsApi.delete(componentId);
       setComponents(components.filter((c) => c.id !== componentId));
+      // Auto-save project status to in_progress
+      await saveProjectStatus("in_progress");
     } catch (error: any) {
       console.error("Failed to remove component:", error);
       const errorMessage =
@@ -196,11 +402,47 @@ const ComponentDiscovery: React.FC = () => {
 
       // Reload all components to get the full list
       await loadComponents();
+      // Auto-save project status to in_progress
+      await saveProjectStatus("in_progress");
 
+      // Auto-upload PDFs for discovered components with PDF URLs
       if (response.data.discovered_count > 0) {
-        alert(
-          `Successfully discovered ${response.data.discovered_count} component(s)!`
-        );
+        const discoveredComponents = response.data.components || [];
+        let uploadedCount = 0;
+
+        for (const comp of discoveredComponents) {
+          const componentId = comp.id;
+          // API returns snake_case, handle both formats
+          const datasheetUrl = (comp as any).datasheet_url || comp.datasheetUrl;
+
+          if (datasheetUrl && datasheetUrl.trim()) {
+            const url = datasheetUrl.trim();
+            const isPdfUrl =
+              url.toLowerCase().endsWith(".pdf") ||
+              url.toLowerCase().includes(".pdf");
+
+            if (isPdfUrl) {
+              const uploadSuccess = await uploadDatasheetFromUrl(
+                componentId,
+                url
+              );
+              if (uploadSuccess) {
+                uploadedCount++;
+              }
+            }
+          }
+        }
+
+        if (uploadedCount > 0) {
+          await loadComponents(); // Reload to get updated datasheet statuses
+          alert(
+            `Successfully discovered ${response.data.discovered_count} component(s)! ${uploadedCount} datasheet(s) uploaded.`
+          );
+        } else {
+          alert(
+            `Successfully discovered ${response.data.discovered_count} component(s)!`
+          );
+        }
       } else {
         alert(
           "No new components were discovered. They may already exist in your list."
@@ -230,7 +472,7 @@ const ComponentDiscovery: React.FC = () => {
     if (!projectId) return;
 
     const confirmed = window.confirm(
-      'This will automatically score all components against all criteria using AI. This may take a few moments. Continue?'
+      "This will automatically score all components against all criteria using AI. This may take a few moments. Continue?"
     );
     if (!confirmed) return;
 
@@ -243,36 +485,19 @@ const ComponentDiscovery: React.FC = () => {
       // Navigate to results page to see scores
       navigate(`/project/${projectId}/results`);
     } catch (error: any) {
-      console.error('Failed to score components:', error);
+      console.error("Failed to score components:", error);
       alert(
         error.response?.data?.detail ||
-          'Failed to score components. Please check that all components and criteria are properly configured.'
+          "Failed to score components. Please check that all components and criteria are properly configured."
       );
     } finally {
       setIsScoring(false);
     }
   };
 
-  const handleExportExcel = async () => {
-    if (!projectId) return;
-    try {
-      const response = await componentsApi.exportExcel(projectId);
-      const blob = new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const url = window.URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `components_${new Date().toISOString().split('T')[0]}.xlsx`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      window.URL.revokeObjectURL(url);
-    } catch (error: any) {
-      console.error('Failed to export components:', error);
-      alert(`Failed to export components: ${error.response?.data?.detail || error.message}`);
-    }
-  };
-
-  const handleImportExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImportExcel = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
     const file = event.target.files?.[0];
     if (!file || !projectId) return;
 
@@ -281,21 +506,25 @@ const ComponentDiscovery: React.FC = () => {
       await componentsApi.uploadExcel(projectId, file);
       // Reload components after import
       await loadComponents();
-      alert('Components imported successfully!');
+      alert("Components imported successfully!");
     } catch (error: any) {
-      console.error('Failed to import components:', error);
-      alert(`Failed to import components: ${error.response?.data?.detail || error.message}`);
+      console.error("Failed to import components:", error);
+      alert(
+        `Failed to import components: ${
+          error.response?.data?.detail || error.message
+        }`
+      );
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        fileInputRef.current.value = "";
       }
     }
   };
 
   const getAvailabilityBadge = (availability: Component["availability"]) => {
     const styles = {
-      in_stock: "bg-gray-200 text-gray-900",
+      in_stock: "bg-gray-200 text-green-600",
       limited: "bg-yellow-100 text-yellow-700",
       obsolete: "bg-red-100 text-red-700",
     };
@@ -317,7 +546,7 @@ const ComponentDiscovery: React.FC = () => {
 
   const getDatasheetStatusBadge = (componentId: string) => {
     const status = datasheetStatuses[componentId];
-    
+
     if (!status || !status.hasDatasheet) {
       return (
         <span className="px-2.5 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600">
@@ -326,18 +555,22 @@ const ComponentDiscovery: React.FC = () => {
       );
     }
 
-    if (status.parseStatus === 'success' && status.parsed) {
+    if (status.parseStatus === "success" && status.parsed) {
       return (
         <span className="px-2.5 py-1 rounded-md text-xs font-medium bg-green-100 text-green-700 flex items-center gap-1">
           <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+            <path
+              fillRule="evenodd"
+              d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+              clipRule="evenodd"
+            />
           </svg>
           Parsed ({status.numPages || 0} pages)
         </span>
       );
     }
 
-    if (status.parseStatus === 'failed') {
+    if (status.parseStatus === "failed") {
       return (
         <span className="px-2.5 py-1 rounded-md text-xs font-medium bg-red-100 text-red-700">
           Parsing failed
@@ -345,12 +578,23 @@ const ComponentDiscovery: React.FC = () => {
       );
     }
 
-    if (status.parseStatus === 'pending') {
+    if (status.parseStatus === "pending") {
       return (
         <span className="px-2.5 py-1 rounded-md text-xs font-medium bg-yellow-100 text-yellow-700 flex items-center gap-1">
           <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
           </svg>
           Parsing...
         </span>
@@ -366,7 +610,7 @@ const ComponentDiscovery: React.FC = () => {
 
   if (!projectId) {
     return (
-      <div className="max-w-6xl animate-fade-in">
+      <div className="animate-fade-in">
         <div className="card p-12 text-center">
           <h3 className="text-lg font-semibold text-gray-900 mb-2">
             Invalid Project
@@ -476,20 +720,20 @@ const ComponentDiscovery: React.FC = () => {
           disabled={isUploading}
           className="btn-secondary flex items-center gap-2"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          <svg
+            className="w-5 h-5"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+            />
           </svg>
-          {isUploading ? 'Uploading...' : 'Import from Excel'}
-        </button>
-        <button
-          onClick={handleExportExcel}
-          disabled={components.length === 0}
-          className="btn-secondary flex items-center gap-2 disabled:opacity-50"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10" />
-          </svg>
-          Export to Excel
+          {isUploading ? "Uploading..." : "Import from Excel"}
         </button>
         <button
           onClick={handleScoreAll}
@@ -498,16 +742,42 @@ const ComponentDiscovery: React.FC = () => {
         >
           {isScoring ? (
             <>
-              <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              <svg
+                className="animate-spin h-5 w-5"
+                xmlns="http://www.w3.org/2000/svg"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
               </svg>
               Scoring...
             </>
           ) : (
             <>
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
+                />
               </svg>
               Score All Components
             </>
@@ -646,7 +916,6 @@ const ComponentDiscovery: React.FC = () => {
           </div>
         ) : components.length === 0 ? (
           <div className="card p-12 text-center">
-            <div className="text-4xl mb-4">📦</div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               No components added yet
             </h3>
@@ -664,7 +933,11 @@ const ComponentDiscovery: React.FC = () => {
         ) : (
           <div className="space-y-3">
             {components.map((component) => (
-              <div key={component.id} className="card p-5">
+              <div
+                key={component.id}
+                className="card p-5 cursor-pointer hover:bg-gray-50 transition-colors"
+                onClick={() => setSelectedComponent(component)}
+              >
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-3 mb-2 flex-wrap">
@@ -683,11 +956,16 @@ const ComponentDiscovery: React.FC = () => {
                       </p>
                     )}
                     <div className="flex items-center gap-2 mt-2">
-                      <span className="text-xs font-medium text-gray-600">Datasheet:</span>
+                      <span className="text-xs font-medium text-gray-600">
+                        Datasheet:
+                      </span>
                       {getDatasheetStatusBadge(component.id)}
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 flex-shrink-0">
+                  <div
+                    className="flex items-center gap-3 flex-shrink-0"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <button
                       onClick={() => setSelectedComponent(component)}
                       className="btn-secondary text-sm flex items-center gap-2"
@@ -715,6 +993,7 @@ const ComponentDiscovery: React.FC = () => {
                         rel="noopener noreferrer"
                         className="text-sm text-black hover:text-gray-900 flex items-center gap-1 font-medium"
                         title={component.datasheetUrl}
+                        onClick={(e) => e.stopPropagation()}
                       >
                         View URL
                         <svg
