@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import type { DatasheetStatus } from '../types';
+import { getApiUrl, getAuthHeaders } from '../utils/apiHelpers';
 
 interface DatasheetStatusCardProps {
   testComponentId: string;
@@ -20,7 +21,12 @@ const DatasheetStatusCard: React.FC<DatasheetStatusCardProps> = ({
 
     try {
       const response = await fetch(
-        `${process.env.REACT_APP_API_URL || 'http://localhost:8000'}/api/components/${testComponentId}/datasheet/status`
+        getApiUrl(`/api/components/${testComponentId}/datasheet/status`),
+        {
+          headers: {
+            ...getAuthHeaders(),
+          },
+        }
       );
 
       if (!response.ok) {
@@ -200,4 +206,3 @@ const DatasheetStatusCard: React.FC<DatasheetStatusCardProps> = ({
 };
 
 export default DatasheetStatusCard;
-
