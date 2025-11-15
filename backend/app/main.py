@@ -326,7 +326,7 @@ def export_criteria_excel(project_id: UUID, db: Session = Depends(get_db)):
 # ============================================================================
 
 @app.post("/api/projects/{project_id}/components", response_model=schemas.Component, status_code=status.HTTP_201_CREATED)
-def add_component(project_id: UUID, component: schemas.ComponentBase, db: Session = Depends(get_db)):
+def add_component(project_id: UUID, component: schemas.ComponentCreateInput, db: Session = Depends(get_db)):
     """Manually add a component to project"""
     # Verify project exists
     project = db.query(models.Project).filter(models.Project.id == project_id).first()
@@ -335,8 +335,7 @@ def add_component(project_id: UUID, component: schemas.ComponentBase, db: Sessio
 
     db_component = models.Component(
         **component.model_dump(),
-        project_id=project_id,
-        source=models.ComponentSource.MANUALLY_ADDED
+        project_id=project_id
     )
     db.add(db_component)
     db.commit()
