@@ -95,6 +95,13 @@ class ComponentCreate(ComponentBase):
     project_id: UUID
     source: ComponentSource = ComponentSource.MANUALLY_ADDED
 
+class ComponentUpdate(BaseModel):
+    manufacturer: Optional[str] = None
+    part_number: Optional[str] = None
+    description: Optional[str] = None
+    datasheet_url: Optional[str] = None
+    availability: Optional[ComponentAvailability] = None
+
 class Component(ComponentBase):
     id: UUID
     project_id: UUID
