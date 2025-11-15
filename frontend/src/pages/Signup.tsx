@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Logo from '../components/Logo';
+import api from '../services/api';
 
 const Signup: React.FC = () => {
   const navigate = useNavigate();
@@ -13,6 +14,8 @@ const Signup: React.FC = () => {
     password: '',
   });
   const [emailError, setEmailError] = useState('');
+  const [formError, setFormError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -30,8 +33,9 @@ const Signup: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError('');
 
     // Validate email before submitting
     if (!validateEmail(formData.email)) {
@@ -39,10 +43,29 @@ const Signup: React.FC = () => {
       return;
     }
 
-    // TODO: Add actual authentication logic
-    // For now, just navigate to dashboard
-    localStorage.setItem('isAuthenticated', 'true');
-    navigate('/dashboard');
+    try {
+      setIsSubmitting(true);
+      const response = await api.post('/api/auth/register', {
+        name: formData.name,
+        email: formData.email,
+        password: formData.password,
+      });
+
+      const data = response.data;
+      localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('authToken', data.access_token);
+      localStorage.setItem('currentUser', JSON.stringify(data.user));
+      navigate('/dashboard');
+    } catch (error: any) {
+      console.error('Signup failed:', error);
+      const message =
+        error?.response?.data?.detail ||
+        error?.message ||
+        'Failed to create account. Please try again.';
+      setFormError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -134,10 +157,18 @@ const Signup: React.FC = () => {
                 </label>
               </div>
 
-              <button type="submit" className="w-full btn-primary">
-                Create account
+              <button
+                type="submit"
+                className="w-full btn-primary disabled:opacity-50"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Creating account...' : 'Create account'}
               </button>
             </form>
+
+            {formError && (
+              <p className="mt-4 text-sm text-red-600 text-center">{formError}</p>
+            )}
 
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
