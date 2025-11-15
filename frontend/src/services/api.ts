@@ -1,25 +1,13 @@
 import axios from 'axios';
 import { Project, Component, Criterion, Score } from '../types';
+import { API_BASE_URL } from '../utils/apiHelpers';
 
-// Get API base URL from environment variable
-// In production, set REACT_APP_API_URL in your deployment platform (Vercel, Netlify, etc.)
-// Example: https://api.yourdomain.com or https://your-backend.herokuapp.com
-let API_BASE_URL = process.env.REACT_APP_API_URL;
-
-if (!API_BASE_URL) {
-    if (process.env.NODE_ENV === 'development') {
-        API_BASE_URL = 'http://localhost:8000';
-    } else {
-        // Production: backend is typically on a different domain
-        // User must set REACT_APP_API_URL in deployment platform settings
-        API_BASE_URL = '';
-        console.warn(
-            'REACT_APP_API_URL is not set in production! ' +
-            'Please set this environment variable in your deployment platform. ' +
-            'API calls may fail without it.'
-        );
+const getStoredToken = () => {
+    if (typeof window === 'undefined') {
+        return null;
     }
-}
+    return localStorage.getItem('authToken');
+};
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -32,6 +20,12 @@ const api = axios.create({
 // Add request interceptor to log API calls in development
 api.interceptors.request.use(
     (config) => {
+        const token = getStoredToken();
+        if (token) {
+            config.headers = config.headers || {};
+            config.headers.Authorization = `Bearer ${token}`;
+        }
+
         if (process.env.NODE_ENV === 'development') {
             console.log(`API Request: ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
         }
@@ -234,4 +228,3 @@ export const datasheetsApi = {
 };
 
 export default api;
-
