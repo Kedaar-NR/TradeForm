@@ -1,8 +1,7 @@
-import React from "react";
 import { useNavigate } from "react-router-dom";
 import Logo from "../components/Logo";
 
-const Features: React.FC = () => {
+const Features = () => {
   const navigate = useNavigate();
 
   return (

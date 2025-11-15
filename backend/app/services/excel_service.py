@@ -7,7 +7,6 @@ Handles Excel file generation and parsing for criteria, components, and results.
 import pandas as pd
 import io
 from typing import List, Dict, Any
-from datetime import datetime
 
 
 class ExcelService:
@@ -175,7 +174,7 @@ class ExcelService:
                     project.component_type,
                     project.description or '',
                     project.status.value,
-                    project.created_at.strftime('%Y-%m-%d %H:%M:%S'),
+                    project.created_at.strftime('%Y-%m-%d %H:%M:%S') if hasattr(project.created_at, 'strftime') else str(project.created_at),
                     len(components),
                     len(criteria)
                 ]
@@ -227,7 +226,7 @@ class ExcelService:
                     }
                     
                     for criterion in criteria:
-                        score = result["scores"].get(criterion.id)
+                        score = result["score_dict"].get(criterion.id)
                         row_data[f'{criterion.name} (Score)'] = score.score if score else 'N/A'
                         row_data[f'{criterion.name} (Rationale)'] = score.rationale if score and score.rationale else ''
                         if score and score.raw_value:

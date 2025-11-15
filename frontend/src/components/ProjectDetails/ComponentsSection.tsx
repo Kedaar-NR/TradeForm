@@ -2,8 +2,8 @@
  * Components section for project details page.
  */
 
-import React from "react";
 import { Component } from "../../types";
+import { getAvailabilityBadge, formatEnumValue } from "../../utils/datasheetHelpers";
 
 interface ComponentsSectionProps {
   components: Component[];
@@ -73,20 +73,17 @@ export const ComponentsSection: React.FC<ComponentsSectionProps> = ({
                   {component.partNumber}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <span
-                    className={`px-2.5 py-1 rounded-md text-xs font-medium ${
-                      component.availability === "in_stock"
-                        ? "bg-green-100 text-green-700"
-                        : component.availability === "limited"
-                        ? "bg-yellow-100 text-yellow-700"
-                        : "bg-red-100 text-red-700"
-                    }`}
-                  >
-                    {component.availability.replace("_", " ").toUpperCase()}
-                  </span>
+                  {(() => {
+                    const badge = getAvailabilityBadge(component.availability);
+                    return (
+                      <span className={badge.className}>
+                        {formatEnumValue(component.availability, true)}
+                      </span>
+                    );
+                  })()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                  {component.source.replace("_", " ")}
+                  {formatEnumValue(component.source)}
                 </td>
               </tr>
             ))}

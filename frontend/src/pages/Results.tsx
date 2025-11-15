@@ -208,23 +208,24 @@ const Results: React.FC = () => {
     const criterion = criteria.find((c) => c.name === criterionName);
     if (!criterion) return [];
 
-    const newWeight = Math.max(
-      1,
-      Math.min(10, criterion.weight + weightChange)
-    );
-    const totalWeight = criteria.reduce(
-      (sum, c) => sum + (c.name === criterionName ? newWeight : c.weight),
-      0
-    );
+    const newWeight = Math.max(1, Math.min(10, criterion.weight + weightChange));
+    
+    // Calculate total weight and build weight map in single pass
+    const weightMap = new Map<string, number>();
+    let totalWeight = 0;
+    for (const c of criteria) {
+      const weight = c.name === criterionName ? newWeight : c.weight;
+      weightMap.set(c.name, weight);
+      totalWeight += weight;
+    }
 
     return components
       .map((comp) => {
         let weightedSum = 0;
-        criteria.forEach((c) => {
+        for (const c of criteria) {
           const score = comp.criteria[c.name]?.score || 0;
-          const weight = c.name === criterionName ? newWeight : c.weight;
-          weightedSum += score * weight;
-        });
+          weightedSum += score * (weightMap.get(c.name) || 0);
+        }
         return {
           component: comp.manufacturer + " " + comp.partNumber,
           score: weightedSum / totalWeight,
@@ -262,9 +263,8 @@ const Results: React.FC = () => {
     );
   }
 
-  const sortedComponents = [...components].sort(
-    (a, b) => b.totalScore - a.totalScore
-  );
+  // Components are already sorted by backend with ranks
+  const sortedComponents = components;
 
   return (
     <div className="max-w-6xl animate-fade-in">

@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { Component } from '../types';
 import DatasheetTab from './DatasheetTab';
+import { formatEnumValue } from '../utils/datasheetHelpers';
 
 interface ComponentDetailDrawerProps {
   component: Component;
@@ -143,7 +144,7 @@ const ComponentDetailDrawer: React.FC<ComponentDetailDrawerProps> = ({
                     Availability
                   </label>
                   <p className="text-base text-gray-900 capitalize">
-                    {component.availability.replace('_', ' ')}
+                    {formatEnumValue(component.availability)}
                   </p>
                 </div>
                 <div>
@@ -151,7 +152,7 @@ const ComponentDetailDrawer: React.FC<ComponentDetailDrawerProps> = ({
                     Source
                   </label>
                   <p className="text-base text-gray-900 capitalize">
-                    {component.source.replace('_', ' ')}
+                    {formatEnumValue(component.source)}
                   </p>
                 </div>
               </div>

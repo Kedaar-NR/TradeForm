@@ -1,10 +1,10 @@
-import React from "react";
 import {
   BrowserRouter as Router,
   Routes,
   Route,
   Navigate,
 } from "react-router-dom";
+import type { ReactNode } from "react";
 import Layout from "./components/Layout";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
@@ -23,9 +23,7 @@ import Templates from "./pages/Templates";
 import DatasheetLab from "./pages/DatasheetLab";
 
 // Protected Route wrapper
-const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
-  children,
-}) => {
+const ProtectedRoute = ({ children }: { children: ReactNode }) => {
   const hasWindow = typeof window !== "undefined";
   const token = hasWindow ? localStorage.getItem("authToken") : null;
   const isAuthenticated =

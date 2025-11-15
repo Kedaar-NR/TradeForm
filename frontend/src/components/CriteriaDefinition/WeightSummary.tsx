@@ -2,7 +2,6 @@
  * Weight summary component showing total weight status.
  */
 
-import React from "react";
 import { getWeightStatus } from "../../utils/criteriaHelpers";
 import { CriterionForm } from "../../hooks/useCriteriaManagement";
 
@@ -10,7 +9,7 @@ interface WeightSummaryProps {
   criteria: CriterionForm[];
 }
 
-export const WeightSummary: React.FC<WeightSummaryProps> = ({ criteria }) => {
+export const WeightSummary = ({ criteria }: WeightSummaryProps) => {
   const status = getWeightStatus(criteria);
 
   return (

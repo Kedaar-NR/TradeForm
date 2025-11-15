@@ -1,6 +1,4 @@
-import React from "react";
-
-const Documentation: React.FC = () => {
+const Documentation = () => {
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Page Header */}

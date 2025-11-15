@@ -1,4 +1,3 @@
-import React from 'react';
 import type { DatasheetCitation } from '../types';
 import DatasheetCitationsList from './DatasheetCitationsList';
 
@@ -15,7 +14,7 @@ interface DatasheetSuggestedRatingCardProps {
   rating: SuggestedRating | null;
 }
 
-const DatasheetSuggestedRatingCard: React.FC<DatasheetSuggestedRatingCardProps> = ({ rating }) => {
+const DatasheetSuggestedRatingCard = ({ rating }: DatasheetSuggestedRatingCardProps) => {
   if (!rating) {
     return null;
   }

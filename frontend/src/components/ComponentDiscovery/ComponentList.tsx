@@ -2,7 +2,6 @@
  * Component list display with action buttons.
  */
 
-import React from "react";
 import { Component, DatasheetStatus } from "../../types";
 import { getAvailabilityBadge, getDatasheetStatusBadge } from "../../utils/datasheetHelpers";
 
@@ -13,7 +12,7 @@ interface ComponentListProps {
   onOpenAssistant: (component: Component) => void;
 }
 
-export const ComponentList: React.FC<ComponentListProps> = ({
+export const ComponentList = ({
   components,
   datasheetStatuses,
   onRemove,
