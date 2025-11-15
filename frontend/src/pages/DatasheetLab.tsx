@@ -50,6 +50,9 @@ const DatasheetLab: React.FC = () => {
               <p className="text-sm text-blue-700">
                 <span className="font-medium">Testing Environment</span> - This is a standalone test bench for datasheet features. It does not affect production data or project workflows.
               </p>
+              <p className="text-xs text-blue-600 mt-1">
+                <strong>Note:</strong> Datasheet features are now integrated into Component Discovery. Use the "Open Assistant" button on any component to access the integrated experience.
+              </p>
             </div>
           </div>
         </div>

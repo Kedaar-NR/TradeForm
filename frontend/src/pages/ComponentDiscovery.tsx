@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Component } from "../types";
-import { componentsApi } from "../services/api";
+import { Component, DatasheetStatus } from "../types";
+import { componentsApi, datasheetsApi } from "../services/api";
+import ComponentDetailDrawer from "../components/ComponentDetailDrawer";
 
 const ComponentDiscovery: React.FC = () => {
   const navigate = useNavigate();
@@ -14,6 +15,8 @@ const ComponentDiscovery: React.FC = () => {
   const [isScoring, setIsScoring] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const [selectedComponent, setSelectedComponent] = useState<Component | null>(null);
+  const [datasheetStatuses, setDatasheetStatuses] = useState<Record<string, DatasheetStatus>>({});
   const [formData, setFormData] = useState({
     manufacturer: "",
     partNumber: "",
@@ -45,6 +48,9 @@ const ComponentDiscovery: React.FC = () => {
         source: comp.source,
       }));
       setComponents(transformedComponents);
+      
+      // Load datasheet statuses for all components
+      loadDatasheetStatuses(transformedComponents);
     } catch (error: any) {
       console.error("Failed to load components:", error);
       // If it's a network error, show a helpful message
@@ -62,6 +68,35 @@ const ComponentDiscovery: React.FC = () => {
       setIsLoading(false);
     }
   }, [projectId]);
+
+  const loadDatasheetStatuses = async (componentsToCheck: Component[]) => {
+    const statuses: Record<string, DatasheetStatus> = {};
+    
+    // Load statuses in parallel
+    await Promise.all(
+      componentsToCheck.map(async (component) => {
+        try {
+          const response = await datasheetsApi.getStatus(component.id);
+          statuses[component.id] = {
+            hasDatasheet: response.data.has_datasheet,
+            parsed: response.data.parsed,
+            numPages: response.data.num_pages,
+            parsedAt: response.data.parsed_at,
+            parseStatus: response.data.parse_status,
+            parseError: response.data.parse_error,
+          };
+        } catch (error) {
+          // If status check fails, assume no datasheet
+          statuses[component.id] = {
+            hasDatasheet: false,
+            parsed: false,
+          };
+        }
+      })
+    );
+    
+    setDatasheetStatuses(statuses);
+  };
 
   // Load components on mount
   useEffect(() => {
@@ -276,6 +311,55 @@ const ComponentDiscovery: React.FC = () => {
         className={`px-2.5 py-1 rounded-md text-xs font-medium ${styles[availability]}`}
       >
         {labels[availability]}
+      </span>
+    );
+  };
+
+  const getDatasheetStatusBadge = (componentId: string) => {
+    const status = datasheetStatuses[componentId];
+    
+    if (!status || !status.hasDatasheet) {
+      return (
+        <span className="px-2.5 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600">
+          Not uploaded
+        </span>
+      );
+    }
+
+    if (status.parseStatus === 'success' && status.parsed) {
+      return (
+        <span className="px-2.5 py-1 rounded-md text-xs font-medium bg-green-100 text-green-700 flex items-center gap-1">
+          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+          </svg>
+          Parsed ({status.numPages || 0} pages)
+        </span>
+      );
+    }
+
+    if (status.parseStatus === 'failed') {
+      return (
+        <span className="px-2.5 py-1 rounded-md text-xs font-medium bg-red-100 text-red-700">
+          Parsing failed
+        </span>
+      );
+    }
+
+    if (status.parseStatus === 'pending') {
+      return (
+        <span className="px-2.5 py-1 rounded-md text-xs font-medium bg-yellow-100 text-yellow-700 flex items-center gap-1">
+          <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+          </svg>
+          Parsing...
+        </span>
+      );
+    }
+
+    return (
+      <span className="px-2.5 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600">
+        Unknown
       </span>
     );
   };
@@ -583,7 +667,7 @@ const ComponentDiscovery: React.FC = () => {
               <div key={component.id} className="card p-5">
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-3 mb-2">
+                    <div className="flex items-center gap-3 mb-2 flex-wrap">
                       <h3 className="text-base font-semibold text-gray-900">
                         {component.manufacturer}
                       </h3>
@@ -598,8 +682,32 @@ const ComponentDiscovery: React.FC = () => {
                         {component.description}
                       </p>
                     )}
+                    <div className="flex items-center gap-2 mt-2">
+                      <span className="text-xs font-medium text-gray-600">Datasheet:</span>
+                      {getDatasheetStatusBadge(component.id)}
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 flex-shrink-0">
+                    <button
+                      onClick={() => setSelectedComponent(component)}
+                      className="btn-secondary text-sm flex items-center gap-2"
+                      title="Open Datasheet Assistant"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
+                        />
+                      </svg>
+                      Open Assistant
+                    </button>
                     {component.datasheetUrl && (
                       <a
                         href={component.datasheetUrl}
@@ -608,7 +716,7 @@ const ComponentDiscovery: React.FC = () => {
                         className="text-sm text-black hover:text-gray-900 flex items-center gap-1 font-medium"
                         title={component.datasheetUrl}
                       >
-                        View Datasheet
+                        View URL
                         <svg
                           className="w-4 h-4"
                           fill="none"
@@ -667,6 +775,16 @@ const ComponentDiscovery: React.FC = () => {
           Continue to Scoring →
         </button>
       </div>
+
+      {/* Component Detail Drawer */}
+      {selectedComponent && (
+        <ComponentDetailDrawer
+          component={selectedComponent}
+          isOpen={!!selectedComponent}
+          onClose={() => setSelectedComponent(null)}
+          projectId={projectId}
+        />
+      )}
     </div>
   );
 };
