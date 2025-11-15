@@ -1,6 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import api, { projectsApi } from "../services/api";
 import { useStore } from "../store/useStore";
+import { Project } from "../types";
 
 // Common component types with suggested criteria
 const componentTypesSuggestions: Record<string, string[]> = {
@@ -52,6 +54,7 @@ const ProjectSetup: React.FC = () => {
   const [suggestedCriteria, setSuggestedCriteria] = useState<string[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isOptimizing, setIsOptimizing] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleComponentTypeChange = (value: string) => {
     setFormData({ ...formData, componentType: value });
@@ -79,21 +82,13 @@ const ProjectSetup: React.FC = () => {
       setIsOptimizing(true);
 
       // Call backend to use AI to suggest description and component type
-      const response = await fetch('http://localhost:8000/api/ai/optimize-project', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          component_type: formData.componentType || null,
-          description: formData.description || null
-        })
+      const response = await api.post("/api/ai/optimize-project", {
+        name: formData.name,
+        component_type: formData.componentType || null,
+        description: formData.description || null,
       });
 
-      if (!response.ok) {
-        throw new Error('AI optimization failed');
-      }
-
-      const data = await response.json();
+      const data = response.data || {};
 
       setFormData({
         name: formData.name,
@@ -101,36 +96,67 @@ const ProjectSetup: React.FC = () => {
         description: data.description || formData.description
       });
 
-      alert('AI optimization complete! Review the suggested details.');
+      alert("AI optimization complete! Review the suggested details.");
     } catch (error: any) {
-      console.error('AI optimization error:', error);
-      alert('AI optimization failed. Please fill in details manually.');
+      console.error("AI optimization error:", error);
+      const message =
+        error?.response?.data?.detail ||
+        error?.message ||
+        "AI optimization failed. Please fill in details manually.";
+      alert(`AI optimization failed: ${message}`);
     } finally {
       setIsOptimizing(false);
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Create new project
-    const newProject = {
-      id: Math.random().toString(36).substr(2, 9),
-      name: formData.name,
-      componentType: formData.componentType,
-      description: formData.description,
-      status: "draft" as const,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    };
+    if (!formData.name.trim() || !formData.componentType.trim()) {
+      alert("Please complete the required fields.");
+      return;
+    }
 
-    addProject(newProject);
+    try {
+      setIsSubmitting(true);
+      const response = await projectsApi.create({
+        name: formData.name.trim(),
+        componentType: formData.componentType.trim(),
+        description: formData.description.trim() || undefined,
+        status: "draft",
+      });
 
-    // Navigate to criteria definition
-    navigate(`/project/${newProject.id}/criteria`);
+      const data = response.data as any;
+      const newProject: Project = {
+        id: data.id,
+        name: data.name,
+        componentType: data.component_type,
+        description: data.description ?? undefined,
+        status: data.status,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+        createdBy: data.created_by,
+      };
+
+      addProject(newProject);
+
+      // Navigate to criteria definition
+      navigate(`/project/${newProject.id}/criteria`);
+    } catch (error: any) {
+      console.error("Failed to create project:", error);
+      const message =
+        error?.response?.data?.detail ||
+        error?.message ||
+        "Unable to create project. Please try again.";
+      alert(`Failed to create project: ${message}`);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
-  const isFormValid = formData.name.trim() && formData.componentType.trim();
+  const isFormValid = !!(
+    formData.name.trim() && formData.componentType.trim()
+  );
 
   return (
     <div className="max-w-3xl animate-fade-in">
@@ -295,12 +321,16 @@ const ProjectSetup: React.FC = () => {
             </button>
             <button
               type="submit"
-              disabled={!isFormValid}
+              disabled={!isFormValid || isSubmitting}
               className={`btn-primary ${
-                !isFormValid && "opacity-50 cursor-not-allowed"
+                !isFormValid || isSubmitting
+                  ? "opacity-50 cursor-not-allowed"
+                  : ""
               }`}
             >
-              Continue to Criteria Definition →
+              {isSubmitting
+                ? "Creating Trade Study..."
+                : "Continue to Criteria Definition →"}
             </button>
           </div>
 
