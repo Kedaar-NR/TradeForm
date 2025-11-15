@@ -151,7 +151,9 @@ function App() {
           path="/datasheet-lab"
           element={
             <ProtectedRoute>
-              <DatasheetLab />
+              <Layout>
+                <DatasheetLab />
+              </Layout>
             </ProtectedRoute>
           }
         />
