@@ -26,7 +26,10 @@ import DatasheetLab from "./pages/DatasheetLab";
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
-  const isAuthenticated = localStorage.getItem("isAuthenticated") === "true";
+  const hasWindow = typeof window !== "undefined";
+  const token = hasWindow ? localStorage.getItem("authToken") : null;
+  const isAuthenticated =
+    hasWindow && localStorage.getItem("isAuthenticated") === "true" && !!token;
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
