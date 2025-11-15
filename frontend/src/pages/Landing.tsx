@@ -147,14 +147,14 @@ const Landing: React.FC = () => {
 
       {/* Navigation */}
       <nav className="z-50 sticky top-0 font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="flex justify-between items-center h-16">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-14 sm:h-16 min-h-[44px]">
             <Logo textColor="white" />
 
-            <div className="flex items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-1.5 sm:gap-2 md:gap-4 flex-shrink-0">
               <button
                 onClick={() => navigate("/features")}
-                className="text-xs sm:text-[14px] text-white font-medium hover:text-white/80 transition-colors px-2 py-1 whitespace-nowrap font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]"
+                className="text-xs sm:text-[14px] text-white font-medium hover:text-white/80 transition-colors px-2 sm:px-3 py-1.5 sm:py-2 whitespace-nowrap min-h-[44px] flex items-center font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]"
               >
                 Features
               </button>
@@ -165,12 +165,12 @@ const Landing: React.FC = () => {
                     "_blank"
                   )
                 }
-                className="text-xs sm:text-[14px] text-white font-medium px-3 sm:px-5 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm whitespace-nowrap font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif] flex items-center gap-1.5 sm:gap-2"
+                className="text-xs sm:text-[14px] text-white font-medium px-2.5 sm:px-4 md:px-5 py-1.5 sm:py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm whitespace-nowrap min-h-[44px] flex items-center justify-center font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif] gap-1 sm:gap-1.5 md:gap-2"
               >
                 <span className="hidden sm:inline">Schedule Demo</span>
                 <span className="sm:hidden">Demo</span>
                 <svg
-                  className="w-3.5 h-3.5 sm:w-4 sm:h-4"
+                  className="w-3.5 h-3.5 sm:w-4 sm:h-4 flex-shrink-0"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -185,7 +185,7 @@ const Landing: React.FC = () => {
               </button>
               <button
                 onClick={() => navigate("/login")}
-                className="text-xs sm:text-[14px] text-white font-medium px-3 sm:px-5 py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm whitespace-nowrap font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]"
+                className="text-xs sm:text-[14px] text-white font-medium px-2.5 sm:px-4 md:px-5 py-1.5 sm:py-2 rounded-lg bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm whitespace-nowrap min-h-[44px] flex items-center justify-center font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]"
               >
                 Log In
               </button>
