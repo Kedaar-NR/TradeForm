@@ -120,7 +120,7 @@ const Landing: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen relative">
+    <div className="min-h-screen relative overflow-x-hidden">
       {/* Full Page Video Background */}
       <div className="fixed inset-0 w-full h-full z-0 bg-black">
         <video
@@ -146,7 +146,7 @@ const Landing: React.FC = () => {
       </div>
 
       {/* Navigation */}
-      <nav className="z-50 sticky top-0 font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]">
+      <nav className="z-50 sticky top-0 font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif] safe-area-top">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16 min-h-[44px]">
             <Logo textColor="white" />
@@ -211,7 +211,7 @@ const Landing: React.FC = () => {
       >
         <div
           ref={heroContentRef}
-          className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full pointer-events-auto"
+          className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full pointer-events-auto safe-area-inset"
         >
           <h1
             className="text-white mb-4 sm:mb-6 leading-tight tracking-tight px-2 sm:px-4"
