@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../components/Logo';
+import api from '../services/api';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -9,6 +10,8 @@ const Login: React.FC = () => {
     password: '',
   });
   const [emailError, setEmailError] = useState('');
+  const [formError, setFormError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const validateEmail = (email: string): boolean => {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -26,8 +29,9 @@ const Login: React.FC = () => {
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setFormError('');
 
     // Validate email before submitting
     if (!validateEmail(formData.email)) {
@@ -35,10 +39,33 @@ const Login: React.FC = () => {
       return;
     }
 
-    // TODO: Add actual authentication logic
-    // For now, just navigate to dashboard
-    localStorage.setItem('isAuthenticated', 'true');
-    navigate('/dashboard');
+    try {
+      setIsSubmitting(true);
+      const payload = new URLSearchParams();
+      payload.append('username', formData.email);
+      payload.append('password', formData.password);
+
+      const response = await api.post('/api/auth/login', payload, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+      });
+
+      const data = response.data;
+      localStorage.setItem('isAuthenticated', 'true');
+      localStorage.setItem('authToken', data.access_token);
+      localStorage.setItem('currentUser', JSON.stringify(data.user));
+      navigate('/dashboard');
+    } catch (error: any) {
+      console.error('Login failed:', error);
+      const message =
+        error?.response?.data?.detail ||
+        error?.message ||
+        'Failed to log in. Please try again.';
+      setFormError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -108,10 +135,17 @@ const Login: React.FC = () => {
                 </button>
               </div>
 
-              <button type="submit" className="w-full btn-primary">
-                Log in
+              <button
+                type="submit"
+                className="w-full btn-primary disabled:opacity-50"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? 'Logging in...' : 'Log in'}
               </button>
             </form>
+            {formError && (
+              <p className="mt-4 text-sm text-red-600 text-center">{formError}</p>
+            )}
 
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
