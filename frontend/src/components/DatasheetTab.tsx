@@ -1,17 +1,21 @@
-import React, { useState, useEffect } from 'react';
-import { Component, Criterion } from '../types';
-import DatasheetUploadCard from './DatasheetUploadCard';
-import DatasheetStatusCard from './DatasheetStatusCard';
-import DatasheetAssistantPanel from './DatasheetAssistantPanel';
-import { criteriaApi } from '../services/api';
-import { MOCK_CRITERIA } from './TradeStudyCriteriaPreviewCard';
+import React, { useState, useEffect } from "react";
+import { Component, Criterion } from "../types";
+import DatasheetUploadCard from "./DatasheetUploadCard";
+import DatasheetStatusCard from "./DatasheetStatusCard";
+import DatasheetAssistantPanel from "./DatasheetAssistantPanel";
+import { criteriaApi } from "../services/api";
+import { MOCK_CRITERIA } from "./TradeStudyCriteriaPreviewCard";
+import { getApiUrl, getAuthHeaders } from "../utils/apiHelpers";
 
 interface DatasheetTabProps {
   component: Component;
   projectId?: string;
 }
 
-const DatasheetTab: React.FC<DatasheetTabProps> = ({ component, projectId }) => {
+const DatasheetTab: React.FC<DatasheetTabProps> = ({
+  component,
+  projectId,
+}) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [datasheetParsed, setDatasheetParsed] = useState(false);
   const [criteria, setCriteria] = useState<Criterion[]>([]);
@@ -42,7 +46,7 @@ const DatasheetTab: React.FC<DatasheetTabProps> = ({ component, projectId }) => 
         }));
         setCriteria(transformedCriteria);
       } catch (error) {
-        console.error('Failed to load criteria:', error);
+        console.error("Failed to load criteria:", error);
         // Fall back to empty criteria
         setCriteria([]);
       } finally {
@@ -53,11 +57,36 @@ const DatasheetTab: React.FC<DatasheetTabProps> = ({ component, projectId }) => 
     loadCriteria();
   }, [projectId]);
 
+  // Load datasheet status to check if it's parsed
+  useEffect(() => {
+    const loadStatus = async () => {
+      try {
+        const response = await fetch(
+          getApiUrl(`/api/components/${component.id}/datasheet/status`),
+          {
+            headers: {
+              ...getAuthHeaders(),
+            },
+          }
+        );
+        if (response.ok) {
+          const status = await response.json();
+          setDatasheetParsed(status?.parsed === true);
+        }
+      } catch (error) {
+        console.error("Failed to load datasheet status:", error);
+      }
+    };
+
+    loadStatus();
+    // Refresh status periodically
+    const interval = setInterval(loadStatus, 2000);
+    return () => clearInterval(interval);
+  }, [component.id, refreshTrigger]);
+
   const handleUploadSuccess = () => {
     // Trigger status refresh
     setRefreshTrigger((prev) => prev + 1);
-    // Mark as parsed (status card will verify)
-    setTimeout(() => setDatasheetParsed(true), 1000);
   };
 
   // Convert Criterion to MockCriterion format for compatibility with DatasheetAssistantPanel
@@ -65,12 +94,13 @@ const DatasheetTab: React.FC<DatasheetTabProps> = ({ component, projectId }) => 
     id: c.id,
     name: c.name,
     weight: c.weight,
-    unit: c.unit || '',
+    unit: c.unit || "",
     higherIsBetter: c.higherIsBetter,
   }));
 
   // Use mock criteria for testing if no real criteria available
-  const criteriaToUse = criteria.length > 0 ? mockCriteriaFromReal : MOCK_CRITERIA;
+  const criteriaToUse =
+    criteria.length > 0 ? mockCriteriaFromReal : MOCK_CRITERIA;
 
   return (
     <div className="p-6 bg-gray-50 min-h-full">
@@ -93,13 +123,14 @@ const DatasheetTab: React.FC<DatasheetTabProps> = ({ component, projectId }) => 
             </div>
             <div className="ml-3 flex-1">
               <p className="text-sm text-gray-700">
-                <span className="font-medium">AI Datasheet Assistant:</span> Upload a datasheet
-                to enable AI-powered question answering with citations and suggested ratings.
+                <span className="font-medium">AI Datasheet Assistant:</span>{" "}
+                Upload a datasheet to enable AI-powered question answering with
+                citations and suggested ratings.
               </p>
               {criteria.length === 0 && !loadingCriteria && (
                 <p className="text-xs text-gray-600 mt-1">
-                  Note: Using mock test criteria. Define criteria in your project for real
-                  suggested ratings.
+                  Note: Using mock test criteria. Define criteria in your
+                  project for real suggested ratings.
                 </p>
               )}
             </div>
@@ -124,7 +155,7 @@ const DatasheetTab: React.FC<DatasheetTabProps> = ({ component, projectId }) => 
             {criteriaToUse.length > 0 && (
               <div className="bg-white rounded-lg shadow-md p-4">
                 <h4 className="text-sm font-semibold text-gray-900 mb-3">
-                  Project Criteria {criteria.length === 0 && '(Test Data)'}
+                  Project Criteria {criteria.length === 0 && "(Test Data)"}
                 </h4>
                 <div className="space-y-2">
                   {criteriaToUse.slice(0, 4).map((criterion) => (
@@ -133,7 +164,9 @@ const DatasheetTab: React.FC<DatasheetTabProps> = ({ component, projectId }) => 
                       className="text-xs border border-gray-200 rounded p-2"
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-medium text-gray-900">{criterion.name}</span>
+                        <span className="font-medium text-gray-900">
+                          {criterion.name}
+                        </span>
                         <span className="text-gray-500">{criterion.unit}</span>
                       </div>
                     </div>
@@ -163,4 +196,3 @@ const DatasheetTab: React.FC<DatasheetTabProps> = ({ component, projectId }) => 
 };
 
 export default DatasheetTab;
-
