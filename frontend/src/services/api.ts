@@ -213,5 +213,25 @@ export const changesApi = {
         api.get(`/api/projects/${projectId}/changes`),
 };
 
+// Datasheets
+export const datasheetsApi = {
+    uploadDatasheet: (componentId: string, file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        return api.post(`/api/components/${componentId}/datasheet`, formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+    },
+    getStatus: (componentId: string) =>
+        api.get(`/api/components/${componentId}/datasheet/status`),
+    query: (componentId: string, question: string, criterionId?: string) =>
+        api.post(`/api/components/${componentId}/datasheet/query`, {
+            question,
+            criterion_id: criterionId
+        }),
+    getSuggestions: (componentId: string) =>
+        api.get(`/api/components/${componentId}/datasheet/suggestions`),
+};
+
 export default api;
 

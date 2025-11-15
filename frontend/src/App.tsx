@@ -20,6 +20,7 @@ import Results from "./pages/Results";
 import Documentation from "./pages/Documentation";
 import Help from "./pages/Help";
 import Templates from "./pages/Templates";
+import DatasheetLab from "./pages/DatasheetLab";
 
 // Protected Route wrapper
 const ProtectedRoute: React.FC<{ children: React.ReactNode }> = ({
@@ -143,6 +144,14 @@ function App() {
               <Layout>
                 <Templates />
               </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/datasheet-lab"
+          element={
+            <ProtectedRoute>
+              <DatasheetLab />
             </ProtectedRoute>
           }
         />
