@@ -9,6 +9,7 @@ import {
   commentsApi,
   changesApi,
   sharesApi,
+  resultsApi,
 } from "../services/api";
 
 const ProjectDetails: React.FC = () => {
@@ -31,6 +32,9 @@ const ProjectDetails: React.FC = () => {
   const [shares, setShares] = useState<any[]>([]);
   const [newComment, setNewComment] = useState("");
   const [newVersionDesc, setNewVersionDesc] = useState("");
+  const [projectFiles, setProjectFiles] = useState<
+    Array<{ name: string; size: number; type: string }>
+  >([]);
 
   const loadProjectData = React.useCallback(async () => {
     if (!projectId) return;
@@ -128,12 +132,30 @@ const ProjectDetails: React.FC = () => {
     });
   };
 
+  const saveProjectStatus = React.useCallback(
+    async (status: "draft" | "in_progress" | "completed" = "in_progress") => {
+      if (!projectId || !project) return;
+      try {
+        // Only update if status is different
+        if (project.status !== status) {
+          await projectsApi.update(projectId, { status });
+          setProject({ ...project, status });
+        }
+      } catch (error: any) {
+        console.error("Failed to update project status:", error);
+      }
+    },
+    [projectId, project]
+  );
+
   const saveComponentEdit = React.useCallback(
     async (componentId: string, formData: Partial<Component>) => {
       if (!componentId || !formData) return;
       try {
         setIsSaving(true);
         await componentsApi.update(componentId, formData);
+        // Auto-save project status to in_progress when changes are made
+        await saveProjectStatus("in_progress");
         // Reload to get fresh data
         await loadProjectData();
       } catch (error: any) {
@@ -145,7 +167,7 @@ const ProjectDetails: React.FC = () => {
         setIsSaving(false);
       }
     },
-    [loadProjectData]
+    [loadProjectData, saveProjectStatus]
   );
 
   const handleSaveEdit = async () => {
@@ -182,19 +204,41 @@ const ProjectDetails: React.FC = () => {
     };
   }, [editForm, editingComponent, saveComponentEdit, saveTimeout]);
 
-  // Save on navigation away
+  // Save on navigation away and page exit
   useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      // Save project status before leaving
+      if (projectId && project && project.status !== "completed") {
+        saveProjectStatus("in_progress").catch(console.error);
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
     return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
       // Save any pending edits when component unmounts
       if (editingComponent && editForm.manufacturer && editForm.partNumber) {
         // Use a synchronous-like approach for cleanup
         saveComponentEdit(editingComponent, editForm).catch(console.error);
       }
+      // Save project status on unmount
+      if (projectId && project && project.status !== "completed") {
+        saveProjectStatus("in_progress").catch(console.error);
+      }
       if (saveTimeout) {
         clearTimeout(saveTimeout);
       }
     };
-  }, [editingComponent, editForm, saveComponentEdit, saveTimeout]);
+  }, [
+    editingComponent,
+    editForm,
+    saveComponentEdit,
+    saveTimeout,
+    projectId,
+    project,
+    saveProjectStatus,
+  ]);
 
   const handleDeleteComponent = async (componentId: string) => {
     if (!window.confirm("Are you sure you want to delete this component?"))
@@ -202,10 +246,32 @@ const ProjectDetails: React.FC = () => {
     try {
       await componentsApi.delete(componentId);
       setComponents(components.filter((c) => c.id !== componentId));
+      // Auto-save project status to in_progress
+      await saveProjectStatus("in_progress");
     } catch (error) {
       console.error("Failed to delete component:", error);
       alert("Failed to delete component");
     }
+  };
+
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || []);
+    if (files.length === 0) return;
+
+    const newFiles = files.map((file) => ({
+      name: file.name,
+      size: file.size,
+      type: file.type || "application/octet-stream",
+    }));
+
+    setProjectFiles((prev) => [...prev, ...newFiles]);
+
+    // Reset input
+    e.target.value = "";
+  };
+
+  const handleRemoveFile = (index: number) => {
+    setProjectFiles((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleMarkAsDone = async () => {
@@ -235,9 +301,36 @@ const ProjectDetails: React.FC = () => {
     }
   };
 
+  const handleExportExcel = async () => {
+    if (!projectId) return;
+    try {
+      const response = await resultsApi.exportFullExcel(projectId);
+      const blob = new Blob([response.data], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `trade_study_${project?.name || projectId}_${
+        new Date().toISOString().split("T")[0]
+      }.xlsx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error: any) {
+      console.error("Failed to export Excel:", error);
+      alert(
+        `Failed to export Excel: ${
+          error.response?.data?.detail || error.message
+        }`
+      );
+    }
+  };
+
   const getAvailabilityBadge = (availability: Component["availability"]) => {
     const styles = {
-      in_stock: "bg-gray-200 text-gray-900",
+      in_stock: "bg-gray-200 text-green-600",
       limited: "bg-yellow-100 text-yellow-700",
       obsolete: "bg-red-100 text-red-700",
     };
@@ -297,6 +390,23 @@ const ProjectDetails: React.FC = () => {
               {project.name}
             </h1>
             <p className="text-gray-600">{project.componentType}</p>
+            <div className="mt-3 mb-2">
+              <button
+                onClick={() =>
+                  document.getElementById("project-file-upload")?.click()
+                }
+                className="btn-secondary text-sm"
+              >
+                Upload Project Files
+              </button>
+              <input
+                id="project-file-upload"
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(e) => handleFileUpload(e)}
+              />
+            </div>
             {project.description && (
               <p className="text-gray-500 mt-2">{project.description}</p>
             )}
@@ -360,7 +470,6 @@ const ProjectDetails: React.FC = () => {
 
         {components.length === 0 ? (
           <div className="card p-12 text-center">
-            <div className="text-4xl mb-4">📦</div>
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               No components yet
             </h3>
@@ -821,6 +930,71 @@ const ProjectDetails: React.FC = () => {
         </div>
       )}
 
+      {/* Project Files Sidebar */}
+      {projectFiles.length > 0 && (
+        <div className="fixed top-20 right-4 w-64 bg-white rounded-lg shadow-lg border border-gray-200 z-40 max-h-[calc(100vh-120px)] overflow-hidden flex flex-col">
+          <div className="px-4 py-3 border-b border-gray-200 bg-gray-50">
+            <h3 className="text-sm font-semibold text-gray-900">
+              Project Files
+            </h3>
+            <p className="text-xs text-gray-500 mt-1">
+              {projectFiles.length} file{projectFiles.length !== 1 ? "s" : ""}
+            </p>
+          </div>
+          <div className="flex-1 overflow-y-auto p-2">
+            <div className="space-y-2">
+              {projectFiles.map((file, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-2 hover:bg-gray-50 rounded text-sm"
+                >
+                  <div className="flex items-center gap-2 flex-1 min-w-0">
+                    <svg
+                      className="w-4 h-4 text-gray-400 flex-shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                    <div className="flex-1 min-w-0">
+                      <div className="text-gray-900 truncate">{file.name}</div>
+                      <div className="text-xs text-gray-500">
+                        {(file.size / 1024).toFixed(1)} KB
+                      </div>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => handleRemoveFile(index)}
+                    className="text-gray-400 hover:text-red-600 ml-2 flex-shrink-0"
+                    title="Remove file"
+                  >
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M6 18L18 6M6 6l12 12"
+                      />
+                    </svg>
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Actions */}
       {activeTab === "overview" && (
         <div className="flex gap-3 pt-6 border-t border-gray-200 items-center justify-between">
@@ -837,6 +1011,25 @@ const ProjectDetails: React.FC = () => {
               className="btn-secondary"
             >
               Back to Dashboard
+            </button>
+            <button
+              onClick={handleExportExcel}
+              className="btn-secondary flex items-center gap-2"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M9 19l3 3m0 0l3-3m-3 3V10"
+                />
+              </svg>
+              Export to Excel
             </button>
           </div>
           {project.status !== "completed" && (
