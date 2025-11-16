@@ -219,7 +219,7 @@ const ComponentDiscovery: React.FC = () => {
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => navigate(`/projects/${projectId}`)}
+            onClick={() => navigate(`/project/${projectId}`)}
             className="text-gray-700 hover:text-gray-900 mb-4 flex items-center gap-2 text-sm font-medium"
           >
             <svg

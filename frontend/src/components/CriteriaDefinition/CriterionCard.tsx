@@ -16,7 +16,7 @@ export const CriterionCard = ({
   index,
   onUpdate,
   onRemove,
-}) => {
+}: CriterionCardProps) => {
   return (
     <div className="card p-5">
       <div className="flex items-start justify-between gap-4 mb-4">
