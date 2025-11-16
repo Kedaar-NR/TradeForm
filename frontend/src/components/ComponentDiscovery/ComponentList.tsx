@@ -17,7 +17,7 @@ export const ComponentList = ({
   datasheetStatuses,
   onRemove,
   onOpenAssistant,
-}) => {
+}: ComponentListProps) => {
   const renderDatasheetStatus = (componentId: string) => {
     const badgeProps = getDatasheetStatusBadge(datasheetStatuses[componentId]);
 

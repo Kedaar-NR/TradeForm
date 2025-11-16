@@ -6,17 +6,20 @@
 
 import { Criterion } from "../types";
 
+// Type for objects with weight property (works with both Criterion and CriterionForm)
+type Weightable = { weight: number };
+
 /**
  * Calculate total weight of criteria
  */
-export const calculateTotalWeight = (criteria: Criterion[]): number => {
+export const calculateTotalWeight = (criteria: Weightable[]): number => {
   return criteria.reduce((sum, c) => sum + c.weight, 0);
 };
 
 /**
  * Validate that total weight equals 100
  */
-export const isWeightBalanced = (criteria: Criterion[]): boolean => {
+export const isWeightBalanced = (criteria: Weightable[]): boolean => {
   const total = calculateTotalWeight(criteria);
   return Math.abs(total - 100) < 0.01; // Allow small floating point errors
 };
@@ -24,7 +27,7 @@ export const isWeightBalanced = (criteria: Criterion[]): boolean => {
 /**
  * Get weight balance status message
  */
-export const getWeightStatus = (criteria: Criterion[]): {
+export const getWeightStatus = (criteria: Weightable[]): {
   isBalanced: boolean;
   message: string;
   className: string;

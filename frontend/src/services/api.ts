@@ -228,4 +228,16 @@ export const datasheetsApi = {
         api.get(`/api/components/${componentId}/datasheet/suggestions`),
 };
 
+// AI-powered features
+export const aiApi = {
+    discoverComponents: (projectId: string) =>
+        api.post<{ status: string; discovered_count: number; components: Component[] }>(
+            `/api/projects/${projectId}/discover`
+        ),
+    scoreComponents: (projectId: string) =>
+        api.post<{ status: string; scores_created: number; scores_updated: number; total_scores: number }>(
+            `/api/projects/${projectId}/score`
+        ),
+};
+
 export default api;

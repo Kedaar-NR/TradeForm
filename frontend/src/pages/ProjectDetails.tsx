@@ -135,7 +135,7 @@ const ProjectDetails: React.FC = () => {
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-3">
             <button
-              onClick={() => navigate(`/projects/${projectId}/components`)}
+              onClick={() => navigate(`/project/${projectId}/discovery`)}
               className="btn-primary flex items-center gap-2"
             >
               <svg
@@ -154,7 +154,7 @@ const ProjectDetails: React.FC = () => {
               Manage Components
             </button>
             <button
-              onClick={() => navigate(`/projects/${projectId}/criteria`)}
+              onClick={() => navigate(`/project/${projectId}/criteria`)}
               className="btn-secondary flex items-center gap-2"
             >
               <svg
@@ -173,7 +173,7 @@ const ProjectDetails: React.FC = () => {
               Edit Criteria
             </button>
             <button
-              onClick={() => navigate(`/projects/${projectId}/results`)}
+              onClick={() => navigate(`/project/${projectId}/results`)}
               className="btn-secondary flex items-center gap-2"
               disabled={components.length === 0 || criteria.length === 0}
             >
@@ -257,13 +257,13 @@ const ProjectDetails: React.FC = () => {
             <ComponentsSection
               components={components}
               onNavigateToDiscovery={() =>
-                navigate(`/projects/${projectId}/components`)
+                navigate(`/project/${projectId}/discovery`)
               }
             />
             <CriteriaSection
               criteria={criteria}
               onNavigateToCriteria={() =>
-                navigate(`/projects/${projectId}/criteria`)
+                navigate(`/project/${projectId}/criteria`)
               }
             />
           </div>

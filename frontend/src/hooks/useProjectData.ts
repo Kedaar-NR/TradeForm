@@ -47,6 +47,7 @@ export const useProjectData = (projectId: string | undefined) => {
         description: apiData.description,
         status: apiData.status,
         createdAt: apiData.created_at,
+        updatedAt: apiData.updated_at,
       };
 
       setProject(projectData);
