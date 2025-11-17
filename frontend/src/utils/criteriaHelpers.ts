@@ -4,8 +4,6 @@
  * Provides helpers for weight calculations, validation, and common criteria operations.
  */
 
-import { Criterion } from "../types";
-
 // Type for objects with weight property (works with both Criterion and CriterionForm)
 type Weightable = { weight: number };
 

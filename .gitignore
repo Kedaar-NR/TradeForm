@@ -41,6 +41,7 @@ yarn-error.log*
 # IDEs
 .vscode/
 .idea/
+.cursor/
 *.swp
 *.swo
 *~
