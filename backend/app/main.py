@@ -84,7 +84,7 @@ async def startup_event():
         masked_key = gemini_key[:10] + "..." if len(gemini_key) > 10 else "***"
         print(f"✓ GEMINI_API_KEY is set ({masked_key})")
         print("  Datasheet Q&A features will be available")
-    else:
+        else:
         print("⚠ GEMINI_API_KEY is NOT set")
         print("  Datasheet Q&A features will not be available")
         print("  Set GEMINI_API_KEY in your .env file to enable these features")
@@ -94,7 +94,7 @@ async def startup_event():
     if anthropic_key:
         masked_key = anthropic_key[:10] + "..." if len(anthropic_key) > 10 else "***"
         print(f"✓ ANTHROPIC_API_KEY is set ({masked_key})")
-    else:
+                    else:
         print("⚠ ANTHROPIC_API_KEY is NOT set")
         print("  AI component discovery and scoring will not be available")
     
@@ -105,7 +105,7 @@ async def startup_event():
 @app.get("/")
 def read_root():
     """Root endpoint with API information"""
-    return {
+        return {
         "message": "Welcome to TradeForm API",
         "version": "1.0.0",
         "docs": "/docs"
