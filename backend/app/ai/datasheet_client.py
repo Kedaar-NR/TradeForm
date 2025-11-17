@@ -5,17 +5,7 @@ AI client for datasheet Q&A and suggestions using Google Gemini API.
 import os
 import json
 import re
-from pathlib import Path
 from typing import Dict, Any, List
-from dotenv import load_dotenv
-
-# Load .env from project root (redundant loading for safety)
-project_root = Path(__file__).parent.parent.parent.parent
-env_path = project_root / '.env'
-load_dotenv(dotenv_path=env_path)
-# Fallback to current directory if project root .env doesn't exist
-if not env_path.exists():
-    load_dotenv()
 
 try:
     from google import genai

@@ -5,9 +5,21 @@ This file sets up the FastAPI app, middleware, and includes all route modules.
 All business logic and routes are organized in the routers/ directory.
 """
 
+import os
+from pathlib import Path
+from dotenv import load_dotenv
+
+# Load environment variables before any other imports
+# This ensures GEMINI_API_KEY and other env vars are available to all modules
+project_root = Path(__file__).parent.parent
+env_path = project_root / '.env'
+if env_path.exists():
+    load_dotenv(dotenv_path=env_path)
+else:
+    load_dotenv()  # Fallback to default .env search
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import os
 
 from app import models
 from app.database import engine
@@ -56,6 +68,38 @@ app.include_router(datasheets.router)
 app.include_router(results.router)
 app.include_router(collaboration.router)
 app.include_router(ai.router)
+
+
+@app.on_event("startup")
+async def startup_event():
+    """Log startup information and check environment configuration"""
+    print("=" * 60)
+    print("TradeForm Backend Starting...")
+    print("=" * 60)
+    
+    # Check GEMINI_API_KEY
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    if gemini_key:
+        # Mask the key for security (show first 10 chars)
+        masked_key = gemini_key[:10] + "..." if len(gemini_key) > 10 else "***"
+        print(f"✓ GEMINI_API_KEY is set ({masked_key})")
+        print("  Datasheet Q&A features will be available")
+    else:
+        print("⚠ GEMINI_API_KEY is NOT set")
+        print("  Datasheet Q&A features will not be available")
+        print("  Set GEMINI_API_KEY in your .env file to enable these features")
+    
+    # Check ANTHROPIC_API_KEY
+    anthropic_key = os.getenv("ANTHROPIC_API_KEY")
+    if anthropic_key:
+        masked_key = anthropic_key[:10] + "..." if len(anthropic_key) > 10 else "***"
+        print(f"✓ ANTHROPIC_API_KEY is set ({masked_key})")
+    else:
+        print("⚠ ANTHROPIC_API_KEY is NOT set")
+        print("  AI component discovery and scoring will not be available")
+    
+    print("=" * 60)
+    print()
 
 
 @app.get("/")

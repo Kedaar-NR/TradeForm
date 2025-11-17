@@ -73,6 +73,7 @@ export interface DatasheetStatus {
   parsedAt?: string;
   parseStatus?: string;
   parseError?: string;
+  originalFilename?: string;
 }
 
 export interface DatasheetCitation {

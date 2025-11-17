@@ -57,12 +57,14 @@ try:
     print()
     
     # Start uvicorn
+    # Note: For development with auto-reload, run uvicorn directly:
+    #   uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
     import uvicorn
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
         port=8000,
-        reload=True,
+        reload=False,  # Disabled to avoid port conflicts with startup script
         log_level="info"
     )
     
