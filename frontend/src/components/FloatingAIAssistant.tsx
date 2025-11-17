@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { getApiUrl, getAuthHeaders } from "../utils/apiHelpers";
+import FormattedMarkdown from "./FormattedMarkdown";
 
 interface Message {
   role: "user" | "assistant";
@@ -179,9 +180,16 @@ const FloatingAIAssistant: React.FC = () => {
                       : "bg-gray-100 text-gray-900"
                   }`}
                 >
-                  <div className="whitespace-pre-wrap leading-relaxed">
-                    {message.content}
-                  </div>
+                  {message.role === "user" ? (
+                    <div className="whitespace-pre-wrap leading-relaxed">
+                      {message.content}
+                    </div>
+                  ) : (
+                    <FormattedMarkdown 
+                      content={message.content}
+                      className="text-gray-900"
+                    />
+                  )}
                 </div>
               </div>
             ))}
