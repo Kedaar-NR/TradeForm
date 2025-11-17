@@ -62,6 +62,17 @@ api.interceptors.response.use(
     }
 );
 
+// Authentication
+export const authApi = {
+    login: (email: string, password: string) =>
+        api.post('/api/auth/login', { email, password }),
+    register: (email: string, password: string) =>
+        api.post('/api/auth/register', { email, password }),
+    finishSso: (code: string, state: string) =>
+        api.post('/api/auth/workos/callback', { code, state }),
+    getCurrentUser: () => api.get('/api/auth/me'),
+};
+
 // Projects
 export const projectsApi = {
     getAll: () => api.get<Project[]>('/api/projects'),
