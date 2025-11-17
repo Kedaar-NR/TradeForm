@@ -67,6 +67,7 @@ async def upload_datasheet(
             existing_doc.parse_status = "pending"
             existing_doc.parse_error = None
             existing_doc.num_pages = None
+            existing_doc.suggested_questions = None  # Clear cached suggestions on re-upload
             db.commit()
             datasheet_doc = existing_doc
         else:
@@ -151,7 +152,8 @@ def get_datasheet_status(component_id: UUID, db: Session = Depends(get_db)):
         num_pages=int(datasheet_doc.num_pages) if datasheet_doc.num_pages else None,
         parsed_at=datasheet_doc.parsed_at,
         parse_status=str(datasheet_doc.parse_status),
-        parse_error=str(datasheet_doc.parse_error) if datasheet_doc.parse_error else None
+        parse_error=str(datasheet_doc.parse_error) if datasheet_doc.parse_error else None,
+        original_filename=str(datasheet_doc.original_filename) if datasheet_doc.original_filename else None
     )
 
 
@@ -270,6 +272,24 @@ def get_datasheet_suggestions(component_id: UUID, db: Session = Depends(get_db))
     if not component:
         raise HTTPException(status_code=404, detail="Component not found")
     
+    # Check for cached suggestions in datasheet document
+    datasheet_doc = db.query(models.DatasheetDocument).filter(
+        models.DatasheetDocument.component_id == component_id
+    ).first()
+    
+    if datasheet_doc and datasheet_doc.suggested_questions:
+        # Return cached suggestions if available
+        try:
+            import json
+            cached_suggestions = json.loads(datasheet_doc.suggested_questions)
+            if cached_suggestions and isinstance(cached_suggestions, list):
+                return schemas.DatasheetSuggestionsResponse(
+                    suggestions=cached_suggestions
+                )
+        except (json.JSONDecodeError, TypeError):
+            # If parsing fails, regenerate suggestions
+            pass
+    
     project = db.query(models.Project).filter(models.Project.id == component.project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -308,8 +328,16 @@ def get_datasheet_suggestions(component_id: UUID, db: Session = Depends(get_db))
             mode="suggestions"
         )
         
+        suggestions = ai_response.get("suggestions", [])
+        
+        # Cache the suggestions in the database
+        if datasheet_doc and suggestions:
+            import json
+            datasheet_doc.suggested_questions = json.dumps(suggestions)
+            db.commit()
+        
         return schemas.DatasheetSuggestionsResponse(
-            suggestions=ai_response.get("suggestions", [])
+            suggestions=suggestions
         )
     
     except Exception as e:

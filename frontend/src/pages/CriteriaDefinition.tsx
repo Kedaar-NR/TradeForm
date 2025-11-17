@@ -10,7 +10,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { useCriteriaManagement, CriterionForm } from "../hooks/useCriteriaManagement";
 import { CriterionCard } from "../components/CriteriaDefinition/CriterionCard";
 import { WeightSummary } from "../components/CriteriaDefinition/WeightSummary";
-import { COMMON_CRITERIA } from "../utils/criteriaHelpers";
+import { COMMON_CRITERIA, isWeightBalanced } from "../utils/criteriaHelpers";
 
 const CriteriaDefinition: React.FC = () => {
   const navigate = useNavigate();
@@ -112,7 +112,7 @@ const CriteriaDefinition: React.FC = () => {
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => navigate(`/projects/${projectId}`)}
+            onClick={() => navigate(`/project/${projectId}`)}
             className="text-gray-700 hover:text-gray-900 mb-4 flex items-center gap-2 text-sm font-medium"
           >
             <svg
@@ -307,6 +307,94 @@ const CriteriaDefinition: React.FC = () => {
                 onRemove={removeCriterion}
               />
             ))}
+          </div>
+        )}
+
+        {/* Continue Button Section */}
+        {criteria.length > 0 && (
+          <div className="mt-8">
+            {/* Progress Indicator */}
+            <div className="mb-6 flex items-center justify-center gap-2 text-sm">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-semibold">
+                  ✓
+                </div>
+                <span className="font-medium text-gray-700">Criteria Definition</span>
+              </div>
+              <svg
+                className="w-5 h-5 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-gray-300 text-white flex items-center justify-center font-semibold">
+                  2
+                </div>
+                <span className="font-medium text-gray-500">Component Discovery</span>
+              </div>
+              <svg
+                className="w-5 h-5 text-gray-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M9 5l7 7-7 7"
+                />
+              </svg>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-gray-300 text-white flex items-center justify-center font-semibold">
+                  3
+                </div>
+                <span className="font-medium text-gray-500">Results</span>
+              </div>
+            </div>
+
+            {/* Continue Button */}
+            <div className="flex justify-center">
+              <button
+                onClick={() => navigate(`/project/${projectId}/discovery`)}
+                disabled={!isWeightBalanced(criteria)}
+                className={`px-8 py-3 rounded-lg font-semibold text-white transition-all flex items-center gap-2 ${
+                  isWeightBalanced(criteria)
+                    ? "bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg"
+                    : "bg-gray-400 cursor-not-allowed opacity-60"
+                }`}
+              >
+                Continue to Component Discovery
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 7l5 5m0 0l-5 5m5-5H6"
+                  />
+                </svg>
+              </button>
+            </div>
+
+            {/* Helper Text */}
+            {!isWeightBalanced(criteria) && (
+              <p className="text-center text-sm text-gray-600 mt-3">
+                Weights must total 100 to continue
+              </p>
+            )}
           </div>
         )}
       </div>

@@ -8,7 +8,7 @@ import re
 from typing import Dict, Any, List
 
 try:
-    import google.generativeai as genai
+    from google import genai
     GEMINI_AVAILABLE = True
 except ImportError:
     GEMINI_AVAILABLE = False
@@ -17,14 +17,27 @@ except ImportError:
 def _get_gemini_client():
     """Initialize and return Gemini client"""
     if not GEMINI_AVAILABLE:
-        raise RuntimeError("google-generativeai package not installed")
+        raise RuntimeError(
+            "google-genai package not installed. "
+            "Install it with: pip install -q -U google-genai"
+        )
     
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
-        raise RuntimeError("GEMINI_API_KEY environment variable not set")
+        raise RuntimeError(
+            "GEMINI_API_KEY environment variable not set. "
+            "Please set it in your .env file or environment variables."
+        )
     
-    genai.configure(api_key=api_key)
-    return genai.GenerativeModel('gemini-1.5-pro')
+    try:
+        # New SDK: Create client directly with API key
+        client = genai.Client(api_key=api_key)
+        return client
+    except Exception as e:
+        raise RuntimeError(
+            f"Failed to initialize Gemini client: {str(e)}. "
+            "Please check that your GEMINI_API_KEY is valid."
+        )
 
 
 def ask_datasheet_ai(
@@ -77,9 +90,13 @@ def ask_datasheet_ai(
         
         if mode == "qa":
             prompt = _build_qa_prompt(context, question)
-            response = client.generate_content(prompt)
+            # New SDK API: use models.generate_content
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt
+            )
             
-            # Parse response
+            # Parse response - new SDK returns response.text directly
             answer_text = response.text.strip()
             
             # Try to extract JSON from response
@@ -109,7 +126,11 @@ def ask_datasheet_ai(
         
         elif mode == "suggestions":
             prompt = _build_suggestions_prompt(context)
-            response = client.generate_content(prompt)
+            # New SDK API: use models.generate_content
+            response = client.models.generate_content(
+                model="gemini-2.5-flash",
+                contents=prompt
+            )
             
             suggestions_text = response.text.strip()
             
@@ -137,9 +158,32 @@ def ask_datasheet_ai(
         else:
             raise ValueError(f"Invalid mode: {mode}. Must be 'qa' or 'suggestions'")
     
-    except Exception as e:
-        print(f"Gemini API error: {e}")
+    except RuntimeError as e:
+        # RuntimeError indicates package missing, API key missing, or initialization failure
+        error_msg = str(e)
+        print(f"Gemini API configuration error: {error_msg}")
         return _fallback_response(mode)
+    except Exception as e:
+        # Catch API errors (authentication, rate limits, etc.)
+        error_msg = str(e)
+        error_type = type(e).__name__
+        print(f"Gemini API error ({error_type}): {error_msg}")
+        
+        # Check for common API errors
+        if "API_KEY" in error_msg.upper() or "AUTHENTICATION" in error_msg.upper():
+            return {
+                "answer": f"Authentication error: Invalid GEMINI_API_KEY. Please check your API key in the .env file.",
+                "citations": [],
+                "confidence": 0.0,
+            } if mode == "qa" else _fallback_response(mode)
+        elif "QUOTA" in error_msg.upper() or "RATE_LIMIT" in error_msg.upper():
+            return {
+                "answer": f"Rate limit exceeded: {error_msg}. Please try again later.",
+                "citations": [],
+                "confidence": 0.0,
+            } if mode == "qa" else _fallback_response(mode)
+        else:
+            return _fallback_response(mode)
 
 
 def _extract_citations_from_text(text: str, chunks: List[Dict]) -> List[Dict]:

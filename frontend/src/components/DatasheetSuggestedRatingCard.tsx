@@ -1,5 +1,6 @@
 import type { DatasheetCitation } from '../types';
 import DatasheetCitationsList from './DatasheetCitationsList';
+import FormattedMarkdown from './FormattedMarkdown';
 
 interface SuggestedRating {
   criterion: string;
@@ -109,9 +110,7 @@ const DatasheetSuggestedRatingCard = ({ rating }: DatasheetSuggestedRatingCardPr
       <div className="mb-4">
         <p className="text-sm text-gray-600 font-medium mb-2">Reasoning</p>
         <div className="bg-white rounded-lg p-4 border border-gray-200">
-          <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-            {rating.rationale}
-          </p>
+          <FormattedMarkdown content={rating.rationale} className="text-gray-700" />
         </div>
       </div>
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { datasheetsApi } from '../services/api';
+import FormattedMarkdown from './FormattedMarkdown';
 import type { 
   DatasheetStatus, 
   DatasheetQueryAnswer, 
@@ -323,7 +324,7 @@ const DatasheetAssistant: React.FC<DatasheetAssistantProps> = ({
           <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-4">
             <div>
               <h3 className="text-sm font-medium text-gray-900 mb-2">Answer</h3>
-              <p className="text-gray-700 whitespace-pre-wrap">{answer.answer}</p>
+              <FormattedMarkdown content={answer.answer} className="text-gray-700" />
               {answer.confidence !== undefined && answer.confidence !== null && (
                 <div className="mt-3 flex items-center">
                   <span className="text-xs text-gray-500 mr-2">Confidence:</span>

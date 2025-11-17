@@ -235,6 +235,7 @@ class DatasheetStatus(BaseModel):
     parsed_at: Optional[datetime] = None
     parse_status: Optional[str] = None
     parse_error: Optional[str] = None
+    original_filename: Optional[str] = None
 
 class DatasheetQueryRequest(BaseModel):
     """Request for datasheet Q&A"""

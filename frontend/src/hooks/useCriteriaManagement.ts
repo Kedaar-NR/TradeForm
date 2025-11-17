@@ -72,13 +72,24 @@ export const useCriteriaManagement = (projectId: string | undefined) => {
       try {
         setIsSaving(true);
         
+        // Filter out invalid criteria (those with empty names)
+        const validCriteria = criteriaToSave.filter(
+          (c) => c.name && c.name.trim().length > 0
+        );
+        
+        if (validCriteria.length === 0) {
+          setIsSaving(false);
+          setIsDirty(false);
+          return true;
+        }
+        
         // Get existing criteria IDs
         const existingResponse = await criteriaApi.getByProject(projectId);
         const existingCriteria = existingResponse.data;
         const existingIds = new Set(existingCriteria.map((c: any) => c.id));
 
         // Save/update each criterion
-        for (const criterion of criteriaToSave) {
+        for (const criterion of validCriteria) {
           const criterionData = {
             name: criterion.name,
             description: criterion.description || undefined,

@@ -188,6 +188,7 @@ class DatasheetDocument(Base):
     parsed_at = Column(DateTime(timezone=True), server_default=func.now())
     parse_status = Column(String, nullable=False, default="pending")  # pending, success, failed
     parse_error = Column(Text)
+    suggested_questions = Column(Text)  # JSON array of cached AI-generated questions
 
     # Relationships
     component = relationship("Component", back_populates="datasheet_document")

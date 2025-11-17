@@ -18,6 +18,7 @@ const DatasheetTab: React.FC<DatasheetTabProps> = ({
 }) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [datasheetParsed, setDatasheetParsed] = useState(false);
+  const [uploadedFilename, setUploadedFilename] = useState<string | undefined>();
   const [criteria, setCriteria] = useState<Criterion[]>([]);
   const [loadingCriteria, setLoadingCriteria] = useState(true);
 
@@ -72,6 +73,7 @@ const DatasheetTab: React.FC<DatasheetTabProps> = ({
         if (response.ok) {
           const status = await response.json();
           setDatasheetParsed(status?.parsed === true);
+          setUploadedFilename(status?.original_filename);
         }
       } catch (error) {
         console.error("Failed to load datasheet status:", error);
@@ -144,6 +146,7 @@ const DatasheetTab: React.FC<DatasheetTabProps> = ({
             <DatasheetUploadCard
               onUploadSuccess={handleUploadSuccess}
               testComponentId={component.id}
+              existingFilename={uploadedFilename}
             />
 
             <DatasheetStatusCard

@@ -3,6 +3,7 @@ import type { DatasheetQueryAnswer, DatasheetCitation } from "../types";
 import type { MockCriterion } from "./TradeStudyCriteriaPreviewCard";
 import DatasheetCitationsList from "./DatasheetCitationsList";
 import DatasheetSuggestedRatingCard from "./DatasheetSuggestedRatingCard";
+import FormattedMarkdown from "./FormattedMarkdown";
 import { getApiUrl, getAuthHeaders } from "../utils/apiHelpers";
 
 interface DatasheetAssistantPanelProps {
@@ -360,13 +361,10 @@ const DatasheetAssistantPanel: React.FC<DatasheetAssistantPanelProps> = ({
                     ✕
                   </button>
                 </div>
-                <p
-                  className={`text-sm leading-relaxed whitespace-pre-wrap ${
-                    isAnswerNotFound ? "text-yellow-900" : "text-gray-700"
-                  }`}
-                >
-                  {answer.answer}
-                </p>
+                <FormattedMarkdown
+                  content={answer.answer}
+                  className={isAnswerNotFound ? "text-yellow-900" : "text-gray-700"}
+                />
 
                 {answer.confidence !== undefined &&
                   answer.confidence !== null && (
