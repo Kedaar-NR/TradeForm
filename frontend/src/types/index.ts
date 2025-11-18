@@ -7,6 +7,8 @@ export interface Project {
   createdAt: string;
   updatedAt: string;
   createdBy?: string;
+  tradeStudyReport?: string | null;
+  reportGeneratedAt?: string | null;
 }
 
 export interface Criterion {
@@ -89,4 +91,18 @@ export interface DatasheetQueryAnswer {
 
 export interface DatasheetSuggestionsResponse {
   suggestions: string[];
+}
+
+export interface ProjectChange {
+  id: string;
+  projectId: string;
+  userId: string;
+  userName?: string | null;
+  changeType: string;
+  changeDescription: string;
+  entityType?: string;
+  entityId?: string;
+  oldValue?: string | null;
+  newValue?: string | null;
+  createdAt: string;
 }
