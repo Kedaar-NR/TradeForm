@@ -1,20 +1,31 @@
-# Vercel Deployment Guide
+# Deployment Guide
+
+## Architecture
+
+This project uses a **split deployment** strategy:
+- **Frontend**: Deployed to Vercel
+- **Backend**: Deployed separately (Railway, Render, or Fly.io recommended)
+
+This approach is more reliable for apps with databases, background tasks, and long-running processes.
 
 ## Prerequisites
 
 - A Vercel account connected to your GitHub repository
-- PostgreSQL database (recommended: Vercel Postgres, Supabase, or Neon)
+- A hosting platform for the backend (Railway, Render, or Fly.io)
+- PostgreSQL database (can be provided by your backend hosting platform)
 
-## Environment Variables
+## Step 1: Deploy Backend
 
-Configure these environment variables in your Vercel project settings:
+### Option A: Railway (Recommended)
 
-### Required Variables
+1. Go to [Railway.app](https://railway.app) and sign up
+2. Click "New Project" → "Deploy from GitHub repo"
+3. Select your TradeForm repository
+4. Set root directory to `backend/`
+5. Railway will auto-detect Python and create a PostgreSQL database
+6. Add environment variables in Railway dashboard:
 
 ```bash
-# Database Configuration
-DATABASE_URL=postgresql://user:password@host:port/database
-
 # AI API Keys
 GEMINI_API_KEY=your_gemini_api_key_here
 ANTHROPIC_API_KEY=your_anthropic_api_key_here
@@ -23,40 +34,57 @@ OPENAI_API_KEY=your_openai_api_key_here
 # Application Settings
 SECRET_KEY=your_secret_key_here
 ENVIRONMENT=production
-ALLOW_ALL_ORIGINS=true
+CORS_ORIGINS=https://your-vercel-domain.vercel.app
+# Or allow all origins: ALLOW_ALL_ORIGINS=true
 
-# Frontend (build-time variables - prefix with REACT_APP_)
-REACT_APP_API_URL=/api
+# Database URL is automatically provided by Railway
+# Redis URL (if using Railway Redis addon)
+```
+
+7. Copy your Railway backend URL (e.g., `https://your-app.railway.app`)
+
+### Option B: Render
+
+1. Go to [Render.com](https://render.com) and create a new Web Service
+2. Connect your GitHub repository
+3. Configure:
+   - Root Directory: `backend`
+   - Build Command: `pip install -r requirements.txt`
+   - Start Command: `uvicorn app.main:app --host 0.0.0.0 --port $PORT`
+4. Add a PostgreSQL database from Render dashboard
+5. Set environment variables (same as Railway above)
+
+### Option C: Fly.io
+
+Follow [Fly.io Python deployment guide](https://fly.io/docs/languages-and-frameworks/python/)
+
+## Step 2: Deploy Frontend to Vercel
+
+### Environment Variables
+
+Configure these in your Vercel project settings:
+
+```bash
+# Backend API URL (from Step 1)
+REACT_APP_API_URL=https://your-backend-url.railway.app
+
+# Frontend Gemini API Key (for client-side features)
 REACT_APP_GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
-## Setting Environment Variables in Vercel
+### Setting Environment Variables in Vercel
 
 1. Go to your Vercel project dashboard
 2. Navigate to **Settings** → **Environment Variables**
-3. Add each variable above with their corresponding values
+3. Add the variables above
 4. Make sure to add them for **Production**, **Preview**, and **Development** environments
 
-## Database Setup
+### Deployment
 
-### Option 1: Vercel Postgres (Recommended)
-
-1. In your Vercel project, go to **Storage** → **Create Database**
-2. Select **Postgres** and create a new database
-3. Vercel will automatically add the `DATABASE_URL` environment variable
-
-### Option 2: External PostgreSQL (Supabase, Neon, etc.)
-
-1. Create a PostgreSQL database on your preferred platform
-2. Copy the connection string
-3. Add it to Vercel as the `DATABASE_URL` environment variable
-
-## Deployment Steps
-
-1. **Commit and Push Changes**
+1. **Commit and Push Changes** (if any)
    ```bash
    git add .
-   git commit -m "Configure Vercel deployment"
+   git commit -m "Update deployment configuration"
    git push origin main
    ```
 
@@ -64,50 +92,61 @@ REACT_APP_GEMINI_API_KEY=your_gemini_api_key_here
    - Vercel will automatically deploy when you push to your repository
    - Monitor the deployment in the Vercel dashboard
 
-3. **Manual Deployment** (if needed)
-   ```bash
-   vercel --prod
-   ```
+3. The frontend build will succeed and deploy to Vercel
 
 ## Troubleshooting
 
-### Build Errors
+### Frontend Build Errors (Vercel)
 
 - Check the build logs in Vercel dashboard
-- Ensure all environment variables are set correctly
-- Verify that `api/requirements.txt` has all necessary dependencies
+- Ensure `REACT_APP_API_URL` is set correctly
+- Verify all dependencies in `frontend/package.json` are installable
 
-### Database Connection Issues
+### Backend Deployment Issues
 
-- Verify `DATABASE_URL` is correctly set
-- Check if your database provider allows external connections
-- For Vercel Postgres, ensure the database is in the same region as your deployment
+- Check backend platform logs (Railway/Render/Fly.io)
+- Verify all environment variables are set
+- Ensure database connection string is correct
+- Check that `backend/requirements.txt` has all necessary dependencies
 
-### API Not Working
+### CORS Errors
 
-- Check that `/api` routes are properly configured in `vercel.json`
-- Verify CORS settings if getting cross-origin errors
-- Check function logs in Vercel dashboard
+- Verify `CORS_ORIGINS` or `ALLOW_ALL_ORIGINS` is set in backend environment variables
+- Check that your frontend URL is allowed in backend CORS settings
+- Ensure backend is accepting requests from your Vercel domain
 
-## Post-Deployment
+### API Not Responding
 
-1. Visit your deployed site URL
-2. Test the API endpoint at `https://your-domain.vercel.app/api/health`
-3. Verify frontend can communicate with the API
+- Check backend platform logs for errors
+- Verify backend URL in Vercel environment variables
+- Test backend health endpoint: `https://your-backend.railway.app/health`
+- Ensure backend service is running and not sleeping (some free tiers have sleep modes)
+
+## Post-Deployment Testing
+
+1. **Test Frontend**: Visit `https://your-domain.vercel.app`
+2. **Test Backend**: Visit `https://your-backend.railway.app/health`
+3. **Test API Connection**:
+   - Open browser console on your frontend
+   - Check if API calls are reaching the backend
+   - Verify no CORS errors
+
+## Cost Considerations
+
+### Free Tier Options:
+- **Vercel**: Free for personal projects (includes generous bandwidth)
+- **Railway**: $5 free credit monthly (enough for small apps)
+- **Render**: Free tier available (with limitations)
+- **Supabase**: Free PostgreSQL database (500MB)
+
+### Recommended Setup for MVP:
+- Frontend: Vercel (Free)
+- Backend: Railway Starter Plan ($5/month)
+- Database: Included with Railway PostgreSQL
 
 ## Important Notes
 
-- **SQLite will not work** on Vercel - you must use PostgreSQL or another external database
-- Serverless functions have a **60-second timeout** (on Pro plan)
-- For background tasks (Celery/Redis), consider using a separate service like Railway or Render for the backend
-- Static files are served from the frontend build directory
-
-## Alternative Deployment Strategy
-
-If you encounter issues with serverless deployment or need background task support:
-
-1. Deploy only the frontend to Vercel
-2. Deploy the backend separately to Railway, Render, or Fly.io
-3. Update `REACT_APP_API_URL` to point to your backend URL
-
-For backend-only deployment, use the `backend/` directory and configure environment variables on your chosen platform.
+- Video files (~90MB total) will be deployed with the frontend
+- For better performance, consider hosting videos on a CDN
+- Backend has database and background task dependencies (Celery, Redis)
+- This split deployment strategy is more reliable and scalable than serverless
