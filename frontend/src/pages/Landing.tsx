@@ -17,7 +17,6 @@ const Landing: React.FC = () => {
 
   const videos = useMemo(
     () => [
-      "/videos/2249554-uhd_3840_2160_24fps.mp4",
       "/videos/2252797-uhd_3840_2160_30fps.mp4",
       "/videos/4990233-hd_1920_1080_30fps.mp4",
       "/videos/854274-hd_1280_720_30fps.mp4",
