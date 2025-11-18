@@ -11,12 +11,12 @@ from dotenv import load_dotenv
 
 # Load environment variables before any other imports
 # This ensures GEMINI_API_KEY and other env vars are available to all modules
-project_root = Path(__file__).parent.parent
-env_path = project_root / '.env'
+project_root = Path(__file__).resolve().parents[2]
+env_path = project_root / ".env"
 if env_path.exists():
     load_dotenv(dotenv_path=env_path)
 else:
-    load_dotenv()  # Fallback to default .env search
+    load_dotenv()
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
