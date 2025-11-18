@@ -150,10 +150,8 @@ const Results: React.FC = () => {
     if (!projectId) return;
     try {
       const response = await resultsApi.exportFullExcel(projectId);
-      const blob = new Blob([response.data], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
-      const url = window.URL.createObjectURL(blob);
+      // response.data is already a Blob when using responseType: "blob"
+      const url = window.URL.createObjectURL(response.data);
       const a = document.createElement("a");
       a.href = url;
       a.download = `TradeStudy_Full_${
