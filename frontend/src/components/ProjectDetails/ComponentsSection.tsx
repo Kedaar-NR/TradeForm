@@ -14,6 +14,12 @@ export const ComponentsSection: React.FC<ComponentsSectionProps> = ({
   components,
   onNavigateToDiscovery,
 }) => {
+  const getSourceLabel = (source: Component["source"]) => {
+    return source === "ai_discovered"
+      ? "AI Discovered"
+      : formatEnumValue(source);
+  };
+
   if (components.length === 0) {
     return (
       <div className="card p-8 text-center">
@@ -83,7 +89,7 @@ export const ComponentsSection: React.FC<ComponentsSectionProps> = ({
                   })()}
                 </td>
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
-                  {formatEnumValue(component.source)}
+                  {getSourceLabel(component.source)}
                 </td>
               </tr>
             ))}
@@ -93,4 +99,3 @@ export const ComponentsSection: React.FC<ComponentsSectionProps> = ({
     </div>
   );
 };
-

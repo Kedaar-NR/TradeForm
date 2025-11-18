@@ -91,6 +91,13 @@ const ComponentDetailDrawer: React.FC<ComponentDetailDrawerProps> = ({
         return scores.find((score) => score.criterionId === criterionId);
     };
 
+    const getSourceLabel = () => {
+        if (component.source === "ai_discovered") {
+            return "AI Discovered";
+        }
+        return formatEnumValue(component.source);
+    };
+
     if (!isOpen) return null;
 
     return (
@@ -223,18 +230,16 @@ const ComponentDetailDrawer: React.FC<ComponentDetailDrawerProps> = ({
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Availability
                                     </label>
-                                    <p className="text-base text-gray-900 capitalize">
-                                        {formatEnumValue(
-                                            component.availability
-                                        )}
+                                    <p className="text-base text-gray-900">
+                                        {formatEnumValue(component.availability)}
                                     </p>
                                 </div>
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">
                                         Source
                                     </label>
-                                    <p className="text-base text-gray-900 capitalize">
-                                        {formatEnumValue(component.source)}
+                                    <p className="text-base text-gray-900">
+                                        {getSourceLabel()}
                                     </p>
                                 </div>
                             </div>
