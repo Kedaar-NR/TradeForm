@@ -1,7 +1,7 @@
 """Team collaboration endpoints for versions, shares, comments, and changes."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 from typing import List
 from uuid import UUID
 import json
@@ -144,8 +144,29 @@ def list_comments(project_id: UUID, db: Session = Depends(get_db)):
 @router.get("/api/projects/{project_id}/changes", response_model=List[schemas.ProjectChange])
 def list_changes(project_id: UUID, db: Session = Depends(get_db)):
     """List all changes for a project"""
-    changes = db.query(models.ProjectChange).filter(
-        models.ProjectChange.project_id == project_id
-    ).order_by(models.ProjectChange.created_at.desc()).limit(50).all()
-    return changes
-
+    changes = (
+        db.query(models.ProjectChange)
+        .options(joinedload(models.ProjectChange.user))
+        .filter(models.ProjectChange.project_id == project_id)
+        .order_by(models.ProjectChange.created_at.desc())
+        .limit(50)
+        .all()
+    )
+    response = []
+    for change in changes:
+        response.append(
+            {
+                "id": change.id,
+                "project_id": change.project_id,
+                "user_id": change.user_id,
+                "user_name": change.user.name if change.user else "System",
+                "change_type": change.change_type,
+                "change_description": change.change_description,
+                "entity_type": change.entity_type,
+                "entity_id": change.entity_id,
+                "old_value": change.old_value,
+                "new_value": change.new_value,
+                "created_at": change.created_at,
+            }
+        )
+    return response
