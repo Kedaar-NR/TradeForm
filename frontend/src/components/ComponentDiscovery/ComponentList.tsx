@@ -18,8 +18,11 @@ export const ComponentList = ({
   onRemove,
   onOpenAssistant,
 }: ComponentListProps) => {
-  const renderDatasheetStatus = (componentId: string) => {
-    const badgeProps = getDatasheetStatusBadge(datasheetStatuses[componentId]);
+  const renderDatasheetStatus = (component: Component) => {
+    const badgeProps = getDatasheetStatusBadge(
+      datasheetStatuses[component.id],
+      Boolean(component.datasheetFilePath || component.datasheetUrl)
+    );
 
     return (
       <span className={`${badgeProps.className} flex items-center gap-1`}>
@@ -54,11 +57,6 @@ export const ComponentList = ({
     );
   };
 
-  const renderAvailabilityBadge = (availability: Component["availability"]) => {
-    const badgeProps = getAvailabilityBadge(availability);
-    return <span className={badgeProps.className}>{badgeProps.label}</span>;
-  };
-
   if (components.length === 0) {
     return (
       <div className="card p-12 text-center">
@@ -91,7 +89,16 @@ export const ComponentList = ({
                 <span className="text-sm text-gray-700 font-mono">
                   {component.partNumber}
                 </span>
-                {renderAvailabilityBadge(component.availability)}
+                {(() => {
+                  const availabilityBadge = getAvailabilityBadge(
+                    component.availability
+                  );
+                  return (
+                    <span className={availabilityBadge.className}>
+                      {availabilityBadge.label}
+                    </span>
+                  );
+                })()}
               </div>
               {component.description && (
                 <p className="text-sm text-gray-600 mb-2">
@@ -102,7 +109,7 @@ export const ComponentList = ({
                 <span className="text-xs font-medium text-gray-600">
                   Datasheet:
                 </span>
-                {renderDatasheetStatus(component.id)}
+                {renderDatasheetStatus(component)}
               </div>
             </div>
             <div
@@ -111,7 +118,7 @@ export const ComponentList = ({
             >
               <button
                 onClick={() => onOpenAssistant(component)}
-                className="btn-secondary text-sm flex items-center gap-2"
+                className="btn-secondary text-sm flex items-center gap-2 w-1/2 justify-center"
                 title="Open Datasheet Assistant"
               >
                 <svg
@@ -180,4 +187,3 @@ export const ComponentList = ({
     </div>
   );
 };
-
