@@ -5,7 +5,7 @@ AI client for datasheet Q&A and suggestions using Google Gemini API.
 import os
 import json
 import re
-from typing import Dict, Any, List
+from typing import Dict, Any, List, Optional
 
 try:
     from google import genai
@@ -83,7 +83,7 @@ def ask_datasheet_ai(
     """
     
     if not GEMINI_AVAILABLE:
-        return _fallback_response(mode)
+        return _fallback_response(mode, context=context, question=question)
     
     try:
         client = _get_gemini_client()
@@ -181,9 +181,9 @@ def ask_datasheet_ai(
                 "answer": f"Rate limit exceeded: {error_msg}. Please try again later.",
                 "citations": [],
                 "confidence": 0.0,
-            } if mode == "qa" else _fallback_response(mode)
+            } if mode == "qa" else _fallback_response(mode, context=context)
         else:
-            return _fallback_response(mode)
+            return _fallback_response(mode, context=context, question=question)
 
 
 def _extract_citations_from_text(text: str, chunks: List[Dict]) -> List[Dict]:
@@ -259,23 +259,69 @@ def _generate_default_suggestions(context: Dict[str, Any]) -> List[str]:
     return suggestions
 
 
-def _fallback_response(mode: str) -> Dict[str, Any]:
-    """Return fallback response when Gemini is not available"""
+def _fallback_response(
+    mode: str,
+    context: Optional[Dict[str, Any]] = None,
+    question: str = "",
+) -> Dict[str, Any]:
+    """Fallback response using simple keyword search when Gemini is unavailable."""
     if mode == "qa":
+        snippet, page, relevance = _simple_chunk_search(context or {}, question)
+        if snippet:
+            # Boost confidence if the snippet has multiple keyword hits
+            confidence = min(0.9, max(0.45, 0.35 + (relevance * 0.12)))
+            return {
+                "answer": snippet,
+                "citations": [
+                    {
+                        "page_number": page or 0,
+                        "snippet": snippet[:200],
+                    }
+                ]
+                if page is not None
+                else [],
+                "confidence": confidence,
+            }
         return {
-            "answer": "AI datasheet Q&A is not available. Please ensure GEMINI_API_KEY is set in your environment.",
+            "answer": "I couldn't find that information in the datasheet text. Try rephrasing or check the datasheet manually.",
             "citations": [],
-            "confidence": 0.0,
+            "confidence": 0.1,
         }
-    else:
-        return {
-            "suggestions": [
-                "What is the nominal operating voltage?",
-                "What is the power consumption?",
-                "What are the key performance specifications?",
-                "What is the operating temperature range?",
-            ]
-        }
+    return {
+        "suggestions": _generate_default_suggestions(context or {}),
+    }
+
+
+def _simple_chunk_search(context: Dict[str, Any], question: str):
+    chunks = context.get("datasheet_chunks") or []
+    if not chunks:
+        return None, None, 0
+
+    keywords = [
+        word
+        for word in re.findall(r"\w+", question.lower())
+        if len(word) > 3
+    ]
+    if not keywords:
+        keywords = question.lower().split()
+
+    best_chunk = None
+    best_score = 0
+    for chunk in chunks:
+        text = chunk.get("text", "")
+        lower_text = text.lower()
+        score = sum(lower_text.count(keyword) for keyword in keywords)
+        if score > best_score and text.strip():
+            best_score = score
+            best_chunk = chunk
+
+    if best_chunk:
+        snippet = best_chunk.get("text", "").strip()
+        page = best_chunk.get("page_number")
+        if len(snippet) > 600:
+            snippet = snippet[:600] + "..."
+        return snippet, page, best_score
+    return None, None, 0
 
 
 def _build_qa_prompt(context: Dict[str, Any], question: str) -> str:
