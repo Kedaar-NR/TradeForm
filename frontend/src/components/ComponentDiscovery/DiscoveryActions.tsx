@@ -52,7 +52,12 @@ export const DiscoveryActions: React.FC<DiscoveryActionsProps> = ({
                         </p>
                         <button
                             onClick={onDiscover}
-                            disabled={isDiscovering || !projectId || isScoring}
+                            disabled={
+                                isDiscovering ||
+                                !projectId ||
+                                isScoring ||
+                                isGeneratingReport
+                            }
                             className="btn-primary disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
                         >
                             {isDiscovering ? (
@@ -113,7 +118,7 @@ export const DiscoveryActions: React.FC<DiscoveryActionsProps> = ({
                 />
                 <button
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploading || isScoring}
+                    disabled={isUploading || isScoring || isGeneratingReport}
                     className="btn-secondary flex items-center gap-2"
                 >
                     <svg
@@ -133,7 +138,9 @@ export const DiscoveryActions: React.FC<DiscoveryActionsProps> = ({
                 </button>
                 <button
                     onClick={onScoreAll}
-                    disabled={componentCount === 0 || isScoring}
+                    disabled={
+                        componentCount === 0 || isScoring || isGeneratingReport
+                    }
                     className="btn-primary flex items-center gap-2 disabled:opacity-50"
                 >
                     {isScoring ? (

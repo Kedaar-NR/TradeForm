@@ -346,7 +346,7 @@ const ComponentDiscovery: React.FC = () => {
                 {!showAddForm && (
                     <button
                         onClick={() => setShowAddForm(true)}
-                        disabled={isScoring}
+                        disabled={isScoring || isGeneratingReport}
                         className="btn-secondary mb-6 flex items-center gap-2"
                     >
                         <svg
