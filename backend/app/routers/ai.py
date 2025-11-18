@@ -6,13 +6,25 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 import io
 import asyncio
+import textwrap
 from typing import Tuple, Optional
 from datetime import datetime
+
+try:
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.pagesizes import letter
+    REPORTLAB_AVAILABLE = True
+except ImportError:
+    canvas = None  # type: ignore
+    letter = None  # type: ignore
+    REPORTLAB_AVAILABLE = False
 
 from app import models, schemas
 from app.database import get_db
 from app.services.ai_service import get_ai_service
 from app.services.scoring_service import get_scoring_service
+from app.services.change_logger import log_project_change
+from app.utils.file_helpers import is_pdf_content
 
 router = APIRouter(tags=["ai"])
 
@@ -60,8 +72,31 @@ def discover_components(project_id: UUID, db: Session = Depends(get_db)):
                 source=models.ComponentSource.AI_DISCOVERED
             )
             db.add(db_component)
+            db.flush()
+            log_project_change(
+                db,
+                project_id=project_id,
+                change_type="component_discovered",
+                description=f"Discovered component {db_component.manufacturer} {db_component.part_number}",
+                entity_type="component",
+                entity_id=db_component.id,
+                new_value={
+                    "manufacturer": db_component.manufacturer,
+                    "part_number": db_component.part_number,
+                    "description": db_component.description or "",
+                    "datasheet_url": db_component.datasheet_url or "",
+                },
+            )
             discovered_components.append(db_component)
         
+        log_project_change(
+            db,
+            project_id=project_id,
+            change_type="component_discovery_run",
+            description=f"Ran AI discovery and found {len(discovered_components)} new component(s)",
+            entity_type="system",
+            new_value={"discovered_count": len(discovered_components)},
+        )
         db.commit()
         
         for comp in discovered_components:
@@ -392,12 +427,25 @@ async def generate_trade_study_report(project_id: UUID, db: Session = Depends(ge
         # Save report to database
         project.trade_study_report = report
         project.report_generated_at = datetime.utcnow()
+        log_project_change(
+            db,
+            project_id=project_id,
+            change_type="report_generated",
+            description="Generated trade study report",
+            entity_type="system",
+            new_value={
+                "generated_at": project.report_generated_at.isoformat()
+                if project.report_generated_at
+                else None
+            },
+        )
         db.commit()
         db.refresh(project)
 
         return {
             "status": "success",
-            "report": report
+            "report": report,
+            "generated_at": project.report_generated_at
         }
 
     except ValueError as e:
@@ -406,6 +454,197 @@ async def generate_trade_study_report(project_id: UUID, db: Session = Depends(ge
         raise HTTPException(status_code=500, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Report generation failed: {str(e)}")
+
+
+def _prepare_report_lines(report_text: str) -> list[str]:
+    """Normalize markdown-heavy text into clean paragraphs."""
+    def clean_line(line: str) -> str:
+        stripped = line.strip()
+        if not stripped:
+            return ""
+        stripped = stripped.lstrip("#*- >")
+        stripped = stripped.replace("**", "").replace("__", "")
+        return " ".join(stripped.split())
+
+    paragraphs: list[str] = []
+    buffer: list[str] = []
+    for raw_line in report_text.splitlines():
+        cleaned = clean_line(raw_line)
+        if not cleaned:
+            if buffer:
+                paragraphs.append(" ".join(buffer))
+                buffer = []
+            continue
+        buffer.append(cleaned)
+
+    if buffer:
+        paragraphs.append(" ".join(buffer))
+
+    header = [
+        "Trade Study Report",
+        f"Generated on {datetime.utcnow().strftime('%B %d, %Y')}",
+    ]
+    return header + [""] + (paragraphs or [""])
+
+
+def _build_report_pdf(report_text: str) -> io.BytesIO:
+    """Create a PDF document from the stored trade study report text."""
+    prepared_lines = _prepare_report_lines(report_text)
+    if REPORTLAB_AVAILABLE:
+        buffer = io.BytesIO()
+        pdf = canvas.Canvas(buffer, pagesize=letter)
+        _, page_height = letter
+        left_margin = 72
+        top_margin = page_height - 72
+        bottom_margin = 72
+
+        def new_text_object():
+            text_obj = pdf.beginText(left_margin, top_margin)
+            text_obj.setFont("Helvetica", 11)
+            return text_obj
+
+        text_object = new_text_object()
+        lines = prepared_lines
+
+        for line in lines:
+            if not line.strip():
+                text_object.textLine("")
+                continue
+
+            wrapped_lines = textwrap.wrap(line, width=90) or [""]
+            for wrapped_line in wrapped_lines:
+                text_object.textLine(wrapped_line)
+                if text_object.getY() <= bottom_margin:
+                    pdf.drawText(text_object)
+                    pdf.showPage()
+                    text_object = new_text_object()
+
+        pdf.drawText(text_object)
+        pdf.save()
+        buffer.seek(0)
+        return buffer
+
+    return _build_simple_pdf(prepared_lines)
+
+
+def _escape_pdf_text(text: str) -> str:
+    return (
+        text.replace("\\", "\\\\")
+        .replace("(", "\\(")
+        .replace(")", "\\)")
+    )
+
+
+def _build_simple_pdf(lines: list[str]) -> io.BytesIO:
+    """Lightweight PDF generator when reportlab isn't available."""
+    buffer = io.BytesIO()
+    buffer.write(b"%PDF-1.4\n")
+
+    wrapped: list[str] = []
+    for line in lines:
+        wrapped_lines = textwrap.wrap(line, width=100)
+        if not wrapped_lines:
+            wrapped.append("")
+        else:
+            wrapped.extend(wrapped_lines)
+
+    if not wrapped:
+        wrapped = [""]
+
+    text_commands = [
+        "BT",
+        "/F1 12 Tf",
+        "14 TL",
+        "72 720 Td",
+    ]
+    for idx, line in enumerate(wrapped):
+        escaped_line = _escape_pdf_text(line)
+        text_commands.append(f"({escaped_line}) Tj")
+        if idx != len(wrapped) - 1:
+            text_commands.append("T*")
+    text_commands.append("ET")
+
+    content_stream = "\n".join(text_commands).encode("latin-1", "ignore")
+
+    offsets = [0]
+
+    def write_obj(obj: bytes):
+        offsets.append(buffer.tell())
+        buffer.write(obj)
+
+    write_obj(b"1 0 obj<< /Type /Catalog /Pages 2 0 R >>endobj\n")
+    write_obj(b"2 0 obj<< /Type /Pages /Kids [3 0 R] /Count 1 >>endobj\n")
+    write_obj(
+        b"3 0 obj<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 5 0 R >> >> /Contents 4 0 R >>endobj\n"
+    )
+    content_obj = (
+        f"4 0 obj<< /Length {len(content_stream)} >>\nstream\n".encode("latin-1")
+        + content_stream
+        + b"\nendstream\nendobj\n"
+    )
+    write_obj(content_obj)
+    write_obj(
+        b"5 0 obj<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>endobj\n"
+    )
+
+    startxref = buffer.tell()
+    buffer.write(f"xref\n0 {len(offsets)}\n".encode("latin-1"))
+    buffer.write(b"0000000000 65535 f \n")
+    for off in offsets[1:]:
+        buffer.write(f"{off:010} 00000 n \n".encode("latin-1"))
+
+    buffer.write(
+        b"trailer<< /Size "
+        + str(len(offsets)).encode("latin-1")
+        + b" /Root 1 0 R >>\nstartxref\n"
+        + str(startxref).encode("latin-1")
+        + b"\n%%EOF"
+    )
+    buffer.seek(0)
+    return buffer
+
+
+@router.get("/api/projects/{project_id}/report", response_model=schemas.TradeStudyReportResponse)
+def get_trade_study_report(project_id: UUID, db: Session = Depends(get_db)):
+    """Fetch the most recent trade study report for a project."""
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if not project.trade_study_report:
+        raise HTTPException(
+            status_code=404,
+            detail="No trade study report found for this project"
+        )
+
+    return {
+        "report": project.trade_study_report,
+        "generated_at": project.report_generated_at
+    }
+
+
+@router.get("/api/projects/{project_id}/report/pdf")
+def download_trade_study_report_pdf(project_id: UUID, db: Session = Depends(get_db)):
+    """Download the stored trade study report as a PDF file."""
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if not project.trade_study_report:
+        raise HTTPException(
+            status_code=404,
+            detail="No trade study report found for this project"
+        )
+
+    pdf_buffer = _build_report_pdf(project.trade_study_report)
+    safe_name = (project.name or "trade_study").lower().replace(" ", "_")
+    safe_name = "".join(ch if ch.isalnum() or ch in ("_", "-") else "_" for ch in safe_name)
+    filename = f"trade_study_report_{safe_name}.pdf"
+
+    headers = {
+        "Content-Disposition": f"attachment; filename={filename}"
+    }
+    return StreamingResponse(pdf_buffer, media_type="application/pdf", headers=headers)
 
 
 @router.get("/api/proxy-pdf")
@@ -423,19 +662,26 @@ async def proxy_pdf(url: str):
                     detail=f"Failed to download PDF: {response.status_code}"
                 )
             
+            file_bytes = response.content
             content_type = response.headers.get("content-type", "").lower()
-            if "pdf" not in content_type and not url.lower().endswith(".pdf"):
-                pass
-            
+            if "pdf" not in content_type and not is_pdf_content(file_bytes):
+                raise HTTPException(
+                    status_code=400,
+                    detail="The requested URL did not return a PDF file."
+                )
+
+            filename = url.split("/")[-1].split("?")[0].split("#")[0] or "download.pdf"
+            if not filename.lower().endswith(".pdf"):
+                filename += ".pdf"
+
             return StreamingResponse(
-                io.BytesIO(response.content),
+                io.BytesIO(file_bytes),
                 media_type="application/pdf",
                 headers={
-                    "Content-Disposition": f'attachment; filename="{url.split("/")[-1]}"'
+                    "Content-Disposition": f'attachment; filename="{filename}"'
                 }
             )
     except httpx.TimeoutException:
         raise HTTPException(status_code=504, detail="Request timeout while downloading PDF")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Failed to proxy PDF: {str(e)}")
-
