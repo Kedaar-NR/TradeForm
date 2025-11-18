@@ -14,12 +14,8 @@ load_dotenv(dotenv_path=env_path)
 if not env_path.exists():
     load_dotenv()
 
-# Database URL - force SQLite for local development
-DATABASE_URL = "sqlite:///./tradeform.db"
-
-# You can override with environment variable for production
-if os.getenv("DATABASE_URL") and not os.getenv("DATABASE_URL").startswith("postgres://"):
-    DATABASE_URL = os.getenv("DATABASE_URL")
+# Database URL - use environment variable or fallback to SQLite for local development
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./tradeform.db")
 
 # Create engine (add connect_args for SQLite)
 if DATABASE_URL.startswith("sqlite"):
