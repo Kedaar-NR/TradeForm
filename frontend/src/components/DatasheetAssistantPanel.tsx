@@ -29,6 +29,14 @@ const DatasheetAssistantPanel: React.FC<DatasheetAssistantPanelProps> = ({
   const [question, setQuestion] = useState("");
   const [selectedCriterionId, setSelectedCriterionId] = useState<string>("");
   const [answer, setAnswer] = useState<DatasheetQueryAnswer | null>(null);
+  const [qaHistory, setQaHistory] = useState<
+    {
+      question: string;
+      answer: DatasheetQueryAnswer;
+      criterionName?: string;
+      timestamp: number;
+    }[]
+  >([]);
   const [suggestedRating, setSuggestedRating] =
     useState<SuggestedRating | null>(null);
   const [suggestions, setSuggestions] = useState<string[]>([]);
@@ -94,14 +102,27 @@ const DatasheetAssistantPanel: React.FC<DatasheetAssistantPanelProps> = ({
 
       const data = await response.json();
 
-      setAnswer({
+      const normalizedAnswer: DatasheetQueryAnswer = {
         answer: data.answer,
         citations: data.citations.map((c: any) => ({
           pageNumber: c.page_number,
           snippet: c.snippet,
         })),
         confidence: data.confidence,
-      });
+      };
+
+      setAnswer(normalizedAnswer);
+      setQaHistory((prev) => [
+        {
+          question: question.trim(),
+          answer: normalizedAnswer,
+          criterionName: selectedCriterionId
+            ? mockCriteria.find((c) => c.id === selectedCriterionId)?.name
+            : undefined,
+          timestamp: Date.now(),
+        },
+        ...prev,
+      ]);
 
       // Check if response includes suggested rating
       if (data.rating) {
@@ -323,17 +344,68 @@ const DatasheetAssistantPanel: React.FC<DatasheetAssistantPanelProps> = ({
           </div>
 
           {/* Answer Display - Scrollable area below input */}
-          {answer && (
-            <div className="flex-1 overflow-y-auto min-h-0 border-t border-gray-200 pt-4 mt-4">
-              <div
-                className={`p-4 rounded-lg border-2 mb-4 ${
-                  isAnswerNotFound
-                    ? "bg-yellow-50 border-yellow-300"
-                    : "bg-white border-gray-200"
-                }`}
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <h4 className="text-sm font-semibold text-gray-900 flex items-center">
+          {(answer || qaHistory.length > 0) && (
+            <div className="flex-1 overflow-y-auto min-h-0 border-t border-gray-200 pt-4 mt-4 space-y-4">
+              {qaHistory.length > 0 && (
+                <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="text-sm font-semibold text-gray-800">
+                      Recent Questions
+                    </h4>
+                    {qaHistory.length > 0 && (
+                      <button
+                        onClick={() => setQaHistory([])}
+                        className="text-xs text-gray-500 hover:text-gray-700"
+                      >
+                        Clear History
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
+                    {qaHistory.map((entry, index) => (
+                      <button
+                        key={entry.timestamp}
+                        onClick={() => {
+                          setAnswer(entry.answer);
+                          setQuestion(entry.question);
+                          setSelectedCriterionId(
+                            mockCriteria.find(
+                              (c) => c.name === entry.criterionName
+                            )?.id || ""
+                          );
+                        }}
+                        className="w-full text-left text-xs bg-white border border-gray-200 rounded-md px-3 py-2 hover:bg-gray-100 transition-colors"
+                      >
+                        <div className="font-semibold text-gray-900">
+                          {entry.question}
+                        </div>
+                        <div className="text-gray-500">
+                          {entry.answer.answer.slice(0, 80)}
+                          {entry.answer.answer.length > 80 ? "…" : ""}
+                        </div>
+                        <div className="text-[10px] text-gray-400 uppercase mt-1">
+                          {new Date(entry.timestamp).toLocaleTimeString()}
+                          {entry.criterionName
+                            ? ` • ${entry.criterionName}`
+                            : ""}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {answer && (
+                <>
+                  <div
+                    className={`p-4 rounded-lg border-2 mb-4 ${
+                      isAnswerNotFound
+                        ? "bg-yellow-50 border-yellow-300"
+                        : "bg-white border-gray-200"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between mb-2">
+                      <h4 className="text-sm font-semibold text-gray-900 flex items-center">
                     <svg
                       className="h-5 w-5 mr-2 text-indigo-600"
                       fill="none"
@@ -389,16 +461,18 @@ const DatasheetAssistantPanel: React.FC<DatasheetAssistantPanelProps> = ({
                       </span>
                     </div>
                   )}
-              </div>
+                  </div>
 
-              {/* Citations */}
-              {answer.citations && answer.citations.length > 0 && (
-                <DatasheetCitationsList citations={answer.citations} />
-              )}
+                  {/* Citations */}
+                  {answer?.citations && answer.citations.length > 0 && (
+                    <DatasheetCitationsList citations={answer.citations} />
+                  )}
 
-              {/* Suggested Rating */}
-              {suggestedRating && (
-                <DatasheetSuggestedRatingCard rating={suggestedRating} />
+                  {/* Suggested Rating */}
+                  {suggestedRating && (
+                    <DatasheetSuggestedRatingCard rating={suggestedRating} />
+                  )}
+                </>
               )}
             </div>
           )}

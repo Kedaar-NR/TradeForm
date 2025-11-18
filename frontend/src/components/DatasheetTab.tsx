@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Component, Criterion } from "../types";
 import DatasheetUploadCard from "./DatasheetUploadCard";
 import DatasheetStatusCard from "./DatasheetStatusCard";
@@ -6,6 +6,7 @@ import DatasheetAssistantPanel from "./DatasheetAssistantPanel";
 import { criteriaApi } from "../services/api";
 import { MOCK_CRITERIA } from "./TradeStudyCriteriaPreviewCard";
 import { getApiUrl, getAuthHeaders } from "../utils/apiHelpers";
+import { useDatasheetUpload } from "../hooks/useDatasheetUpload";
 
 interface DatasheetTabProps {
   component: Component;
@@ -18,9 +19,27 @@ const DatasheetTab: React.FC<DatasheetTabProps> = ({
 }) => {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [datasheetParsed, setDatasheetParsed] = useState(false);
+  const [hasDatasheet, setHasDatasheet] = useState(false);
   const [uploadedFilename, setUploadedFilename] = useState<string | undefined>();
   const [criteria, setCriteria] = useState<Criterion[]>([]);
   const [loadingCriteria, setLoadingCriteria] = useState(true);
+  const [showAllCriteria, setShowAllCriteria] = useState(false);
+  const [isAutoUploading, setIsAutoUploading] = useState(false);
+  const [lastAutoUploadKey, setLastAutoUploadKey] = useState<string | null>(null);
+  const [shouldPollStatus, setShouldPollStatus] = useState(true);
+  const autoUploadKey = useMemo(() => {
+    if (!component.datasheetUrl) return null;
+    return `${component.id}:${component.datasheetUrl}`;
+  }, [component.id, component.datasheetUrl]);
+  const { uploadDatasheetFromUrl } = useDatasheetUpload();
+
+  useEffect(() => {
+    setHasDatasheet(Boolean(component.datasheetFilePath));
+  }, [component.datasheetFilePath]);
+
+  useEffect(() => {
+    setShouldPollStatus(true);
+  }, [component.id, refreshTrigger]);
 
   // Load criteria from the project
   useEffect(() => {
@@ -58,9 +77,23 @@ const DatasheetTab: React.FC<DatasheetTabProps> = ({
     loadCriteria();
   }, [projectId]);
 
+  // Reset auto-upload tracking when component or URL changes
+  useEffect(() => {
+    setLastAutoUploadKey(null);
+  }, [component.id, component.datasheetUrl]);
+
   // Load datasheet status to check if it's parsed
   useEffect(() => {
+    const fallbackFilename = component.datasheetFilePath
+      ? component.datasheetFilePath.split(/[\\/]/).pop() || undefined
+      : undefined;
+    const fallbackHasDatasheet = Boolean(component.datasheetFilePath);
+
     const loadStatus = async () => {
+      if (!shouldPollStatus) {
+        setHasDatasheet(fallbackHasDatasheet);
+        return;
+      }
       try {
         const response = await fetch(
           getApiUrl(`/api/components/${component.id}/datasheet/status`),
@@ -70,26 +103,124 @@ const DatasheetTab: React.FC<DatasheetTabProps> = ({
             },
           }
         );
-        if (response.ok) {
-          const status = await response.json();
-          setDatasheetParsed(status?.parsed === true);
-          setUploadedFilename(status?.original_filename);
+
+        if (response.status === 404) {
+          setShouldPollStatus(false);
+          setDatasheetParsed(false);
+          setHasDatasheet(fallbackHasDatasheet);
+          setUploadedFilename(fallbackFilename);
+          return;
         }
+
+        if (!response.ok) {
+          throw new Error("Failed to load datasheet status");
+        }
+
+        const status = await response.json();
+        const parsedFromStatus =
+          status?.parsed === true || status?.parse_status === "success";
+
+        setDatasheetParsed(parsedFromStatus);
+        setHasDatasheet(Boolean(status?.has_datasheet) || fallbackHasDatasheet);
+        setUploadedFilename(status?.original_filename || fallbackFilename);
       } catch (error) {
         console.error("Failed to load datasheet status:", error);
+        if (fallbackHasDatasheet) {
+          setDatasheetParsed(true);
+          setHasDatasheet(true);
+          setUploadedFilename(fallbackFilename);
+        } else {
+          setDatasheetParsed(false);
+          setHasDatasheet(false);
+          setUploadedFilename(undefined);
+        }
       }
     };
 
     loadStatus();
     // Refresh status periodically
-    const interval = setInterval(loadStatus, 2000);
-    return () => clearInterval(interval);
-  }, [component.id, refreshTrigger]);
+    const interval = shouldPollStatus
+      ? setInterval(loadStatus, 2000)
+      : null;
+    return () => {
+      if (interval) {
+        clearInterval(interval);
+      }
+    };
+  }, [
+    component.id,
+    component.datasheetFilePath,
+    refreshTrigger,
+    shouldPollStatus,
+  ]);
+
+  useEffect(() => {
+    setShouldPollStatus(true);
+    if (
+      !component.datasheetUrl ||
+      hasDatasheet ||
+      isAutoUploading ||
+      (autoUploadKey && lastAutoUploadKey === autoUploadKey)
+    ) {
+      return;
+    }
+
+    let isCancelled = false;
+
+    const attemptUpload = async () => {
+      setIsAutoUploading(true);
+      try {
+        let success = false;
+        try {
+          success = await uploadDatasheetFromUrl(
+            component.id,
+            component.datasheetUrl!
+          );
+        } catch (error) {
+          console.error("Automatic datasheet upload failed:", error);
+          success = false;
+        }
+        if (isCancelled) return;
+        if (success) {
+          if (autoUploadKey) {
+            setLastAutoUploadKey(autoUploadKey);
+          }
+          setHasDatasheet(true);
+          setTimeout(() => setRefreshTrigger((prev) => prev + 1), 500);
+        } else {
+          setShouldPollStatus(true);
+        }
+      } finally {
+        if (!isCancelled) {
+          setIsAutoUploading(false);
+        }
+      }
+    };
+
+    attemptUpload();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [
+    component.id,
+    component.datasheetUrl,
+    hasDatasheet,
+    isAutoUploading,
+    uploadDatasheetFromUrl,
+    autoUploadKey,
+    lastAutoUploadKey,
+  ]);
 
   const handleUploadSuccess = () => {
     // Trigger status refresh
     setRefreshTrigger((prev) => prev + 1);
   };
+
+  // Collapse criteria preview when switching components
+  useEffect(() => {
+    setShowAllCriteria(false);
+  }, [component.id]);
 
   // Convert Criterion to MockCriterion format for compatibility with DatasheetAssistantPanel
   const mockCriteriaFromReal = criteria.map((c) => ({
@@ -103,6 +234,14 @@ const DatasheetTab: React.FC<DatasheetTabProps> = ({
   // Use mock criteria for testing if no real criteria available
   const criteriaToUse =
     criteria.length > 0 ? mockCriteriaFromReal : MOCK_CRITERIA;
+  const criteriaPreviewLimit = 4;
+  const hasCriteriaOverflow = criteriaToUse.length > criteriaPreviewLimit;
+  const criteriaToRender = showAllCriteria
+    ? criteriaToUse
+    : criteriaToUse.slice(0, criteriaPreviewLimit);
+  const collapsedExtraCount = hasCriteriaOverflow
+    ? criteriaToUse.length - criteriaPreviewLimit
+    : 0;
 
   return (
     <div className="p-6 bg-gray-50 min-h-full">
@@ -161,7 +300,7 @@ const DatasheetTab: React.FC<DatasheetTabProps> = ({
                   Project Criteria {criteria.length === 0 && "(Test Data)"}
                 </h4>
                 <div className="space-y-2">
-                  {criteriaToUse.slice(0, 4).map((criterion) => (
+                  {criteriaToRender.map((criterion) => (
                     <div
                       key={criterion.id}
                       className="text-xs border border-gray-200 rounded p-2"
@@ -174,10 +313,23 @@ const DatasheetTab: React.FC<DatasheetTabProps> = ({
                       </div>
                     </div>
                   ))}
-                  {criteriaToUse.length > 4 && (
-                    <p className="text-xs text-gray-500 text-center pt-1">
-                      +{criteriaToUse.length - 4} more
-                    </p>
+                  {hasCriteriaOverflow && !showAllCriteria && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllCriteria(true)}
+                      className="text-xs text-indigo-600 hover:text-indigo-700 font-medium w-full text-center pt-1"
+                    >
+                      +{collapsedExtraCount} more
+                    </button>
+                  )}
+                  {hasCriteriaOverflow && showAllCriteria && (
+                    <button
+                      type="button"
+                      onClick={() => setShowAllCriteria(false)}
+                      className="text-xs text-indigo-600 hover:text-indigo-700 font-medium w-full text-center pt-1"
+                    >
+                      Show less
+                    </button>
                   )}
                 </div>
               </div>
