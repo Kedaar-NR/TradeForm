@@ -108,13 +108,24 @@ const ComponentDiscovery: React.FC = () => {
 
                 // Get components with PDF URLs
                 const newComponents = data.components || [];
+
+                // Log datasheet URLs for debugging
+                console.log("Components with datasheet URLs:",
+                    newComponents.map((c: any) => ({
+                        name: c.name,
+                        url: c.datasheetUrl || c.datasheet_url || "NONE"
+                    }))
+                );
+
                 const { successCount, totalAttempted } =
                     await uploadMultipleDatasheets(newComponents);
 
                 if (totalAttempted > 0) {
-                    alert(
-                        `Downloaded and parsed ${successCount} of ${totalAttempted} datasheets. Check component cards for status.`
-                    );
+                    const message = `Datasheet upload results:\n- Successfully uploaded: ${successCount}\n- Failed: ${totalAttempted - successCount}\n- Total attempted: ${totalAttempted}\n\nCheck browser console for details.`;
+                    alert(message);
+                } else {
+                    console.warn("No datasheets found or URLs were not valid");
+                    alert(`Discovered ${data.discovered_count} components, but no datasheet URLs were found. You can manually upload datasheets from the component detail view.`);
                 }
 
                 await loadComponents();

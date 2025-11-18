@@ -11,9 +11,18 @@ import { DatasheetStatus } from "../types";
  */
 export const isPdfUrl = (url: string): boolean => {
   if (!url || !url.trim()) return false;
-  
+
   const lowerUrl = url.toLowerCase().trim();
-  return lowerUrl.endsWith(".pdf") || lowerUrl.includes(".pdf?") || lowerUrl.includes(".pdf#");
+  // More lenient check - accept any URL that might be a PDF or datasheet
+  return (
+    lowerUrl.endsWith(".pdf") ||
+    lowerUrl.includes(".pdf?") ||
+    lowerUrl.includes(".pdf#") ||
+    lowerUrl.includes("datasheet") ||
+    lowerUrl.includes("/ds/") ||
+    lowerUrl.includes("product") ||
+    isValidUrl(url) // Accept any valid URL as a fallback
+  );
 };
 
 /**
