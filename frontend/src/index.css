@@ -4,217 +4,217 @@
 
 /* Freight Big Pro Font - SalesPatriot.com font */
 @font-face {
-  font-family: 'Freight Big Pro';
-  src: local('Freight Big Pro'),
-       local('FreightBigPro-Regular'),
-       local('FreightBigPro');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
+    font-family: "Freight Big Pro";
+    src: local("Freight Big Pro"), local("FreightBigPro-Regular"),
+        local("FreightBigPro");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
 }
 
 @font-face {
-  font-family: 'Freight Big Pro';
-  src: local('Freight Big Pro Bold'),
-       local('FreightBigPro-Bold');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
+    font-family: "Freight Big Pro";
+    src: local("Freight Big Pro Bold"), local("FreightBigPro-Bold");
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
 }
 
 @font-face {
-  font-family: 'Freight Big Pro';
-  src: local('Freight Big Pro Black'),
-       local('FreightBigPro-Black');
-  font-weight: 900;
-  font-style: normal;
-  font-display: swap;
+    font-family: "Freight Big Pro";
+    src: local("Freight Big Pro Black"), local("FreightBigPro-Black");
+    font-weight: 900;
+    font-style: normal;
+    font-display: swap;
 }
 
 /* AllianceNo2 Font */
 @font-face {
-  font-family: 'AllianceNo2';
-  src: local('AllianceNo2-Regular'),
-       local('AllianceNo2'),
-       local('Alliance No.2');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
+    font-family: "AllianceNo2";
+    src: local("AllianceNo2-Regular"), local("AllianceNo2"),
+        local("Alliance No.2");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
 }
 
 @font-face {
-  font-family: 'AllianceNo2';
-  src: local('AllianceNo2-Bold'),
-       local('AllianceNo2 Bold'),
-       local('Alliance No.2 Bold');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
+    font-family: "AllianceNo2";
+    src: local("AllianceNo2-Bold"), local("AllianceNo2 Bold"),
+        local("Alliance No.2 Bold");
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
 }
 
 @font-face {
-  font-family: 'AllianceNo2';
-  src: local('AllianceNo2-ExtraBold'),
-       local('AllianceNo2 ExtraBold'),
-       local('Alliance No.2 ExtraBold');
-  font-weight: 800;
-  font-style: normal;
-  font-display: swap;
+    font-family: "AllianceNo2";
+    src: local("AllianceNo2-ExtraBold"), local("AllianceNo2 ExtraBold"),
+        local("Alliance No.2 ExtraBold");
+    font-weight: 800;
+    font-style: normal;
+    font-display: swap;
 }
 
 @layer base {
-  body {
-    @apply text-gray-900;
-    margin: 0;
-    background: #ffffff;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-      'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-      sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
+    body {
+        @apply text-gray-900;
+        margin: 0;
+        background: #ffffff;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto",
+            "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans",
+            "Helvetica Neue", sans-serif;
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+    }
 
-  code {
-    font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-      monospace;
-  }
+    code {
+        font-family: source-code-pro, Menlo, Monaco, Consolas, "Courier New",
+            monospace;
+    }
 
-  h1, h2, h3, h4, h5, h6 {
-    @apply tracking-tight font-semibold;
-  }
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+        @apply tracking-tight font-semibold;
+    }
 }
 
 @layer components {
-  .card {
-    @apply bg-white rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all;
-  }
+    .card {
+        @apply bg-white rounded-lg border border-gray-200 hover:border-gray-300 hover:shadow-sm transition-all;
+    }
 
-  .btn-primary {
-    @apply bg-gray-900 hover:bg-black text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap;
-  }
+    .btn-primary {
+        @apply bg-gray-900 hover:bg-black text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap;
+    }
 
-  .btn-secondary {
-    @apply bg-white text-gray-700 px-5 py-2.5 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-all whitespace-nowrap;
-  }
+    .btn-secondary {
+        @apply bg-white text-gray-700 px-5 py-2.5 rounded-lg text-sm font-medium border border-gray-300 hover:bg-gray-50 transition-all whitespace-nowrap;
+    }
 
-  .btn-pill {
-    @apply bg-white text-gray-700 px-5 py-2.5 rounded-lg text-sm font-medium border border-gray-200 hover:bg-gray-50 hover:border-gray-400 transition-all whitespace-nowrap;
-  }
+    .btn-pill {
+        @apply bg-white text-gray-700 px-5 py-2.5 rounded-lg text-sm font-medium border border-gray-200 hover:bg-gray-50 hover:border-gray-400 transition-all whitespace-nowrap;
+    }
 
-  .input-field {
-    @apply w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none transition-all bg-white;
-  }
+    .input-field {
+        @apply w-full px-4 py-2.5 rounded-lg border border-gray-300 focus:border-gray-900 focus:ring-1 focus:ring-gray-900 outline-none transition-all bg-white;
+    }
 
-  .label {
-    @apply block text-sm font-medium text-gray-700 mb-1.5;
-  }
+    .label {
+        @apply block text-sm font-medium text-gray-700 mb-1.5;
+    }
 
-  .sidebar-link {
-    @apply flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors;
-  }
+    .sidebar-link {
+        @apply flex items-center gap-3 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-lg transition-colors;
+    }
 
-  .sidebar-link-active {
-    @apply bg-gray-100 text-gray-900 hover:bg-gray-200 font-semibold;
-  }
+    .sidebar-link-active {
+        @apply bg-gray-100 text-gray-900 hover:bg-gray-200 font-semibold;
+    }
 }
 
 /* Custom scrollbar */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+    width: 6px;
+    height: 6px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+    background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #d1d5db;
-  border-radius: 3px;
+    background: #d1d5db;
+    border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #9ca3af;
+    background: #9ca3af;
 }
 
 /* Animations */
 @keyframes pulse-slow {
-  0%, 100% {
-    opacity: 0.5;
-  }
-  50% {
-    opacity: 0.8;
-  }
+    0%,
+    100% {
+        opacity: 0.5;
+    }
+    50% {
+        opacity: 0.8;
+    }
 }
 
 @keyframes slide-in-right {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
 }
 
 @keyframes fade-in {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
 }
 
 .animate-pulse-slow {
-  animation: pulse-slow 6s ease-in-out infinite;
+    animation: pulse-slow 6s ease-in-out infinite;
 }
 
 .animate-slide-in-right {
-  animation: slide-in-right 0.3s ease-out;
+    animation: slide-in-right 0.3s ease-out;
 }
 
 .animate-fade-in {
-  animation: fade-in 0.3s ease-out;
+    animation: fade-in 0.3s ease-out;
 }
 
 .animation-delay-2000 {
-  animation-delay: 2s;
+    animation-delay: 2s;
 }
 
 .animation-delay-4000 {
-  animation-delay: 4s;
+    animation-delay: 4s;
 }
 
 /* Safe area insets for iOS devices */
 .safe-area-top {
-  padding-top: env(safe-area-inset-top);
+    padding-top: env(safe-area-inset-top);
 }
 
 .safe-area-bottom {
-  padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: env(safe-area-inset-bottom);
 }
 
 .safe-area-inset {
-  padding-left: env(safe-area-inset-left);
-  padding-right: env(safe-area-inset-right);
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
 }
 
 /* Prevent horizontal overflow on mobile */
 html {
-  overflow-x: hidden;
-  width: 100%;
+    overflow-x: hidden;
+    width: 100%;
 }
 
 body {
-  overflow-x: hidden;
-  width: 100%;
-  position: relative;
+    overflow-x: hidden;
+    width: 100%;
+    position: relative;
 }
 
 /* Ensure images don't overflow */
 img {
-  max-width: 100%;
-  height: auto;
+    max-width: 100%;
+    height: auto;
 }
