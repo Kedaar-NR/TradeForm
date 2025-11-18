@@ -139,6 +139,23 @@ def is_pdf_file(filename: str) -> bool:
     return get_file_extension(filename) == '.pdf'
 
 
+def is_pdf_content(file_bytes: bytes) -> bool:
+    """
+    Heuristically verify whether a byte string looks like a PDF.
+    
+    Args:
+        file_bytes: Raw file contents
+        
+    Returns:
+        True if the bytes start with the PDF signature, False otherwise
+    """
+    if not file_bytes or len(file_bytes) < 4:
+        return False
+    # Strip leading whitespace/newlines some servers may prepend
+    stripped = file_bytes.lstrip()
+    return stripped.startswith(b"%PDF")
+
+
 def is_excel_file(filename: str) -> bool:
     """
     Check if file is an Excel file based on extension.
@@ -151,4 +168,3 @@ def is_excel_file(filename: str) -> bool:
     """
     ext = get_file_extension(filename)
     return ext in ['.xlsx', '.xls']
-
