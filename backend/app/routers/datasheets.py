@@ -5,13 +5,98 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 from pathlib import Path
 import shutil
+import httpx
 
 from app import models, schemas
 from app.database import get_db
 from app.datasheets import parser
 from app.ai import datasheet_client
+from app.utils.file_helpers import is_pdf_content
 
 router = APIRouter(tags=["datasheets"])
+
+
+MAX_DATASHEET_SIZE = 50 * 1024 * 1024  # 50MB
+DATASHEETS_DIR = Path("datasheets")
+DATASHEETS_DIR.mkdir(exist_ok=True)
+
+
+def _save_and_parse_datasheet(
+    component: models.Component,
+    file_bytes: bytes,
+    filename: str,
+    db: Session
+):
+    file_path = DATASHEETS_DIR / f"{component.id}.pdf"
+
+    with open(file_path, "wb") as buffer:
+        buffer.write(file_bytes)
+
+    existing_doc = db.query(models.DatasheetDocument).filter(
+        models.DatasheetDocument.component_id == component.id
+    ).first()
+
+    if existing_doc:
+        db.query(models.DatasheetPage).filter(
+            models.DatasheetPage.datasheet_id == existing_doc.id
+        ).delete()
+
+        existing_doc.original_filename = filename
+        existing_doc.file_path = str(file_path)
+        existing_doc.parse_status = "pending"
+        existing_doc.parse_error = None
+        existing_doc.num_pages = None
+        existing_doc.suggested_questions = None
+        db.commit()
+        datasheet_doc = existing_doc
+    else:
+        datasheet_doc = models.DatasheetDocument(
+            component_id=component.id,
+            original_filename=filename,
+            file_path=str(file_path),
+            parse_status="pending"
+        )
+        db.add(datasheet_doc)
+        db.commit()
+        db.refresh(datasheet_doc)
+
+    try:
+        parsed_pages = parser.parse_pdf_to_pages(str(file_path))
+
+        for parsed_page in parsed_pages:
+            db_page = models.DatasheetPage(
+                datasheet_id=datasheet_doc.id,
+                page_number=parsed_page.page_number,
+                raw_text=parsed_page.raw_text,
+                section_title=parsed_page.section_title
+            )
+            db.add(db_page)
+
+        datasheet_doc.parse_status = "success"
+        datasheet_doc.num_pages = len(parsed_pages)
+        component.datasheet_file_path = str(file_path)
+
+        db.commit()
+        db.refresh(datasheet_doc)
+
+        return {
+            "status": "success",
+            "message": "Datasheet uploaded and parsed successfully",
+            "datasheet": {
+                "num_pages": datasheet_doc.num_pages,
+                "parsed_at": datasheet_doc.parsed_at,
+                "parse_status": datasheet_doc.parse_status
+            }
+        }
+
+    except Exception as parse_error:
+        datasheet_doc.parse_status = "failed"
+        datasheet_doc.parse_error = str(parse_error)
+        db.commit()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to parse PDF: {str(parse_error)}"
+        )
 
 
 @router.post("/api/components/{component_id}/datasheet")
@@ -31,101 +116,79 @@ async def upload_datasheet(
             detail="Only PDF files are supported. Please upload a PDF datasheet."
         )
     
-    # Check file size (limit to 50MB)
-    file.file.seek(0, 2)
-    file_size = file.file.tell()
-    file.file.seek(0)
-    
-    max_size = 50 * 1024 * 1024
-    if file_size > max_size:
+    file_bytes = await file.read()
+    if not is_pdf_content(file_bytes):
         raise HTTPException(
             status_code=400,
-            detail=f"File too large. Maximum size is {max_size // (1024*1024)}MB."
+            detail="Uploaded file is not recognized as a valid PDF. Please upload a PDF datasheet."
+        )
+    if len(file_bytes) > MAX_DATASHEET_SIZE:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large. Maximum size is {MAX_DATASHEET_SIZE // (1024*1024)}MB."
         )
     
     try:
-        datasheets_dir = Path("datasheets")
-        datasheets_dir.mkdir(exist_ok=True)
-        
-        file_path = datasheets_dir / f"{component_id}.pdf"
-        
-        with open(file_path, "wb") as buffer:
-            shutil.copyfileobj(file.file, buffer)
-        
-        # Check if datasheet document already exists
-        existing_doc = db.query(models.DatasheetDocument).filter(
-            models.DatasheetDocument.component_id == component_id
-        ).first()
-        
-        if existing_doc:
-            db.query(models.DatasheetPage).filter(
-                models.DatasheetPage.datasheet_id == existing_doc.id
-            ).delete()
-            
-            existing_doc.original_filename = file.filename
-            existing_doc.file_path = str(file_path)
-            existing_doc.parse_status = "pending"
-            existing_doc.parse_error = None
-            existing_doc.num_pages = None
-            existing_doc.suggested_questions = None  # Clear cached suggestions on re-upload
-            db.commit()
-            datasheet_doc = existing_doc
-        else:
-            datasheet_doc = models.DatasheetDocument(
-                component_id=component_id,
-                original_filename=file.filename,
-                file_path=str(file_path),
-                parse_status="pending"
-            )
-            db.add(datasheet_doc)
-            db.commit()
-            db.refresh(datasheet_doc)
-        
-        try:
-            parsed_pages = parser.parse_pdf_to_pages(str(file_path))
-            
-            for parsed_page in parsed_pages:
-                db_page = models.DatasheetPage(
-                    datasheet_id=datasheet_doc.id,
-                    page_number=parsed_page.page_number,
-                    raw_text=parsed_page.raw_text,
-                    section_title=parsed_page.section_title
-                )
-                db.add(db_page)
-            
-            datasheet_doc.parse_status = "success"
-            datasheet_doc.num_pages = len(parsed_pages)
-            component.datasheet_file_path = str(file_path)
-            
-            db.commit()
-            db.refresh(datasheet_doc)
-            
-            return {
-                "status": "success",
-                "message": "Datasheet uploaded and parsed successfully",
-                "datasheet": {
-                    "num_pages": datasheet_doc.num_pages,
-                    "parsed_at": datasheet_doc.parsed_at,
-                    "parse_status": datasheet_doc.parse_status
-                }
-            }
-            
-        except Exception as parse_error:
-            datasheet_doc.parse_status = "failed"
-            datasheet_doc.parse_error = str(parse_error)
-            db.commit()
-            
-            raise HTTPException(
-                status_code=500,
-                detail=f"Failed to parse PDF: {str(parse_error)}"
-            )
-    
+        return _save_and_parse_datasheet(component, file_bytes, file.filename, db)
     except HTTPException:
         raise
     except Exception as e:
         raise HTTPException(
             status_code=500,
             detail=f"Failed to upload datasheet: {str(e)}"
+        )
+
+
+@router.post("/api/components/{component_id}/datasheet/from-url")
+async def upload_datasheet_from_url(
+    component_id: UUID,
+    request: schemas.DatasheetFromUrlRequest,
+    db: Session = Depends(get_db)
+):
+    """Download a datasheet from a URL and parse it."""
+    component = db.query(models.Component).filter(models.Component.id == component_id).first()
+    if not component:
+        raise HTTPException(status_code=404, detail="Component not found")
+
+    if not request.url or not request.url.lower().startswith(("http://", "https://")):
+        raise HTTPException(status_code=400, detail="Valid datasheet URL is required")
+
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            response = await client.get(request.url, follow_redirects=True)
+
+        if response.status_code != 200:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Failed to download datasheet (HTTP {response.status_code})"
+            )
+
+        file_bytes = response.content
+        if len(file_bytes) > MAX_DATASHEET_SIZE:
+            raise HTTPException(
+                status_code=400,
+                detail=f"File too large. Maximum size is {MAX_DATASHEET_SIZE // (1024*1024)}MB."
+            )
+
+        content_type = response.headers.get("content-type", "").lower()
+        if "pdf" not in content_type and not is_pdf_content(file_bytes):
+            raise HTTPException(
+                status_code=400,
+                detail="The provided URL did not return a PDF file. Please supply a direct PDF datasheet link."
+            )
+
+        filename = request.url.split("/")[-1].split("?")[0].split("#")[0] or "datasheet.pdf"
+        if not filename.lower().endswith(".pdf"):
+            filename += ".pdf"
+
+        return _save_and_parse_datasheet(component, file_bytes, filename, db)
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to download datasheet: {str(e)}"
         )
 
 
@@ -345,4 +408,3 @@ def get_datasheet_suggestions(component_id: UUID, db: Session = Depends(get_db))
             status_code=500,
             detail=f"Failed to generate suggestions: {str(e)}"
         )
-
