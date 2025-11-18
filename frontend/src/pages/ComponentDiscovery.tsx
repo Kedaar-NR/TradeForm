@@ -649,35 +649,39 @@ const ComponentDiscovery: React.FC = () => {
             ))}
           </div>
           <div className="flex flex-col items-center gap-3">
-            <button
-              onClick={() => navigate(`/project/${projectId}/results`)}
-              disabled={!canContinueToResults}
+            <span
+              className="inline-flex"
               title={
                 canContinueToResults
                   ? "Continue to results page"
-                  : "You need to score components to continue"
+                  : "You need to score all components"
               }
-              className={`px-8 py-3 rounded-lg font-semibold text-white transition-all flex items-center gap-2 ${
-                canContinueToResults
-                  ? "bg-gray-900 hover:bg-black shadow-md hover:shadow-lg"
-                  : "bg-gray-400 cursor-not-allowed opacity-60"
-              }`}
             >
-              Continue to Results Page
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
+              <button
+                onClick={() => navigate(`/project/${projectId}/results`)}
+                disabled={!canContinueToResults}
+                className={`px-8 py-3 rounded-lg font-semibold text-white transition-all flex items-center gap-2 ${
+                  canContinueToResults
+                    ? "bg-gray-900 hover:bg-black shadow-md hover:shadow-lg"
+                    : "bg-gray-400 cursor-not-allowed opacity-60"
+                }`}
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 7l5 5m0 0l-5 5m5-5H6"
-                />
-              </svg>
-            </button>
+                Continue to Results Page
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 7l5 5m0 0l-5 5m5-5H6"
+                  />
+                </svg>
+              </button>
+            </span>
             <button
               onClick={() => navigate(`/project/${projectId}/criteria`)}
               className="text-gray-600 hover:text-gray-900 flex items-center gap-2 text-sm font-medium"
