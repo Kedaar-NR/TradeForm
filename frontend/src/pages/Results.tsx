@@ -263,8 +263,7 @@ const Results: React.FC = () => {
   }));
 
   const spiderChartComponent =
-    selectedComponent ??
-    (components.length > 0 ? components[0] : null);
+    selectedComponent ?? (components.length > 0 ? components[0] : null);
 
   const spiderChartData = spiderChartComponent
     ? [
@@ -551,7 +550,7 @@ const Results: React.FC = () => {
                     fill="#10b981"
                     fillOpacity={0.6}
                   />
-              <Tooltip />
+                  <Tooltip />
                 </RadarChart>
               </ResponsiveContainer>
             </div>
@@ -845,7 +844,7 @@ const Results: React.FC = () => {
         <div className="flex flex-col items-center">
           <button
             onClick={() => navigate(`/project/${projectId}/discovery`)}
-            className="text-gray-600 hover:text-gray-900 flex items-center gap-2 text-sm font-medium"
+            className="text-gray-600 hover:text-gray-900 flex items-center gap-2 text-sm font-medium whitespace-nowrap"
           >
             <svg
               className="w-4 h-4"

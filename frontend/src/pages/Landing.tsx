@@ -185,7 +185,7 @@ const Landing: React.FC = () => {
               </button>
               <button
                 onClick={() => navigate("/login")}
-                className="text-xs sm:text-[13px] text-white font-medium px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 rounded-md bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm whitespace-nowrap min-h-[32px] flex items-center justify-center font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]"
+                className="hidden md:inline-flex text-xs sm:text-[13px] text-white font-medium px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 rounded-md bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm whitespace-nowrap min-h-[32px] items-center justify-center font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]"
               >
                 Log In
               </button>

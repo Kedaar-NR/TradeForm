@@ -415,7 +415,7 @@ const CriteriaDefinition: React.FC = () => {
               <button
                 onClick={() => navigate(`/project/${projectId}/discovery`)}
                 disabled={!isWeightBalanced(criteria)}
-                className={`px-8 py-3 rounded-lg font-semibold text-white transition-all flex items-center gap-2 ${
+                className={`px-8 py-3 rounded-lg font-semibold text-white transition-all flex items-center gap-2 whitespace-nowrap ${
                   isWeightBalanced(criteria)
                     ? "bg-gray-900 hover:bg-black shadow-md hover:shadow-lg"
                     : "bg-gray-400 cursor-not-allowed opacity-60"

@@ -657,10 +657,10 @@ const ComponentDiscovery: React.FC = () => {
                   : "You need to score all components"
               }
             >
-              <button
+            <button
                 onClick={() => navigate(`/project/${projectId}/results`)}
                 disabled={!canContinueToResults}
-                className={`px-8 py-3 rounded-lg font-semibold text-white transition-all flex items-center gap-2 ${
+              className={`px-8 py-3 rounded-lg font-semibold text-white transition-all flex items-center gap-2 whitespace-nowrap ${
                   canContinueToResults
                     ? "bg-gray-900 hover:bg-black shadow-md hover:shadow-lg"
                     : "bg-gray-400 cursor-not-allowed opacity-60"
@@ -684,7 +684,7 @@ const ComponentDiscovery: React.FC = () => {
             </span>
             <button
               onClick={() => navigate(`/project/${projectId}/criteria`)}
-              className="text-gray-600 hover:text-gray-900 flex items-center gap-2 text-sm font-medium"
+              className="text-gray-600 hover:text-gray-900 flex items-center gap-2 text-sm font-medium whitespace-nowrap"
             >
               <svg
                 className="w-4 h-4"
