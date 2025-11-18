@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { resultsApi, criteriaApi } from "../services/api";
+import * as XLSX from "xlsx";
 import {
   BarChart,
   Bar,
@@ -146,12 +147,85 @@ const Results: React.FC = () => {
     window.URL.revokeObjectURL(url);
   };
 
-  const handleExportFullExcel = async () => {
-    if (!projectId) return;
+  const handleExportFullExcel = () => {
+    if (!components.length) return;
+
     try {
-      const response = await resultsApi.exportFullExcel(projectId);
-      // response.data is already a Blob when using responseType: "blob"
-      const url = window.URL.createObjectURL(response.data);
+      // Create a new workbook
+      const workbook = XLSX.utils.book_new();
+
+      // Prepare data for Summary sheet
+      const summaryHeaders = [
+        "Rank",
+        "Manufacturer",
+        "Part Number",
+        ...Object.keys(components[0].criteria),
+        "Total Score",
+      ];
+      const summaryData = components.map((comp) => [
+        comp.rank,
+        comp.manufacturer,
+        comp.partNumber,
+        ...Object.values(comp.criteria).map((c) => c.score),
+        comp.totalScore.toFixed(2),
+      ]);
+
+      // Create Summary worksheet
+      const summarySheet = XLSX.utils.aoa_to_sheet([
+        summaryHeaders,
+        ...summaryData,
+      ]);
+      XLSX.utils.book_append_sheet(workbook, summarySheet, "Summary");
+
+      // Create Detailed Scores sheet with rationales
+      const detailedHeaders = [
+        "Rank",
+        "Manufacturer",
+        "Part Number",
+        "Criterion",
+        "Score",
+        "Weight",
+        "Rationale",
+      ];
+      const detailedData: any[] = [];
+      components.forEach((comp) => {
+        Object.entries(comp.criteria).forEach(([criterionName, data]) => {
+          detailedData.push([
+            comp.rank,
+            comp.manufacturer,
+            comp.partNumber,
+            criterionName,
+            data.score,
+            data.weight,
+            data.rationale,
+          ]);
+        });
+      });
+
+      const detailedSheet = XLSX.utils.aoa_to_sheet([
+        detailedHeaders,
+        ...detailedData,
+      ]);
+      XLSX.utils.book_append_sheet(workbook, detailedSheet, "Detailed Scores");
+
+      // Create Criteria sheet
+      const criteriaHeaders = ["Criterion", "Weight"];
+      const criteriaData = criteria.map((c) => [c.name, c.weight]);
+      const criteriaSheet = XLSX.utils.aoa_to_sheet([
+        criteriaHeaders,
+        ...criteriaData,
+      ]);
+      XLSX.utils.book_append_sheet(workbook, criteriaSheet, "Criteria");
+
+      // Generate Excel file and download
+      const excelBuffer = XLSX.write(workbook, {
+        bookType: "xlsx",
+        type: "array",
+      });
+      const blob = new Blob([excelBuffer], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
       a.download = `TradeStudy_Full_${
@@ -162,10 +236,8 @@ const Results: React.FC = () => {
       document.body.removeChild(a);
       window.URL.revokeObjectURL(url);
     } catch (error: any) {
-      console.error("Failed to export full trade study:", error);
-      alert(
-        `Failed to export: ${error.response?.data?.detail || error.message}`
-      );
+      console.error("Failed to export Excel:", error);
+      alert(`Failed to export: ${error.message}`);
     }
   };
 
