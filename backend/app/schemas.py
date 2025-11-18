@@ -220,6 +220,7 @@ class ProjectChange(ProjectChangeBase):
     id: UUID
     project_id: UUID
     user_id: UUID
+    user_name: Optional[str] = None
     created_at: datetime
 
     class Config:
@@ -258,3 +259,12 @@ class DatasheetQueryAnswer(BaseModel):
 class DatasheetSuggestionsResponse(BaseModel):
     """Suggested questions for datasheet"""
     suggestions: List[str]
+
+class DatasheetFromUrlRequest(BaseModel):
+    """Request to fetch datasheet from a URL"""
+    url: str
+
+class TradeStudyReportResponse(BaseModel):
+    """Stored trade study report with metadata"""
+    report: str
+    generated_at: Optional[datetime] = None
