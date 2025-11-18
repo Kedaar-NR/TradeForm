@@ -293,6 +293,122 @@ Return ONLY valid JSON, no markdown formatting, no explanations."""
         except Exception as e:
             raise RuntimeError(f"AI criteria optimization failed: {str(e)}")
     
+    def generate_trade_study_report(
+        self,
+        project_name: str,
+        project_description: Optional[str],
+        component_type: str,
+        criteria: List[Dict[str, Any]],
+        components: List[Dict[str, Any]]
+    ) -> str:
+        """
+        Generate a comprehensive trade study report using AI.
+        
+        Args:
+            project_name: Name of the project
+            project_description: Optional project description
+            component_type: Type of component being evaluated
+            criteria: List of criteria with weights and descriptions
+            components: List of components with scores, rankings, and rationales
+            
+        Returns:
+            Generated trade study report as a string
+        """
+        # Format criteria section
+        criteria_text = "\n".join([
+            f"- {c['name']} (Weight: {c['weight']}, Unit: {c.get('unit', 'N/A')}, "
+            f"Higher is Better: {c.get('higher_is_better', True)}): {c.get('description', 'No description')}"
+            for c in criteria
+        ])
+        
+        # Format components section with detailed scoring
+        components_text_parts = []
+        for comp in components:
+            comp_text = f"\n{'='*80}\n"
+            comp_text += f"Component #{comp['rank']}: {comp['manufacturer']} {comp['part_number']}\n"
+            comp_text += f"Total Weighted Score: {comp['total_score']:.2f}\n"
+            if comp.get('description'):
+                comp_text += f"Description: {comp['description']}\n"
+            
+            comp_text += "\nDetailed Scores:\n"
+            for score_data in comp.get('scores', []):
+                comp_text += f"  - {score_data['criterion_name']} (Weight: {score_data['criterion_weight']}): "
+                comp_text += f"Score {score_data['score']}/10"
+                if score_data.get('raw_value'):
+                    comp_text += f" (Raw Value: {score_data['raw_value']} {score_data.get('criterion_unit', '')})"
+                comp_text += "\n"
+                if score_data.get('rationale'):
+                    comp_text += f"    Rationale: {score_data['rationale']}\n"
+            
+            components_text_parts.append(comp_text)
+        
+        components_text = "\n".join(components_text_parts)
+        
+        desc_text = f"\nProject Description: {project_description}" if project_description else ""
+        
+        prompt = f"""You are an expert systems engineer writing a comprehensive trade study report.
+
+Project Information:
+- Project Name: {project_name}
+- Component Type: {component_type}{desc_text}
+
+Evaluation Criteria:
+{criteria_text}
+
+Component Evaluation Results:
+{components_text}
+
+Task: Write a professional engineering trade study report that includes:
+
+1. **Executive Summary** (1 paragraph)
+   - Brief overview of the trade study objectives
+   - Summary of the evaluation methodology
+   - Key finding: which component is recommended and why
+
+2. **Methodology** (1 paragraph)
+   - Explain the evaluation criteria and their relative importance (weights)
+   - Describe the scoring system (1-10 scale with weighted totals)
+
+3. **Component Analysis** (detailed section for each component)
+   - For each component, provide:
+     * Overview of the component
+     * Strengths and weaknesses based on the scores and rationales
+     * Performance across key criteria
+     * Notable characteristics or trade-offs
+
+4. **Comparative Analysis** (2-3 paragraphs)
+   - Compare the top 2-3 components
+   - Highlight key differentiators
+   - Discuss trade-offs between components
+
+5. **Recommendation** (1-2 paragraphs)
+   - Clearly state which component is the most ideal choice
+   - Provide detailed justification based on:
+     * Weighted total scores
+     * Performance across the most important criteria (highest weights)
+     * Rationales provided for each score
+     * Overall fit for the project objectives
+   - Explain why this component best meets the evaluation criteria
+   - Address any potential concerns or limitations
+
+6. **Conclusion** (1 paragraph)
+   - Summarize the key findings
+   - Reinforce the recommendation
+
+Write the report in a professional, technical style suitable for engineering documentation. Be specific and reference actual scores, weights, and rationales from the data provided. The report should be comprehensive but concise (approximately 1000-1500 words)."""
+
+        try:
+            message = self.client.messages.create(
+                model=self.model,
+                max_tokens=4000,
+                messages=[{"role": "user", "content": prompt}]
+            )
+
+            return message.content[0].text.strip()
+
+        except Exception as e:
+            raise RuntimeError(f"AI report generation failed: {str(e)}")
+    
     def chat(self, question: str) -> str:
         """
         Answer questions about TradeForm using AI chat.

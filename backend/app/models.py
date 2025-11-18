@@ -43,6 +43,8 @@ class Project(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
     status = Column(Enum(ProjectStatus), default=ProjectStatus.DRAFT)
+    trade_study_report = Column(Text)  # AI-generated trade study report
+    report_generated_at = Column(DateTime(timezone=True))  # Timestamp when report was generated
 
     # Relationships
     creator = relationship("User", back_populates="projects")

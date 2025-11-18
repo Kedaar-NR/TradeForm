@@ -7,10 +7,12 @@ from uuid import UUID
 import io
 import asyncio
 from typing import Tuple, Optional
+from datetime import datetime
 
 from app import models, schemas
 from app.database import get_db
 from app.services.ai_service import get_ai_service
+from app.services.scoring_service import get_scoring_service
 
 router = APIRouter(tags=["ai"])
 
@@ -297,6 +299,113 @@ async def ai_chat(request: dict):
         raise HTTPException(status_code=500, detail=str(e))
     except RuntimeError as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/api/projects/{project_id}/generate-report")
+async def generate_trade_study_report(project_id: UUID, db: Session = Depends(get_db)):
+    """Generate a comprehensive trade study report using AI"""
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    components = db.query(models.Component).filter(models.Component.project_id == project_id).all()
+    criteria = db.query(models.Criterion).filter(models.Criterion.project_id == project_id).all()
+
+    if not components:
+        raise HTTPException(status_code=400, detail="No components found for this project")
+    if not criteria:
+        raise HTTPException(status_code=400, detail="No criteria found for this project")
+
+    # Get all scores
+    all_scores = db.query(models.Score).join(models.Component).filter(
+        models.Component.project_id == project_id
+    ).all()
+
+    if not all_scores:
+        raise HTTPException(
+            status_code=400, 
+            detail="No scores found for this project. Please score components first."
+        )
+
+    # Create scores dict for easy lookup
+    scores_dict = {(str(score.component_id), str(score.criterion_id)): score for score in all_scores}
+
+    # Calculate weighted scores and rankings
+    scoring_service = get_scoring_service()
+    results = scoring_service.calculate_weighted_scores(components, criteria, scores_dict)
+
+    try:
+        # Prepare data for AI service
+        ai_service = get_ai_service()
+        
+        # Format components with their scores
+        components_data = []
+        for result in results:
+            component = result["component"]
+            component_scores = []
+            
+            for criterion in criteria:
+                key = (str(component.id), str(criterion.id))
+                if key in scores_dict:
+                    score = scores_dict[key]
+                    component_scores.append({
+                        "criterion_name": criterion.name,
+                        "criterion_description": criterion.description,
+                        "criterion_weight": criterion.weight,
+                        "criterion_unit": criterion.unit,
+                        "score": score.score,
+                        "rationale": score.rationale,
+                        "raw_value": score.raw_value
+                    })
+            
+            components_data.append({
+                "manufacturer": component.manufacturer,
+                "part_number": component.part_number,
+                "description": component.description,
+                "rank": result["rank"],
+                "total_score": result["total_score"],
+                "scores": component_scores
+            })
+
+        # Format criteria summary
+        criteria_summary = [
+            {
+                "name": c.name,
+                "description": c.description,
+                "weight": c.weight,
+                "unit": c.unit,
+                "higher_is_better": c.higher_is_better
+            }
+            for c in criteria
+        ]
+
+        # Generate report using AI
+        report = await asyncio.to_thread(
+            ai_service.generate_trade_study_report,
+            project_name=project.name,
+            project_description=project.description,
+            component_type=project.component_type,
+            criteria=criteria_summary,
+            components=components_data
+        )
+
+        # Save report to database
+        project.trade_study_report = report
+        project.report_generated_at = datetime.utcnow()
+        db.commit()
+        db.refresh(project)
+
+        return {
+            "status": "success",
+            "report": report
+        }
+
+    except ValueError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Report generation failed: {str(e)}")
 
 
 @router.get("/api/proxy-pdf")

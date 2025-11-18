@@ -5,14 +5,15 @@
  * Includes AI-powered discovery, manual addition, and datasheet management.
  */
 
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Component } from "../types";
-import { projectsApi, aiApi } from "../services/api";
+import { projectsApi, aiApi, scoresApi } from "../services/api";
 import ComponentDetailDrawer from "../components/ComponentDetailDrawer";
 import { ComponentForm } from "../components/ComponentDiscovery/ComponentForm";
 import { ComponentList } from "../components/ComponentDiscovery/ComponentList";
 import { DiscoveryActions } from "../components/ComponentDiscovery/DiscoveryActions";
+import { TradeStudyReportDialog } from "../components/TradeStudyReportDialog";
 import { useComponentManagement } from "../hooks/useComponentManagement";
 import { useDatasheetUpload } from "../hooks/useDatasheetUpload";
 
@@ -27,7 +28,10 @@ const ComponentDiscovery: React.FC = () => {
     const [selectedComponent, setSelectedComponent] =
         useState<Component | null>(null);
     const [scoresRefreshKey, setScoresRefreshKey] = useState(0);
-
+    const [hasScores, setHasScores] = useState(false);
+    const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+    const [generatedReport, setGeneratedReport] = useState<string | null>(null);
+    const [showReportDialog, setShowReportDialog] = useState(false);
     // Use custom hooks for business logic
     const {
         components,
@@ -40,6 +44,33 @@ const ComponentDiscovery: React.FC = () => {
     } = useComponentManagement(projectId);
 
     const { isUploading, uploadMultipleDatasheets } = useDatasheetUpload();
+
+    // Check if components have scores
+    const checkForScores = useCallback(async () => {
+        if (!projectId || components.length === 0) {
+            setHasScores(false);
+            return;
+        }
+
+        try {
+            const response = await scoresApi.getByProject(projectId);
+            const scores = response.data;
+            // Check if there are any scores for any of our components
+            const componentIds = new Set(components.map((c) => c.id));
+            const hasAnyScores = scores.some((score: any) =>
+                componentIds.has(score.component_id)
+            );
+            setHasScores(hasAnyScores);
+        } catch (error) {
+            console.error("Failed to check for scores:", error);
+            setHasScores(false);
+        }
+    }, [projectId, components]);
+
+    // Check for scores when components change or when scoring completes
+    useEffect(() => {
+        checkForScores();
+    }, [checkForScores, scoresRefreshKey]);
 
     // Auto-update project status to in_progress when components are modified
     const saveProjectStatus = useCallback(
@@ -138,6 +169,36 @@ const ComponentDiscovery: React.FC = () => {
             alert(`Scoring failed: ${message}`);
         } finally {
             setIsScoring(false);
+        }
+    };
+
+    /**
+     * Handle generating a trade study report
+     */
+    const handleGenerateTradeStudyReport = async () => {
+        if (!projectId) return;
+
+        const confirmed = window.confirm(
+            `This will generate a trade study report using AI. This may take a few minutes. Continue?`
+        );
+
+        if (!confirmed) return;
+
+        setIsGeneratingReport(true);
+        try {
+            const response = await aiApi.generateTradeStudyReport(projectId);
+            const data = response.data;
+            setGeneratedReport(data.report);
+            setShowReportDialog(true);
+        } catch (error: any) {
+            console.error("Failed to generate trade study report:", error);
+            const message =
+                error?.response?.data?.detail ||
+                error?.message ||
+                "Report generation failed";
+            alert(`Failed to generate report: ${message}`);
+        } finally {
+            setIsGeneratingReport(false);
         }
     };
 
@@ -273,15 +334,19 @@ const ComponentDiscovery: React.FC = () => {
                     isDiscovering={isDiscovering}
                     isScoring={isScoring}
                     isUploading={isUploading}
+                    hasScores={hasScores}
+                    isGeneratingReport={isGeneratingReport}
                     onDiscover={handleDiscover}
                     onScoreAll={handleScoreAll}
                     onImportExcel={handleImportExcel}
+                    onGenerateTradeStudyReport={handleGenerateTradeStudyReport}
                 />
 
                 {/* Add Component Button */}
                 {!showAddForm && (
                     <button
                         onClick={() => setShowAddForm(true)}
+                        disabled={isScoring}
                         className="btn-secondary mb-6 flex items-center gap-2"
                     >
                         <svg
@@ -328,6 +393,13 @@ const ComponentDiscovery: React.FC = () => {
                         projectId={projectId}
                     />
                 )}
+
+                {/* Trade Study Report Dialog */}
+                <TradeStudyReportDialog
+                    isOpen={showReportDialog}
+                    report={generatedReport}
+                    onClose={() => setShowReportDialog(false)}
+                />
             </div>
         </div>
     );

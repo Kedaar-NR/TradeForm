@@ -59,6 +59,8 @@ class Project(ProjectBase):
     created_at: datetime
     updated_at: datetime
     created_by: Optional[UUID] = None
+    trade_study_report: Optional[str] = None
+    report_generated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

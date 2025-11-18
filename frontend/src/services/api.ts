@@ -324,6 +324,15 @@ export const aiApi = {
             {},
             { timeout: 300000 } // 5 minutes timeout for scoring (can take a while with many components/criteria)
         ),
+    generateTradeStudyReport: (projectId: string) =>
+        api.post<{
+            status: string;
+            report: string;
+        }>(
+            `/api/projects/${projectId}/generate-report`,
+            {},
+            { timeout: 300000 } // 5 minutes timeout for report generation (can take a while)
+        ),
 };
 
 export default api;
