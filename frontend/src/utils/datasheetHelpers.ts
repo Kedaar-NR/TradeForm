@@ -12,17 +12,48 @@ import { DatasheetStatus } from "../types";
 export const isPdfUrl = (url: string): boolean => {
   if (!url || !url.trim()) return false;
 
-  const lowerUrl = url.toLowerCase().trim();
-  // More lenient check - accept any URL that might be a PDF or datasheet
-  return (
-    lowerUrl.endsWith(".pdf") ||
-    lowerUrl.includes(".pdf?") ||
-    lowerUrl.includes(".pdf#") ||
-    lowerUrl.includes("datasheet") ||
-    lowerUrl.includes("/ds/") ||
-    lowerUrl.includes("product") ||
-    isValidUrl(url) // Accept any valid URL as a fallback
-  );
+  const trimmed = url.trim();
+  if (!isValidUrl(trimmed)) {
+    return false;
+  }
+
+  try {
+    const parsed = new URL(trimmed);
+    const path = decodeURIComponent(parsed.pathname.toLowerCase());
+    const search = parsed.search.toLowerCase();
+    const hash = parsed.hash.toLowerCase();
+    const lowerFull = trimmed.toLowerCase();
+
+    const pathLooksPdf =
+      path.endsWith(".pdf") ||
+      path.includes(".pdf/") ||
+      path.includes(".pdf-");
+
+    const queryLooksPdf =
+      search.includes(".pdf") ||
+      search.includes("format=pdf") ||
+      search.includes("type=pdf") ||
+      search.includes("mime=pdf");
+
+    const hashLooksPdf = hash.includes(".pdf");
+
+    if (pathLooksPdf || queryLooksPdf || hashLooksPdf) {
+      return true;
+    }
+
+    // Heuristic cues that commonly indicate a downloadable datasheet even if the URL lacks .pdf
+    const heuristicTokens = [
+      "datasheet",
+      "/ds/",
+      "/resource",
+      "/resources",
+      "documentation",
+      "product",
+    ];
+    return heuristicTokens.some((token) => lowerFull.includes(token));
+  } catch {
+    return /\.pdf($|\?|\#)/i.test(trimmed);
+  }
 };
 
 /**
@@ -42,31 +73,27 @@ export const isValidUrl = (url: string): boolean => {
 /**
  * Get datasheet status badge properties
  */
-export const getDatasheetStatusBadge = (status?: DatasheetStatus) => {
-  if (!status || !status.hasDatasheet) {
+export const getDatasheetStatusBadge = (
+  status?: DatasheetStatus,
+  hasDatasheetFallback: boolean = false
+) => {
+  const hasDatasheet = Boolean(status?.hasDatasheet || hasDatasheetFallback);
+
+  if (!hasDatasheet) {
     return {
       label: "Not uploaded",
       className: "px-2.5 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600"
     };
   }
 
-  if (status.parseStatus === "success" && status.parsed) {
-    return {
-      label: `Parsed (${status.numPages || 0} pages)`,
-      className: "px-2.5 py-1 rounded-md text-xs font-medium bg-green-100 text-green-700",
-      showIcon: true,
-      iconPath: "M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-    };
-  }
-
-  if (status.parseStatus === "failed") {
+  if (status?.parseStatus === "failed") {
     return {
       label: "Parsing failed",
       className: "px-2.5 py-1 rounded-md text-xs font-medium bg-red-100 text-red-700"
     };
   }
 
-  if (status.parseStatus === "pending") {
+  if (status?.parseStatus === "pending") {
     return {
       label: "Parsing...",
       className: "px-2.5 py-1 rounded-md text-xs font-medium bg-yellow-100 text-yellow-700",
@@ -74,9 +101,25 @@ export const getDatasheetStatusBadge = (status?: DatasheetStatus) => {
     };
   }
 
+  const isParsed =
+    status?.parsed === true ||
+    status?.parseStatus === "success" ||
+    (!status?.parseStatus && hasDatasheetFallback);
+
+  if (isParsed) {
+    return {
+      label: status?.numPages
+        ? `Uploaded (${status.numPages} pages)`
+        : "Uploaded",
+      className: "px-2.5 py-1 rounded-md text-xs font-medium bg-green-100 text-green-700",
+      showIcon: true,
+      iconPath: "M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+    };
+  }
+
   return {
-    label: "Unknown",
-    className: "px-2.5 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-600"
+    label: "Uploaded",
+    className: "px-2.5 py-1 rounded-md text-xs font-medium bg-green-50 text-green-700"
   };
 };
 
@@ -85,7 +128,13 @@ export const getDatasheetStatusBadge = (status?: DatasheetStatus) => {
  */
 export const formatEnumValue = (value: string, capitalize: boolean = false): string => {
   const formatted = value.replace(/_/g, " ");
-  return capitalize ? formatted.toUpperCase() : formatted;
+  if (capitalize) {
+    return formatted.toUpperCase();
+  }
+  return formatted
+    .split(" ")
+    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(" ");
 };
 
 /**
@@ -109,4 +158,3 @@ export const getAvailabilityBadge = (availability: "in_stock" | "limited" | "obs
     className: `px-2.5 py-1 rounded-md text-xs font-medium ${styles[availability]}`
   };
 };
-
