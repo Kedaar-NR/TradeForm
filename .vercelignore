@@ -11,4 +11,3 @@ node_modules
 .DS_Store
 vids
 sample_datasheet_pdfs
-frontend/public/videos/*.mp4
