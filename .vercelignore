@@ -1,0 +1,13 @@
+backend/venv
+backend/__pycache__
+backend/*.db
+backend/datasheets
+*.pyc
+.env
+.env.local
+*.log
+node_modules
+.git
+.DS_Store
+vids
+sample_datasheet_pdfs
