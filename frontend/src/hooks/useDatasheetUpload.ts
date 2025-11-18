@@ -7,7 +7,6 @@
 
 import { useState } from "react";
 import { API_BASE_URL, getAuthHeaders } from "../utils/apiHelpers";
-import { isPdfUrl } from "../utils/datasheetHelpers";
 
 export const useDatasheetUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
@@ -19,71 +18,25 @@ export const useDatasheetUpload = () => {
     componentId: string,
     url: string
   ): Promise<boolean> => {
+    const trimmedUrl = url?.trim();
+    if (!trimmedUrl) {
+      console.warn("Skipping empty datasheet URL for component", componentId);
+      return false;
+    }
+
     try {
-      console.log("Downloading PDF from URL:", url);
+      console.log("Downloading PDF from URL:", trimmedUrl);
 
       const apiUrl = API_BASE_URL;
-      let response: Response;
-
-      // Try direct download first
-      try {
-        response = await fetch(url, {
-          method: "GET",
-          mode: "cors",
-        });
-
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-      } catch (fetchError: any) {
-        // If CORS fails, use backend proxy
-        console.log(
-          "Direct fetch failed, using backend proxy:",
-          fetchError.message
-        );
-        response = await fetch(
-          `${apiUrl}/api/proxy-pdf?url=${encodeURIComponent(url)}`,
-          {
-            method: "GET",
-            headers: {
-              ...getAuthHeaders(),
-            },
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(
-            `Proxy download failed: ${response.status} ${response.statusText}`
-          );
-        }
-      }
-
-      const blob = await response.blob();
-
-      // Ensure filename ends with .pdf
-      let fileName = url.split("/").pop() || "datasheet.pdf";
-      fileName = fileName.split("?")[0].split("#")[0];
-      if (!fileName.toLowerCase().endsWith(".pdf")) {
-        fileName = fileName + ".pdf";
-      }
-
-      // Create a File object
-      const file = new File([blob], fileName, { type: "application/pdf" });
-
-      console.log("Uploading file:", fileName, "Size:", file.size, "bytes");
-
-      // Upload using the API endpoint
-      const formData = new FormData();
-      formData.append("file", file);
-
       const uploadResponse = await fetch(
-        `${apiUrl}/api/components/${componentId}/datasheet`,
+        `${apiUrl}/api/components/${componentId}/datasheet/from-url`,
         {
           method: "POST",
           headers: {
             ...getAuthHeaders(),
+            "Content-Type": "application/json",
           },
-          body: formData,
+          body: JSON.stringify({ url: trimmedUrl }),
         }
       );
 
@@ -116,27 +69,36 @@ export const useDatasheetUpload = () => {
    */
   const uploadMultipleDatasheets = async (
     components: Array<{ id: string; datasheetUrl?: string }>
-  ): Promise<{ successCount: number; totalAttempted: number }> => {
+  ): Promise<{ successCount: number; totalAttempted: number; skippedCount: number }> => {
     setIsUploading(true);
-    let successCount = 0;
-    let totalAttempted = 0;
+    let skippedCount = 0;
+    const uploadTasks: Array<Promise<boolean>> = [];
 
-    try {
-      for (const comp of components) {
-        if (comp.datasheetUrl && comp.datasheetUrl.trim()) {
-          const url = comp.datasheetUrl.trim();
-          
-          if (isPdfUrl(url)) {
-            totalAttempted++;
-            const success = await uploadDatasheetFromUrl(comp.id, url);
-            if (success) {
-              successCount++;
-            }
-          }
-        }
+    for (const comp of components) {
+      const url = comp.datasheetUrl?.trim();
+      if (!url) {
+        skippedCount++;
+        continue;
       }
 
-      return { successCount, totalAttempted };
+      uploadTasks.push(uploadDatasheetFromUrl(comp.id, url));
+    }
+
+    try {
+      const results = await Promise.all(
+        uploadTasks.map(async (task) => {
+          try {
+            return await task;
+          } catch {
+            return false;
+          }
+        })
+      );
+
+      const successCount = results.filter(Boolean).length;
+      const totalAttempted = uploadTasks.length;
+
+      return { successCount, totalAttempted, skippedCount };
     } finally {
       setIsUploading(false);
     }
@@ -148,4 +110,3 @@ export const useDatasheetUpload = () => {
     uploadMultipleDatasheets,
   };
 };
-
