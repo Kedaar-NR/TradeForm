@@ -48,6 +48,8 @@ export const useProjectData = (projectId: string | undefined) => {
         status: apiData.status,
         createdAt: apiData.created_at,
         updatedAt: apiData.updated_at,
+        tradeStudyReport: apiData.trade_study_report,
+        reportGeneratedAt: apiData.report_generated_at,
       };
 
       setProject(projectData);
@@ -115,4 +117,3 @@ export const useProjectData = (projectId: string | undefined) => {
     setCriteria,
   };
 };
-
