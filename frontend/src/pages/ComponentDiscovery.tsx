@@ -652,6 +652,11 @@ const ComponentDiscovery: React.FC = () => {
             <button
               onClick={() => navigate(`/project/${projectId}/results`)}
               disabled={!canContinueToResults}
+              title={
+                canContinueToResults
+                  ? "Continue to results page"
+                  : "You need to score components to continue"
+              }
               className={`px-8 py-3 rounded-lg font-semibold text-white transition-all flex items-center gap-2 ${
                 canContinueToResults
                   ? "bg-gray-900 hover:bg-black shadow-md hover:shadow-lg"
