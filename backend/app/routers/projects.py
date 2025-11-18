@@ -7,6 +7,7 @@ from uuid import UUID
 
 from app import models, schemas
 from app.database import get_db
+from app.services.change_logger import log_project_change
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
 
@@ -38,6 +39,19 @@ def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)
         )
         
         db.add(db_project)
+        db.flush()
+        log_project_change(
+            db,
+            project_id=db_project.id,
+            change_type="project_created",
+            description=f"Created project '{db_project.name}'",
+            entity_type="project",
+            entity_id=db_project.id,
+            new_value={
+                "name": db_project.name,
+                "component_type": db_project.component_type,
+            },
+        )
         db.commit()
         db.refresh(db_project)
         return db_project
@@ -69,8 +83,33 @@ def update_project(project_id: UUID, project_update: schemas.ProjectUpdate, db: 
     if not db_project:
         raise HTTPException(status_code=404, detail="Project not found")
 
+    old_data = {
+        "name": db_project.name,
+        "component_type": db_project.component_type,
+        "description": db_project.description,
+        "status": db_project.status.value if db_project.status else None,
+    }
+
     for key, value in project_update.model_dump(exclude_unset=True).items():
         setattr(db_project, key, value)
+
+    db.flush()
+    new_data = {
+        "name": db_project.name,
+        "component_type": db_project.component_type,
+        "description": db_project.description,
+        "status": db_project.status.value if db_project.status else None,
+    }
+    log_project_change(
+        db,
+        project_id=project_id,
+        change_type="project_updated",
+        description=f"Updated project '{db_project.name}'",
+        entity_type="project",
+        entity_id=db_project.id,
+        old_value=old_data,
+        new_value=new_data,
+    )
 
     db.commit()
     db.refresh(db_project)
@@ -84,7 +123,19 @@ def delete_project(project_id: UUID, db: Session = Depends(get_db)):
     if not db_project:
         raise HTTPException(status_code=404, detail="Project not found")
 
+    project_summary = {
+        "name": db_project.name,
+        "component_type": db_project.component_type,
+    }
     db.delete(db_project)
+    log_project_change(
+        db,
+        project_id=project_id,
+        change_type="project_deleted",
+        description=f"Deleted project '{project_summary['name']}'",
+        entity_type="project",
+        entity_id=project_id,
+        old_value=project_summary,
+    )
     db.commit()
     return None
-

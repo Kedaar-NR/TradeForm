@@ -10,6 +10,7 @@ from app import models
 from app.database import get_db
 from app.services.excel_service import get_excel_service
 from app.services.scoring_service import get_scoring_service
+from app.services.change_logger import log_project_change
 
 router = APIRouter(tags=["results"])
 
@@ -81,9 +82,21 @@ def export_full_trade_study(project_id: UUID, db: Session = Depends(get_db)):
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = f"{project.name.replace(' ', '_')}_TradeStudy_{timestamp}.xlsx"
 
+    log_project_change(
+        db,
+        project_id=project_id,
+        change_type="trade_study_exported",
+        description=f"Exported full trade study report with {len(components)} components and {len(criteria)} criteria",
+        entity_type="system",
+        new_value={
+            "components": len(components),
+            "criteria": len(criteria),
+            "scores": len(results),
+        },
+    )
+
     return StreamingResponse(
         output,
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         headers={'Content-Disposition': f'attachment; filename={filename}'}
     )
-
