@@ -418,26 +418,26 @@ const Results: React.FC = () => {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Component Scores Comparison
               </h3>
-              <ResponsiveContainer width="100%" height={600}>
+              <ResponsiveContainer width="100%" height={800}>
                 <BarChart
                   data={barChartData}
-                  margin={{ top: 20, right: 30, left: 20, bottom: 280 }}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 180 }}
                 >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis
                     dataKey="name"
                     angle={-45}
                     textAnchor="end"
-                    height={200}
+                    height={150}
                     interval={0}
                     tickMargin={10}
                   />
-                  <YAxis />
+                  <YAxis domain={[0, 10]} />
                   <Tooltip />
                   <Legend
                     verticalAlign="bottom"
-                    height={60}
-                    wrapperStyle={{ paddingTop: 20 }}
+                    height={80}
+                    wrapperStyle={{ bottom: 0, paddingTop: 10 }}
                   />
                   {criteria.map((criterion, idx) => (
                     <Bar
