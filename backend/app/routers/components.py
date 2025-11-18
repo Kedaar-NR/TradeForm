@@ -9,8 +9,24 @@ from uuid import UUID
 from app import models, schemas
 from app.database import get_db
 from app.services.excel_service import get_excel_service
+from app.services.change_logger import log_project_change
 
 router = APIRouter(tags=["components"])
+
+
+def _component_snapshot(component: models.Component) -> dict:
+    return {
+        "manufacturer": component.manufacturer,
+        "part_number": component.part_number,
+        "description": component.description or "",
+        "datasheet_url": component.datasheet_url or "",
+        "availability": component.availability.value
+        if hasattr(component.availability, "value")
+        else component.availability,
+        "source": component.source.value
+        if hasattr(component.source, "value")
+        else component.source,
+    }
 
 
 @router.post("/api/projects/{project_id}/components", response_model=schemas.Component, status_code=status.HTTP_201_CREATED)
@@ -25,6 +41,16 @@ def add_component(project_id: UUID, component: schemas.ComponentCreateInput, db:
         project_id=project_id
     )
     db.add(db_component)
+    db.flush()
+    log_project_change(
+        db,
+        project_id=project_id,
+        change_type="component_added",
+        description=f"Added component {db_component.manufacturer} {db_component.part_number}",
+        entity_type="component",
+        entity_id=db_component.id,
+        new_value=_component_snapshot(db_component),
+    )
     db.commit()
     db.refresh(db_component)
     return db_component
@@ -44,8 +70,21 @@ def update_component(component_id: UUID, component_update: schemas.ComponentUpda
     if not db_component:
         raise HTTPException(status_code=404, detail="Component not found")
 
+    old_data = _component_snapshot(db_component)
     for key, value in component_update.model_dump(exclude_unset=True).items():
         setattr(db_component, key, value)
+
+    db.flush()
+    log_project_change(
+        db,
+        project_id=db_component.project_id,
+        change_type="component_updated",
+        description=f"Updated component {db_component.manufacturer} {db_component.part_number}",
+        entity_type="component",
+        entity_id=db_component.id,
+        old_value=old_data,
+        new_value=_component_snapshot(db_component),
+    )
 
     db.commit()
     db.refresh(db_component)
@@ -59,7 +98,17 @@ def delete_component(component_id: UUID, db: Session = Depends(get_db)):
     if not db_component:
         raise HTTPException(status_code=404, detail="Component not found")
 
+    snapshot = _component_snapshot(db_component)
     db.delete(db_component)
+    log_project_change(
+        db,
+        project_id=db_component.project_id,
+        change_type="component_deleted",
+        description=f"Deleted component {snapshot['manufacturer']} {snapshot['part_number']}",
+        entity_type="component",
+        entity_id=component_id,
+        old_value=snapshot,
+    )
     db.commit()
     return None
 
@@ -88,6 +137,16 @@ async def upload_components_excel(project_id: UUID, file: UploadFile = File(...)
                 source=models.ComponentSource.MANUALLY_ADDED
             )
             db.add(db_component)
+            db.flush()
+            log_project_change(
+                db,
+                project_id=project_id,
+                change_type="component_imported",
+                description=f"Imported component {db_component.manufacturer} {db_component.part_number} from Excel",
+                entity_type="component",
+                entity_id=db_component.id,
+                new_value=_component_snapshot(db_component),
+            )
             created_components.append(db_component)
 
         db.commit()
@@ -113,15 +172,19 @@ def export_components_excel(project_id: UUID, db: Session = Depends(get_db)):
 
     components = db.query(models.Component).filter(models.Component.project_id == project_id).all()
 
-    if not components:
-        raise HTTPException(status_code=404, detail="No components found for this project")
-
     excel_service = get_excel_service()
     output = excel_service.export_components_excel(components, project.name)
+    log_project_change(
+        db,
+        project_id=project_id,
+        change_type="components_exported",
+        description=f"Exported {len(components)} components to Excel",
+        entity_type="component",
+        new_value={"count": len(components)},
+    )
 
     return StreamingResponse(
         output,
         media_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
         headers={'Content-Disposition': f'attachment; filename=components_{project.name.replace(" ", "_")}.xlsx'}
     )
-
