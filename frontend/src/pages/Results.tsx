@@ -119,12 +119,21 @@ const Results: React.FC = () => {
       comp.totalScore.toFixed(2),
     ]);
 
-    const csvContent = [
-      headers.join(","),
-      ...rows.map((row) => row.join(",")),
-    ].join("\n");
+    const csvLines = [headers, ...rows]
+      .map((row) =>
+        row
+          .map((value) => {
+            const strValue = value != null ? String(value) : "";
+            if (/[",\n]/.test(strValue)) {
+              return `"${strValue.replace(/"/g, '""')}"`;
+            }
+            return strValue;
+          })
+          .join(",")
+      )
+      .join("\n");
 
-    const blob = new Blob([csvContent], { type: "text/csv" });
+    const blob = new Blob([csvLines], { type: "text/csv" });
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
@@ -147,7 +156,9 @@ const Results: React.FC = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `TradeStudy_Full_${new Date().toISOString().split("T")[0]}.xlsx`;
+      a.download = `TradeStudy_Full_${
+        new Date().toISOString().split("T")[0]
+      }.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -155,9 +166,7 @@ const Results: React.FC = () => {
     } catch (error: any) {
       console.error("Failed to export full trade study:", error);
       alert(
-        `Failed to export: ${
-          error.response?.data?.detail || error.message
-        }`
+        `Failed to export: ${error.response?.data?.detail || error.message}`
       );
     }
   };
@@ -183,18 +192,24 @@ const Results: React.FC = () => {
     total: comp.totalScore,
   }));
 
-  const spiderChartData = selectedComponent
+  const spiderChartComponent =
+    selectedComponent ??
+    (components.length > 0 ? components[0] : null);
+
+  const spiderChartData = spiderChartComponent
     ? [
         {
           criterion: "",
           value: 0,
           fullMark: 10,
         },
-        ...Object.entries(selectedComponent.criteria).map(([name, data]) => ({
-          criterion: name,
-          value: data.score,
-          fullMark: 10,
-        })),
+        ...Object.entries(spiderChartComponent.criteria).map(
+          ([name, data]) => ({
+            criterion: name,
+            value: data.score,
+            fullMark: 10,
+          })
+        ),
       ]
     : [];
 
@@ -208,8 +223,11 @@ const Results: React.FC = () => {
     const criterion = criteria.find((c) => c.name === criterionName);
     if (!criterion) return [];
 
-    const newWeight = Math.max(1, Math.min(10, criterion.weight + weightChange));
-    
+    const newWeight = Math.max(
+      1,
+      Math.min(10, criterion.weight + weightChange)
+    );
+
     // Calculate total weight and build weight map in single pass
     const weightMap = new Map<string, number>();
     let totalWeight = 0;
@@ -270,6 +288,25 @@ const Results: React.FC = () => {
     <div className="max-w-6xl animate-fade-in">
       {/* Header */}
       <div className="mb-8">
+        <button
+          onClick={() => navigate(`/project/${projectId}`)}
+          className="text-gray-700 hover:text-gray-900 mb-4 flex items-center gap-2 text-sm font-medium"
+        >
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
+          </svg>
+          Back to Project
+        </button>
         <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
           <div>
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -280,49 +317,39 @@ const Results: React.FC = () => {
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button
-              onClick={() => setViewMode("table")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                viewMode === "table"
-                  ? "bg-gray-1000 text-white"
-                  : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-              }`}
-            >
-              Table
-            </button>
-            <button
-              onClick={() => setViewMode("heatmap")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                viewMode === "heatmap"
-                  ? "bg-gray-1000 text-white"
-                  : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-              }`}
-            >
-              Heatmap
-            </button>
-            <button
-              onClick={() => setViewMode("charts")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                viewMode === "charts"
-                  ? "bg-gray-1000 text-white"
-                  : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-              }`}
-            >
-              Charts
-            </button>
+            {[
+              { id: "table", label: "Table" },
+              { id: "heatmap", label: "Heatmap" },
+              { id: "charts", label: "Charts" },
+            ].map(({ id, label }) => (
+              <button
+                key={id}
+                onClick={() => setViewMode(id as typeof viewMode)}
+                className={viewMode === id ? "btn-primary" : "btn-secondary"}
+              >
+                {label}
+              </button>
+            ))}
             <button
               onClick={handleExportFullExcel}
               className="btn-primary flex items-center gap-2"
             >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
               </svg>
               Export Full Report (Excel)
             </button>
-            <button
-              onClick={handleExportCSV}
-              className="btn-secondary"
-            >
+            <button onClick={handleExportCSV} className="btn-secondary">
               Export CSV
             </button>
           </div>
@@ -365,31 +392,23 @@ const Results: React.FC = () => {
           <div className="flex gap-2">
             <button
               onClick={() => setChartType("bar")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                chartType === "bar"
-                  ? "bg-gray-1000 text-white"
-                  : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-              }`}
+              className={chartType === "bar" ? "btn-primary" : "btn-secondary"}
             >
               Bar Chart
             </button>
             <button
               onClick={() => setChartType("spider")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                chartType === "spider"
-                  ? "bg-gray-1000 text-white"
-                  : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-              }`}
+              className={
+                chartType === "spider" ? "btn-primary" : "btn-secondary"
+              }
             >
               Spider Chart
             </button>
             <button
               onClick={() => setChartType("tornado")}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                chartType === "tornado"
-                  ? "bg-gray-1000 text-white"
-                  : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-              }`}
+              className={
+                chartType === "tornado" ? "btn-primary" : "btn-secondary"
+              }
             >
               Sensitivity Analysis
             </button>
@@ -401,19 +420,27 @@ const Results: React.FC = () => {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Component Scores Comparison
               </h3>
-              <ResponsiveContainer width="100%" height={400}>
-                <BarChart data={barChartData}>
+              <ResponsiveContainer width="100%" height={420}>
+                <BarChart
+                  data={barChartData}
+                  margin={{ top: 20, right: 30, left: 20, bottom: 220 }}
+                >
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis
                     dataKey="name"
                     angle={-45}
                     textAnchor="end"
-                    height={100}
+                    height={140}
                     interval={0}
+                    tickMargin={20}
                   />
                   <YAxis />
                   <Tooltip />
-                  <Legend />
+                  <Legend
+                    verticalAlign="bottom"
+                    height={60}
+                    wrapperStyle={{ paddingTop: 40 }}
+                  />
                   {criteria.map((criterion, idx) => (
                     <Bar
                       key={criterion.id}
@@ -429,12 +456,17 @@ const Results: React.FC = () => {
           )}
 
           {/* Spider Chart */}
-          {chartType === "spider" && selectedComponent && (
+          {chartType === "spider" && spiderChartComponent && (
             <div className="card p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                {selectedComponent.manufacturer} {selectedComponent.partNumber}{" "}
-                - Performance Profile
-              </h3>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  {spiderChartComponent.manufacturer}{" "}
+                  {spiderChartComponent.partNumber} - Performance Profile
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Tip: Select a component in the table to update this chart.
+                </p>
+              </div>
               <ResponsiveContainer width="100%" height={400}>
                 <RadarChart data={spiderChartData}>
                   <PolarGrid />
@@ -449,14 +481,9 @@ const Results: React.FC = () => {
                     fill="#10b981"
                     fillOpacity={0.6}
                   />
-                  <Tooltip />
+              <Tooltip />
                 </RadarChart>
               </ResponsiveContainer>
-              {!selectedComponent && (
-                <p className="text-center text-gray-500 mt-4">
-                  Select a component from the table to view its spider chart
-                </p>
-              )}
             </div>
           )}
 
@@ -555,8 +582,7 @@ const Results: React.FC = () => {
                 {sortedComponents.map((component) => (
                   <tr
                     key={component.id}
-                    className="border-b border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer"
-                    onClick={() => setSelectedComponent(component)}
+                    className="border-b border-gray-100 hover:bg-gray-50 transition-colors"
                   >
                     <td className="px-5 py-4">
                       <span className="font-semibold text-sm text-gray-500">
@@ -713,6 +739,61 @@ const Results: React.FC = () => {
           </div>
         </div>
       )}
+
+      <div className="mt-12">
+        <div className="mb-6 flex items-center justify-center gap-2 text-sm">
+          {[
+            { label: "Criteria Definition" },
+            { label: "Component Discovery" },
+            { label: "Results" },
+          ].map((step, index) => (
+            <React.Fragment key={step.label}>
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-semibold">
+                  ✓
+                </div>
+                <span className="font-medium text-gray-700">{step.label}</span>
+              </div>
+              {index < 2 && (
+                <svg
+                  className="w-5 h-5 text-gray-400"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              )}
+            </React.Fragment>
+          ))}
+        </div>
+        <div className="flex flex-col items-center">
+          <button
+            onClick={() => navigate(`/project/${projectId}/discovery`)}
+            className="text-gray-600 hover:text-gray-900 flex items-center gap-2 text-sm font-medium"
+          >
+            <svg
+              className="w-4 h-4"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
+            </svg>
+            Back to Components
+          </button>
+        </div>
+      </div>
     </div>
   );
 };
