@@ -5,13 +5,14 @@
  * criteria, and navigation to other project features.
  */
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { resultsApi } from "../services/api";
+import { resultsApi, reportsApi, changesApi } from "../services/api";
 import { useProjectData } from "../hooks/useProjectData";
 import { ComponentsSection } from "../components/ProjectDetails/ComponentsSection";
 import { CriteriaSection } from "../components/ProjectDetails/CriteriaSection";
 import { formatEnumValue } from "../utils/datasheetHelpers";
+import type { ProjectChange } from "../types";
 
 type TabType = "overview" | "versions" | "collaboration";
 
@@ -19,9 +20,66 @@ const ProjectDetails: React.FC = () => {
   const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
   const [activeTab, setActiveTab] = useState<TabType>("overview");
+  const [isDownloadingReport, setIsDownloadingReport] = useState(false);
+  const [changes, setChanges] = useState<ProjectChange[]>([]);
+  const [isLoadingChanges, setIsLoadingChanges] = useState(false);
 
   // Use custom hook for data management
   const { project, components, criteria, isLoading } = useProjectData(projectId);
+  const formatChangeType = (value: string) =>
+    value
+      .split("_")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+
+  const parseStructuredValue = (value?: string | null) => {
+    if (!value) return null;
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value;
+    }
+  };
+
+  const formatStructuredValue = (value: any) => {
+    if (value === null || value === undefined) {
+      return "";
+    }
+    if (typeof value === "string") {
+      return value;
+    }
+    return JSON.stringify(value, null, 2);
+  };
+
+  const loadChanges = useCallback(async () => {
+    if (!projectId) return;
+    try {
+      setIsLoadingChanges(true);
+      const response = await changesApi.getByProject(projectId);
+      const mapped: ProjectChange[] = response.data.map((change: any) => ({
+        id: change.id,
+        projectId: change.project_id,
+        userId: change.user_id,
+        userName: change.user_name,
+        changeType: change.change_type,
+        changeDescription: change.change_description,
+        entityType: change.entity_type || undefined,
+        entityId: change.entity_id || undefined,
+        oldValue: change.old_value || undefined,
+        newValue: change.new_value || undefined,
+        createdAt: change.created_at,
+      }));
+      setChanges(mapped);
+    } catch (error) {
+      console.error("Failed to load project changes:", error);
+    } finally {
+      setIsLoadingChanges(false);
+    }
+  }, [projectId]);
+
+  useEffect(() => {
+    loadChanges();
+  }, [loadChanges]);
 
   /**
    * Handle export to Excel
@@ -50,6 +108,35 @@ const ProjectDetails: React.FC = () => {
           error.response?.data?.detail || error.message
         }`
       );
+    }
+  };
+
+  const handleDownloadReportPdf = async () => {
+    if (!projectId) return;
+
+    setIsDownloadingReport(true);
+    try {
+      const response = await reportsApi.downloadPdf(projectId);
+      const blob = new Blob([response.data], { type: "application/pdf" });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const safeName =
+        project?.name?.toLowerCase().replace(/\s+/g, "_") || projectId;
+      a.href = url;
+      a.download = `trade_study_report_${safeName}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error: any) {
+      console.error("Failed to download report PDF:", error);
+      const message =
+        error?.response?.data?.detail ||
+        error?.message ||
+        "Failed to download report";
+      alert(`Download failed: ${message}`);
+    } finally {
+      setIsDownloadingReport(false);
     }
   };
 
@@ -212,6 +299,26 @@ const ProjectDetails: React.FC = () => {
               </svg>
               Export Excel
             </button>
+            <button
+              onClick={handleDownloadReportPdf}
+              className="btn-secondary flex items-center gap-2"
+              disabled={!project.tradeStudyReport || isDownloadingReport}
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"
+                />
+              </svg>
+              {isDownloadingReport ? "Preparing PDF..." : "Download Report PDF"}
+            </button>
           </div>
         </div>
 
@@ -270,13 +377,94 @@ const ProjectDetails: React.FC = () => {
         )}
 
         {activeTab === "versions" && (
-          <div className="card p-8 text-center">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Version History
-            </h3>
-            <p className="text-sm text-gray-600">
-              Version history feature coming soon
-            </p>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between flex-wrap gap-3">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Version History
+                </h3>
+                <p className="text-sm text-gray-600">
+                  Recent changes to this project
+                </p>
+              </div>
+              <button onClick={loadChanges} className="btn-secondary text-sm">
+                Refresh History
+              </button>
+            </div>
+            {isLoadingChanges ? (
+              <div className="card p-8 text-center">
+                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
+                <p className="mt-4 text-sm text-gray-600">
+                  Loading history...
+                </p>
+              </div>
+            ) : changes.length === 0 ? (
+              <div className="card p-8 text-center">
+                <p className="text-sm text-gray-600">
+                  No change history recorded yet. Start editing components or
+                  criteria to see updates here.
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {changes.map((change) => {
+                  const oldValue = parseStructuredValue(change.oldValue);
+                  const newValue = parseStructuredValue(change.newValue);
+                  return (
+                    <div
+                      key={change.id}
+                      className="card p-5 border border-gray-200 rounded-xl"
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="text-xs text-gray-500">
+                            {new Date(change.createdAt).toLocaleString()}
+                          </p>
+                          <p className="text-base font-semibold text-gray-900">
+                            {change.changeDescription}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {change.userName || "System"}
+                          </p>
+                        </div>
+                        <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800 capitalize">
+                          {formatChangeType(change.changeType)}
+                        </span>
+                      </div>
+                      {change.entityType && (
+                        <p className="text-xs text-gray-500 mt-2">
+                          Entity: {formatChangeType(change.entityType)}
+                        </p>
+                      )}
+                      {(oldValue || newValue) && (
+                        <div className="mt-4 grid gap-4 md:grid-cols-2">
+                          {oldValue && (
+                            <div>
+                              <p className="text-xs font-semibold text-gray-500 uppercase mb-1">
+                                Before
+                              </p>
+                              <pre className="bg-gray-50 border border-gray-200 rounded-lg text-xs p-3 overflow-x-auto">
+                                {formatStructuredValue(oldValue)}
+                              </pre>
+                            </div>
+                          )}
+                          {newValue && (
+                            <div>
+                              <p className="text-xs font-semibold text-gray-500 uppercase mb-1">
+                                After
+                              </p>
+                              <pre className="bg-gray-50 border border-gray-200 rounded-lg text-xs p-3 overflow-x-auto">
+                                {formatStructuredValue(newValue)}
+                              </pre>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         )}
 

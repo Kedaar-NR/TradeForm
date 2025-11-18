@@ -220,51 +220,6 @@ const Templates: React.FC = () => {
     try {
       setIsCreating(template.id);
 
-      // Verify backend is reachable and token is valid
-      const apiBaseUrl =
-        process.env.REACT_APP_API_URL || "http://localhost:8000";
-      try {
-        const healthResponse = await fetch(`${apiBaseUrl}/health`);
-        if (!healthResponse.ok) {
-          throw new Error("Backend health check failed");
-        }
-
-        // TODO: TEMPORARILY BYPASSED FOR DEVELOPMENT - Re-enable when fixing auth
-        // Verify token is still valid
-        // try {
-        //   const meResponse = await fetch(`${apiBaseUrl}/api/auth/me`, {
-        //     headers: {
-        //       Authorization: `Bearer ${authToken}`,
-        //       "Content-Type": "application/json",
-        //     },
-        //   });
-
-        //   if (meResponse.status === 401) {
-        //     // Token is invalid, clear auth and redirect to login
-        //     localStorage.removeItem("isAuthenticated");
-        //     localStorage.removeItem("authToken");
-        //     localStorage.removeItem("currentUser");
-        //     throw new Error("Your session has expired. Please log in again.");
-        //   }
-        // } catch (authError: any) {
-        //   if (authError.message.includes("session has expired")) {
-        //     alert(authError.message);
-        //     navigate("/login");
-        //     return;
-        //   }
-        //   // If /api/auth/me fails for other reasons, continue anyway
-        // }
-      } catch (healthError: any) {
-        if (healthError.message.includes("session has expired")) {
-          alert(healthError.message);
-          navigate("/login");
-          return;
-        }
-        throw new Error(
-          `Cannot reach backend at ${apiBaseUrl}. Please ensure the backend is running.`
-        );
-      }
-
       // Create project from template
       const projectResponse = await projectsApi.create({
         name: template.name,
@@ -372,7 +327,7 @@ const Templates: React.FC = () => {
       {/* Templates Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {templates.map((template) => (
-          <div key={template.id} className="card p-6">
+          <div key={template.id} className="card p-6 flex flex-col">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div>
@@ -419,7 +374,7 @@ const Templates: React.FC = () => {
             <button
               onClick={() => handleUseTemplate(template)}
               disabled={isCreating === template.id}
-              className="w-full btn-primary"
+              className="w-full btn-primary mt-auto"
             >
               {isCreating === template.id ? "Creating..." : "Use This Template"}
             </button>

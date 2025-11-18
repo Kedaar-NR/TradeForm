@@ -1,21 +1,26 @@
 /**
  * Criteria Definition page.
- * 
+ *
  * Allows users to define and manage evaluation criteria for a trade study project.
  * Includes auto-save functionality and common criteria suggestions.
  */
 
 import React, { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useCriteriaManagement, CriterionForm } from "../hooks/useCriteriaManagement";
+import {
+  useCriteriaManagement,
+  CriterionForm,
+} from "../hooks/useCriteriaManagement";
 import { CriterionCard } from "../components/CriteriaDefinition/CriterionCard";
 import { WeightSummary } from "../components/CriteriaDefinition/WeightSummary";
 import { COMMON_CRITERIA, isWeightBalanced } from "../utils/criteriaHelpers";
+import { criteriaApi } from "../services/api";
 
 const CriteriaDefinition: React.FC = () => {
   const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
   const [showSuggestions, setShowSuggestions] = useState(false);
+  const [isImportingExcel, setIsImportingExcel] = useState(false);
 
   // Use custom hook for criteria management
   const {
@@ -67,32 +72,48 @@ const CriteriaDefinition: React.FC = () => {
     const file = event.target.files?.[0];
     if (!file || !projectId) return;
 
-    const formData = new FormData();
-    formData.append("file", file);
-
+    setIsImportingExcel(true);
     try {
-      const response = await fetch(
-        `${process.env.REACT_APP_API_URL || "http://localhost:8000"}/api/projects/${projectId}/criteria/upload`,
-        {
-          method: "POST",
-          body: formData,
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error("Upload failed");
-      }
-
-      const result = await response.json();
+      const response = await criteriaApi.uploadExcel(projectId, file);
+      const result = response.data;
       alert(`Successfully imported ${result.count} criteria`);
       window.location.reload();
     } catch (error: any) {
       console.error("Failed to import Excel:", error);
-      alert(`Failed to import: ${error.message}`);
+      alert(
+        `Failed to import: ${
+          error?.response?.data?.detail || error?.message || "Unknown error"
+        }`
+      );
+    } finally {
+      setIsImportingExcel(false);
+      event.target.value = "";
     }
+  };
 
-    // Reset input
-    event.target.value = "";
+  const handleExportExcel = async () => {
+    if (!projectId) return;
+    try {
+      const response = await criteriaApi.exportExcel(projectId);
+      const blob = new Blob([response.data], {
+        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `criteria_${projectId}.xlsx`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    } catch (error: any) {
+      console.error("Failed to export criteria:", error);
+      alert(
+        `Failed to export criteria: ${
+          error?.response?.data?.detail || error?.message || "Unknown error"
+        }`
+      );
+    }
   };
 
   if (isLoading) {
@@ -235,7 +256,11 @@ const CriteriaDefinition: React.FC = () => {
             </svg>
             {showSuggestions ? "Hide" : "Show"} Suggestions
           </button>
-          <label className="btn-secondary flex items-center gap-2 cursor-pointer">
+          <label
+            className={`btn-secondary flex items-center gap-2 cursor-pointer ${
+              isImportingExcel ? "opacity-70 cursor-not-allowed" : ""
+            }`}
+          >
             <svg
               className="w-5 h-5"
               fill="none"
@@ -249,14 +274,34 @@ const CriteriaDefinition: React.FC = () => {
                 d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
               />
             </svg>
-            Import from Excel
+            {isImportingExcel ? "Importing..." : "Import from Excel"}
             <input
               type="file"
               accept=".xlsx,.xls"
               onChange={handleImportExcel}
               className="hidden"
+              disabled={isImportingExcel}
             />
           </label>
+          <button
+            onClick={handleExportExcel}
+            className="btn-secondary flex items-center gap-2"
+          >
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M7 10l5 5 5-5m-5 5V4m8 9v5a2 2 0 01-2 2H7a2 2 0 01-2-2v-5"
+              />
+            </svg>
+            Export Criteria
+          </button>
         </div>
 
         {/* Common Criteria Suggestions */}
@@ -319,7 +364,9 @@ const CriteriaDefinition: React.FC = () => {
                 <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-semibold">
                   ✓
                 </div>
-                <span className="font-medium text-gray-700">Criteria Definition</span>
+                <span className="font-medium text-gray-700">
+                  Criteria Definition
+                </span>
               </div>
               <svg
                 className="w-5 h-5 text-gray-400"
@@ -338,7 +385,9 @@ const CriteriaDefinition: React.FC = () => {
                 <div className="w-8 h-8 rounded-full bg-gray-300 text-white flex items-center justify-center font-semibold">
                   2
                 </div>
-                <span className="font-medium text-gray-500">Component Discovery</span>
+                <span className="font-medium text-gray-500">
+                  Component Discovery
+                </span>
               </div>
               <svg
                 className="w-5 h-5 text-gray-400"
@@ -368,7 +417,7 @@ const CriteriaDefinition: React.FC = () => {
                 disabled={!isWeightBalanced(criteria)}
                 className={`px-8 py-3 rounded-lg font-semibold text-white transition-all flex items-center gap-2 ${
                   isWeightBalanced(criteria)
-                    ? "bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg"
+                    ? "bg-gray-900 hover:bg-black shadow-md hover:shadow-lg"
                     : "bg-gray-400 cursor-not-allowed opacity-60"
                 }`}
               >
