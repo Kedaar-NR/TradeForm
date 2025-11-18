@@ -328,11 +328,24 @@ export const aiApi = {
         api.post<{
             status: string;
             report: string;
+            generated_at?: string;
         }>(
             `/api/projects/${projectId}/generate-report`,
             {},
             { timeout: 300000 } // 5 minutes timeout for report generation (can take a while)
         ),
+};
+
+export const reportsApi = {
+    getCurrent: (projectId: string) =>
+        api.get<{
+            report: string;
+            generated_at?: string;
+        }>(`/api/projects/${projectId}/report`),
+    downloadPdf: (projectId: string) =>
+        api.get(`/api/projects/${projectId}/report/pdf`, {
+            responseType: "blob",
+        }),
 };
 
 export default api;
