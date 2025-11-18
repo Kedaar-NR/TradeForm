@@ -52,7 +52,7 @@ export const isPdfUrl = (url: string): boolean => {
     ];
     return heuristicTokens.some((token) => lowerFull.includes(token));
   } catch {
-    return /\.pdf($|\?|\#)/i.test(trimmed);
+    return /\.pdf($|\?|#)/i.test(trimmed);
   }
 };
 
