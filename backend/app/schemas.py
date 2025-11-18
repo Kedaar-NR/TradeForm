@@ -69,7 +69,7 @@ class Project(ProjectBase):
 class CriterionBase(BaseModel):
     name: str
     description: Optional[str] = None
-    weight: float = Field(gt=0, le=10)
+    weight: float = Field(gt=0, le=100)
     unit: Optional[str] = None
     higher_is_better: bool = True
     minimum_requirement: Optional[float] = None
