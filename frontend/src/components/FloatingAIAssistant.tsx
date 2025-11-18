@@ -124,7 +124,7 @@ const FloatingAIAssistant: React.FC = () => {
 
       {/* Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-20 right-4 w-[230px] h-[400px] max-h-[calc(100vh-100px)] bg-white rounded-lg shadow-2xl flex flex-col z-50 border border-gray-300 sm:w-[calc(100vw-2rem)] sm:right-2 sm:bottom-16">
+        <div className="fixed bottom-20 right-4 w-[320px] max-w-[calc(100vw-2rem)] h-[460px] max-h-[calc(100vh-100px)] bg-white rounded-lg shadow-2xl flex flex-col z-50 border border-gray-300 sm:w-[420px] sm:max-w-[50vw] sm:right-6 sm:bottom-16">
           {/* Header */}
           <div className="bg-black text-white px-4 py-3 rounded-t-lg flex items-center justify-between">
             <div className="flex items-center gap-2">
