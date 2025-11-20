@@ -5,6 +5,7 @@ import DatasheetCitationsList from "./DatasheetCitationsList";
 import DatasheetSuggestedRatingCard from "./DatasheetSuggestedRatingCard";
 import FormattedMarkdown from "./FormattedMarkdown";
 import { getApiUrl, getAuthHeaders } from "../utils/apiHelpers";
+import { formatDisplayTime } from "../utils/dateHelpers";
 
 interface DatasheetAssistantPanelProps {
   testComponentId: string;
@@ -42,6 +43,7 @@ const DatasheetAssistantPanel: React.FC<DatasheetAssistantPanelProps> = ({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [hasSeededQuestion, setHasSeededQuestion] = useState(false);
 
   // Load suggestions when datasheet is parsed
   useEffect(() => {
@@ -50,6 +52,28 @@ const DatasheetAssistantPanel: React.FC<DatasheetAssistantPanelProps> = ({
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [datasheetParsed, testComponentId]);
+
+  useEffect(() => {
+    setQuestion("");
+    setAnswer(null);
+    setSuggestedRating(null);
+    setError(null);
+    setQaHistory([]);
+    setHasSeededQuestion(false);
+  }, [testComponentId]);
+
+  useEffect(() => {
+    if (!datasheetParsed) {
+      setHasSeededQuestion(false);
+    }
+  }, [datasheetParsed]);
+
+  useEffect(() => {
+    if (datasheetParsed && suggestions.length > 0 && !hasSeededQuestion) {
+      setQuestion((current) => current || suggestions[0]);
+      setHasSeededQuestion(true);
+    }
+  }, [datasheetParsed, suggestions, hasSeededQuestion]);
 
   const loadSuggestions = async () => {
     try {
@@ -158,28 +182,11 @@ const DatasheetAssistantPanel: React.FC<DatasheetAssistantPanelProps> = ({
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 h-full flex flex-col">
-      <div className="flex items-center mb-6">
-        <svg
-          className="h-6 w-6 text-indigo-600 mr-2"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"
-          />
-        </svg>
-        <h3 className="text-lg font-semibold text-gray-900">AI Assistant</h3>
-      </div>
-
       {!datasheetParsed ? (
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-center">
+          <div className="text-center max-w-sm">
             <svg
-              className="mx-auto h-12 w-12 text-gray-400"
+              className="mx-auto h-16 w-16 text-gray-300"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"
@@ -187,22 +194,23 @@ const DatasheetAssistantPanel: React.FC<DatasheetAssistantPanelProps> = ({
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
-                strokeWidth={2}
-                d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                strokeWidth={1.5}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
               />
             </svg>
-            <h3 className="mt-2 text-sm font-medium text-gray-900">
-              Upload a datasheet to begin
+            <h3 className="mt-4 text-lg font-semibold text-gray-700">
+              AI Datasheet Assistant
             </h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Upload a PDF datasheet first, then you can ask questions about it.
+            <p className="mt-2 text-sm text-gray-500">
+              Upload or auto-import a datasheet to unlock AI-powered questions,
+              suggested prompts, and auto-generated scoring insights.
             </p>
           </div>
         </div>
       ) : (
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Input Section - Always visible at top */}
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 max-w-2xl mx-auto w-full">
             {/* Suggested Questions - Always show when available */}
             {suggestions.length > 0 && (
               <div className="mb-4">
@@ -345,7 +353,7 @@ const DatasheetAssistantPanel: React.FC<DatasheetAssistantPanelProps> = ({
 
           {/* Answer Display - Scrollable area below input */}
           {(answer || qaHistory.length > 0) && (
-            <div className="flex-1 overflow-y-auto min-h-0 border-t border-gray-200 pt-4 mt-4 space-y-4">
+            <div className="flex-1 overflow-y-auto min-h-0 border-t border-gray-200 pt-4 mt-4 space-y-4 max-w-2xl mx-auto w-full">
               {qaHistory.length > 0 && (
                 <div className="p-3 bg-gray-50 rounded-lg border border-gray-200">
                   <div className="flex items-center justify-between mb-2">
@@ -384,7 +392,7 @@ const DatasheetAssistantPanel: React.FC<DatasheetAssistantPanelProps> = ({
                           {entry.answer.answer.length > 80 ? "…" : ""}
                         </div>
                         <div className="text-[10px] text-gray-400 uppercase mt-1">
-                          {new Date(entry.timestamp).toLocaleTimeString()}
+                          {formatDisplayTime(entry.timestamp)}
                           {entry.criterionName
                             ? ` • ${entry.criterionName}`
                             : ""}
@@ -406,61 +414,63 @@ const DatasheetAssistantPanel: React.FC<DatasheetAssistantPanelProps> = ({
                   >
                     <div className="flex items-center justify-between mb-2">
                       <h4 className="text-sm font-semibold text-gray-900 flex items-center">
-                    <svg
-                      className="h-5 w-5 mr-2 text-indigo-600"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                      />
-                    </svg>
-                    Answer
-                  </h4>
-                  <button
-                    onClick={() => {
-                      setAnswer(null);
-                      setSuggestedRating(null);
-                      setError(null);
-                    }}
-                    className="text-xs text-gray-500 hover:text-gray-700"
-                    title="Clear answer"
-                  >
-                    ✕
-                  </button>
-                </div>
-                <FormattedMarkdown
-                  content={answer.answer}
-                  className={isAnswerNotFound ? "text-yellow-900" : "text-gray-700"}
-                />
-
-                {answer.confidence !== undefined &&
-                  answer.confidence !== null && (
-                    <div className="mt-3 flex items-center">
-                      <span className="text-xs text-gray-500 mr-2">
-                        Confidence:
-                      </span>
-                      <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden max-w-xs">
-                        <div
-                          className={`h-full ${
-                            answer.confidence > 0.7
-                              ? "bg-green-500"
-                              : answer.confidence > 0.4
-                              ? "bg-yellow-500"
-                              : "bg-red-500"
-                          }`}
-                          style={{ width: `${answer.confidence * 100}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-gray-600 ml-2 font-medium">
-                        {Math.round(answer.confidence * 100)}%
-                      </span>
+                        <svg
+                          className="h-5 w-5 mr-2 text-indigo-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                          />
+                        </svg>
+                        Answer
+                      </h4>
+                      <button
+                        onClick={() => {
+                          setAnswer(null);
+                          setSuggestedRating(null);
+                          setError(null);
+                        }}
+                        className="text-xs text-gray-500 hover:text-gray-700"
+                        title="Clear answer"
+                      >
+                        ✕
+                      </button>
                     </div>
-                  )}
+                    <FormattedMarkdown
+                      content={answer.answer}
+                      className={
+                        isAnswerNotFound ? "text-yellow-900" : "text-gray-700"
+                      }
+                    />
+
+                    {answer.confidence !== undefined &&
+                      answer.confidence !== null && (
+                        <div className="mt-3 flex items-center">
+                          <span className="text-xs text-gray-500 mr-2">
+                            Confidence:
+                          </span>
+                          <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden max-w-xs">
+                            <div
+                              className={`h-full ${
+                                answer.confidence > 0.7
+                                  ? "bg-green-500"
+                                  : answer.confidence > 0.4
+                                  ? "bg-yellow-500"
+                                  : "bg-red-500"
+                              }`}
+                              style={{ width: `${answer.confidence * 100}%` }}
+                            />
+                          </div>
+                          <span className="text-xs text-gray-600 ml-2 font-medium">
+                            {Math.round(answer.confidence * 100)}%
+                          </span>
+                        </div>
+                      )}
                   </div>
 
                   {/* Citations */}
