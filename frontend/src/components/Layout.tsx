@@ -11,7 +11,9 @@ const Layout = ({ children }: LayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
 
-  const isActive = (path: string) => location.pathname === path;
+  // Treat a path as active if it matches exactly or if it's a nested route under it
+  const isActive = (path: string) =>
+    location.pathname === path || location.pathname.startsWith(`${path}/`);
 
   const navigation: Array<{
     name: string;
@@ -83,7 +85,7 @@ const Layout = ({ children }: LayoutProps) => {
           </div>
 
           {/* Navigation - Scrollable if needed */}
-          <nav className="flex-1 px-2 py-3 space-y-1 overflow-y-auto min-h-0">
+          <nav className="flex-1 px-2 py-3 space-y-1 overflow-y-auto min-h-0 flex flex-col items-center">
             {navigation.map((item) => (
               <button
                 key={item.path}

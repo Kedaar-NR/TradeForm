@@ -7,16 +7,40 @@ from uuid import UUID
 import io
 import asyncio
 import textwrap
-from typing import Tuple, Optional
+import re
+from typing import Tuple, Optional, List, Dict
 from datetime import datetime
 
 try:
     from reportlab.pdfgen import canvas
     from reportlab.lib.pagesizes import letter
+    from reportlab.lib.colors import HexColor
+    from reportlab.lib.enums import TA_LEFT
+    from reportlab.lib.styles import ParagraphStyle, getSampleStyleSheet
+    from reportlab.lib.units import inch
+    from reportlab.platypus import (
+        HRFlowable,
+        ListFlowable,
+        ListItem,
+        Paragraph,
+        SimpleDocTemplate,
+        Spacer,
+    )
     REPORTLAB_AVAILABLE = True
 except ImportError:
     canvas = None  # type: ignore
     letter = None  # type: ignore
+    HexColor = None  # type: ignore
+    TA_LEFT = None  # type: ignore
+    ParagraphStyle = None  # type: ignore
+    getSampleStyleSheet = None  # type: ignore
+    inch = None  # type: ignore
+    HRFlowable = None  # type: ignore
+    ListFlowable = None  # type: ignore
+    ListItem = None  # type: ignore
+    Paragraph = None  # type: ignore
+    SimpleDocTemplate = None  # type: ignore
+    Spacer = None  # type: ignore
     REPORTLAB_AVAILABLE = False
 
 from app import models, schemas
@@ -487,44 +511,214 @@ def _prepare_report_lines(report_text: str) -> list[str]:
     return header + [""] + (paragraphs or [""])
 
 
+def _looks_like_heading(text: str) -> bool:
+    """Heuristic to spot likely headings (short, title-case or ending with a colon)."""
+    stripped = text.strip()
+    if not stripped:
+        return False
+
+    if stripped.endswith(":") and len(stripped) <= 90:
+        return True
+
+    words = stripped.split()
+    if len(words) <= 8:
+        alpha_chars = [c for c in stripped if c.isalpha()]
+        if alpha_chars and all(c.isupper() for c in alpha_chars) and len(stripped) <= 72:
+            return True
+        if stripped.istitle():
+            return True
+
+    return False
+
+
+def _parse_report_blocks(report_text: str) -> List[Dict[str, object]]:
+    """Convert raw AI text into structured blocks (headings, bullets, paragraphs)."""
+    blocks: List[Dict[str, object]] = []
+    bullet_buffer: List[str] = []
+    paragraph_buffer: List[str] = []
+
+    def clean_line(line: str) -> str:
+        return (
+            line.strip()
+            .lstrip("#*- >")
+            .replace("**", "")
+            .replace("__", "")
+        )
+
+    def flush_paragraph():
+        nonlocal paragraph_buffer
+        if paragraph_buffer:
+            blocks.append(
+                {"type": "paragraph", "text": " ".join(paragraph_buffer)}
+            )
+            paragraph_buffer = []
+
+    def flush_bullets():
+        nonlocal bullet_buffer
+        if bullet_buffer:
+            blocks.append({"type": "bullets", "items": bullet_buffer})
+            bullet_buffer = []
+
+    for raw_line in report_text.splitlines():
+        line = clean_line(raw_line)
+        if not line:
+            flush_paragraph()
+            flush_bullets()
+            continue
+
+        if line.startswith(("-", "*", "•")) or re.match(r"^\d+[\.\)]\s", line):
+            flush_paragraph()
+            cleaned_bullet = re.sub(r"^\d+[\.\)]\s*", "", line).lstrip("-*• ").strip()
+            bullet_buffer.append(cleaned_bullet)
+            continue
+
+        if _looks_like_heading(line):
+            flush_paragraph()
+            flush_bullets()
+            words = line.split()
+            level = 1 if len(words) <= 4 else 2
+            blocks.append({"type": "heading", "text": line.rstrip(":").strip(), "level": level})
+            continue
+
+        paragraph_buffer.append(line)
+
+    flush_paragraph()
+    flush_bullets()
+    return blocks
+
+
 def _build_report_pdf(report_text: str) -> io.BytesIO:
     """Create a PDF document from the stored trade study report text."""
-    prepared_lines = _prepare_report_lines(report_text)
     if REPORTLAB_AVAILABLE:
-        buffer = io.BytesIO()
-        pdf = canvas.Canvas(buffer, pagesize=letter)
-        _, page_height = letter
-        left_margin = 72
-        top_margin = page_height - 72
-        bottom_margin = 72
+        return _build_styled_report_pdf(report_text)
 
-        def new_text_object():
-            text_obj = pdf.beginText(left_margin, top_margin)
-            text_obj.setFont("Helvetica", 11)
-            return text_obj
-
-        text_object = new_text_object()
-        lines = prepared_lines
-
-        for line in lines:
-            if not line.strip():
-                text_object.textLine("")
-                continue
-
-            wrapped_lines = textwrap.wrap(line, width=90) or [""]
-            for wrapped_line in wrapped_lines:
-                text_object.textLine(wrapped_line)
-                if text_object.getY() <= bottom_margin:
-                    pdf.drawText(text_object)
-                    pdf.showPage()
-                    text_object = new_text_object()
-
-        pdf.drawText(text_object)
-        pdf.save()
-        buffer.seek(0)
-        return buffer
-
+    prepared_lines = _prepare_report_lines(report_text)
     return _build_simple_pdf(prepared_lines)
+
+
+def _build_styled_report_pdf(report_text: str) -> io.BytesIO:
+    """High-quality PDF with headings, subheadings, and bullet formatting."""
+    blocks = _parse_report_blocks(report_text)
+    buffer = io.BytesIO()
+
+    doc = SimpleDocTemplate(
+        buffer,
+        pagesize=letter,
+        leftMargin=0.9 * inch,
+        rightMargin=0.9 * inch,
+        topMargin=0.9 * inch,
+        bottomMargin=0.9 * inch,
+    )
+
+    palette = {
+        "ink": HexColor("#0f172a"),
+        "muted": HexColor("#475569"),
+        "accent": HexColor("#1f2937"),
+        "rule": HexColor("#e5e7eb"),
+    }
+
+    styles = getSampleStyleSheet()
+    styles.add(
+        ParagraphStyle(
+            name="ReportTitle",
+            parent=styles["Heading1"],
+            fontName="Helvetica-Bold",
+            fontSize=18,
+            leading=22,
+            textColor=palette["ink"],
+            alignment=TA_LEFT,
+            spaceAfter=10,
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="ReportSubtitle",
+            parent=styles["Normal"],
+            fontName="Helvetica",
+            fontSize=10.5,
+            leading=13,
+            textColor=palette["muted"],
+            alignment=TA_LEFT,
+            spaceAfter=12,
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="SectionHeading",
+            parent=styles["Heading2"],
+            fontName="Helvetica-Bold",
+            fontSize=13,
+            leading=16,
+            textColor=palette["ink"],
+            spaceBefore=10,
+            spaceAfter=6,
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="SubHeading",
+            parent=styles["Heading3"],
+            fontName="Helvetica-Bold",
+            fontSize=12,
+            leading=15,
+            textColor=palette["ink"],
+            spaceBefore=8,
+            spaceAfter=4,
+        )
+    )
+    styles.add(
+        ParagraphStyle(
+            name="Body",
+            parent=styles["Normal"],
+            fontName="Helvetica",
+            fontSize=11,
+            leading=14.5,
+            textColor=palette["muted"],
+            spaceAfter=6,
+        )
+    )
+
+    story: List[object] = [
+        Paragraph("Trade Study Report", styles["ReportTitle"]),
+        Paragraph(datetime.utcnow().strftime("Generated %B %d, %Y"), styles["ReportSubtitle"]),
+        HRFlowable(width="100%", thickness=1, color=palette["rule"], spaceBefore=2, spaceAfter=14),
+    ]
+
+    if not blocks:
+        story.append(Paragraph("No report content available.", styles["Body"]))
+    else:
+        for block in blocks:
+            if block["type"] == "heading":
+                level = block.get("level", 1)
+                style_name = "SectionHeading" if level == 1 else "SubHeading"
+                story.append(Paragraph(str(block["text"]), styles[style_name]))
+            elif block["type"] == "paragraph":
+                story.append(Paragraph(str(block["text"]), styles["Body"]))
+            elif block["type"] == "bullets":
+                items = [
+                    ListItem(
+                        Paragraph(str(item), styles["Body"]),
+                        leftIndent=6,
+                    )
+                    for item in block.get("items", [])
+                ]
+                if items:
+                    story.append(
+                        ListFlowable(
+                            items,
+                            bulletType="bullet",
+                            start="•",
+                            bulletFontName="Helvetica-Bold",
+                            bulletFontSize=10,
+                            bulletColor=palette["accent"],
+                            leftIndent=14,
+                            spaceBefore=0,
+                        )
+                    )
+
+    doc.build(story)
+    buffer.seek(0)
+    return buffer
 
 
 def _escape_pdf_text(text: str) -> str:
