@@ -13,17 +13,11 @@ export const WeightSummary = ({ criteria }: WeightSummaryProps) => {
     const status = getWeightStatus(criteria);
 
     return (
-        <div
-            className={`card p-4 ${
-                status.isBalanced
-                    ? "bg-green-50 border-green-200"
-                    : "bg-yellow-50 border-yellow-200"
-            }`}
-        >
+        <div className="card p-4 bg-white border-gray-200 text-gray-900">
             <div className="flex items-center gap-3">
                 {status.isBalanced ? (
                     <svg
-                        className="w-6 h-6 text-green-600"
+                        className="w-6 h-6 text-black"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -37,7 +31,7 @@ export const WeightSummary = ({ criteria }: WeightSummaryProps) => {
                     </svg>
                 ) : (
                     <svg
-                        className="w-6 h-6 text-yellow-600"
+                        className="w-6 h-6 text-black"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -51,7 +45,7 @@ export const WeightSummary = ({ criteria }: WeightSummaryProps) => {
                     </svg>
                 )}
                 <div>
-                    <p className={`text-sm font-medium ${status.className}`}>
+                    <p className="text-sm font-medium text-gray-900">
                         {status.message}
                     </p>
                     <p className="text-xs text-gray-600 mt-0.5">

@@ -361,7 +361,7 @@ const CriteriaDefinition: React.FC = () => {
             {/* Progress Indicator */}
             <div className="mb-6 flex items-center justify-center gap-2 text-sm">
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-semibold">
+                <div className="w-8 h-8 rounded-full bg-gray-900 text-white flex items-center justify-center font-semibold">
                   ✓
                 </div>
                 <span className="font-medium text-gray-700">
