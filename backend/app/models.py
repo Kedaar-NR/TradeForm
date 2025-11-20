@@ -50,12 +50,16 @@ class Project(Base):
     creator = relationship("User", back_populates="projects")
     criteria = relationship("Criterion", back_populates="project", cascade="all, delete-orphan")
     components = relationship("Component", back_populates="project", cascade="all, delete-orphan")
+    changes = relationship("ProjectChange", back_populates="project", cascade="all, delete-orphan")
+    versions = relationship("ProjectVersion", back_populates="project", cascade="all, delete-orphan")
+    shares = relationship("ProjectShare", back_populates="project", cascade="all, delete-orphan")
+    comments = relationship("ProjectComment", back_populates="project", cascade="all, delete-orphan")
 
 class Criterion(Base):
     __tablename__ = "criteria"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
     name = Column(String, nullable=False)
     description = Column(Text)
     weight = Column(Float, nullable=False)
@@ -72,7 +76,7 @@ class Component(Base):
     __tablename__ = "components"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
     manufacturer = Column(String, nullable=False)
     part_number = Column(String, nullable=False)
     description = Column(Text)
@@ -110,7 +114,7 @@ class ProjectVersion(Base):
     __tablename__ = "project_versions"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
     version_number = Column(Integer, nullable=False)
     snapshot_data = Column(Text)  # JSON snapshot of project state
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
@@ -118,7 +122,7 @@ class ProjectVersion(Base):
     description = Column(Text)
 
     # Relationships
-    project = relationship("Project")
+    project = relationship("Project", back_populates="versions", passive_deletes=True)
     creator = relationship("User")
 
 # Team Collaboration Models
@@ -126,14 +130,14 @@ class ProjectShare(Base):
     __tablename__ = "project_shares"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
     shared_with_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     shared_by_user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     permission = Column(String, default="view")  # view, edit, admin
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
-    project = relationship("Project")
+    project = relationship("Project", back_populates="shares", passive_deletes=True)
     shared_with = relationship("User", foreign_keys=[shared_with_user_id])
     shared_by = relationship("User", foreign_keys=[shared_by_user_id])
 
@@ -141,7 +145,7 @@ class ProjectComment(Base):
     __tablename__ = "project_comments"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     content = Column(Text, nullable=False)
     # Optional: reference to specific component or criterion
@@ -151,7 +155,7 @@ class ProjectComment(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
 
     # Relationships
-    project = relationship("Project")
+    project = relationship("Project", back_populates="comments", passive_deletes=True)
     user = relationship("User")
     component = relationship("Component")
     criterion = relationship("Criterion")
@@ -160,7 +164,7 @@ class ProjectChange(Base):
     __tablename__ = "project_changes"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
     change_type = Column(String, nullable=False)  # criterion_added, component_added, weight_changed, etc.
     change_description = Column(Text, nullable=False)
@@ -171,7 +175,7 @@ class ProjectChange(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
-    project = relationship("Project")
+    project = relationship("Project", back_populates="changes", passive_deletes=True)
     user = relationship("User")
 
 # ============================================================================

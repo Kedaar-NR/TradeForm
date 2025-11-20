@@ -1,6 +1,7 @@
 """Project management endpoints for CRUD operations."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 from typing import List
 from uuid import UUID
@@ -118,24 +119,22 @@ def update_project(project_id: UUID, project_update: schemas.ProjectUpdate, db: 
 
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_project(project_id: UUID, db: Session = Depends(get_db)):
-    """Delete a project"""
+    """Delete a project."""
     db_project = db.query(models.Project).filter(models.Project.id == project_id).first()
     if not db_project:
         raise HTTPException(status_code=404, detail="Project not found")
 
-    project_summary = {
-        "name": db_project.name,
-        "component_type": db_project.component_type,
-    }
-    db.delete(db_project)
-    log_project_change(
-        db,
-        project_id=project_id,
-        change_type="project_deleted",
-        description=f"Deleted project '{project_summary['name']}'",
-        entity_type="project",
-        entity_id=project_id,
-        old_value=project_summary,
-    )
-    db.commit()
+    try:
+        # Clean up dependent rows that don't have ORM cascades yet to avoid FK violations.
+        db.query(models.ProjectChange).filter(models.ProjectChange.project_id == project_id).delete(synchronize_session=False)
+        db.query(models.ProjectComment).filter(models.ProjectComment.project_id == project_id).delete(synchronize_session=False)
+        db.query(models.ProjectShare).filter(models.ProjectShare.project_id == project_id).delete(synchronize_session=False)
+        db.query(models.ProjectVersion).filter(models.ProjectVersion.project_id == project_id).delete(synchronize_session=False)
+
+        db.delete(db_project)
+        db.commit()
+    except SQLAlchemyError as exc:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"Failed to delete project: {exc}") from exc
+
     return None
