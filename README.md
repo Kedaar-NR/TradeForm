@@ -11,44 +11,44 @@ Think of it as your AI-powered research assistant that can read hundreds of data
 ## Why TradeForm?
 
 Traditional trade studies are painful:
-- 📊 Endless spreadsheet gymnastics
-- 📄 Manual datasheet reading and data extraction
-- 🔍 Searching through distributor catalogs for hours
-- ⏰ Weeks of work for a single component selection
-- 🤯 Subjective scoring with no clear rationale
+- Endless spreadsheet gymnastics
+- Manual datasheet reading and data extraction
+- Searching through distributor catalogs for hours
+- Weeks of work for a single component selection
+- Subjective scoring with no clear rationale
 
 TradeForm makes it simple:
-- ✨ AI discovers components automatically from distributor APIs
-- 🤖 Intelligent datasheet Q&A extracts specifications instantly
-- 📈 Automated scoring with transparent AI-generated rationale
-- 📊 Beautiful visualizations (tables, heatmaps, charts)
-- 📑 Professional Excel reports ready to share with your team
-- 👥 Real-time collaboration with team members
+- AI discovers components automatically from distributor APIs
+- Intelligent datasheet Q&A extracts specifications instantly
+- Automated scoring with transparent AI-generated rationale
+- Beautiful visualizations (tables, heatmaps, charts)
+- Professional Excel reports ready to share with your team
+- Real-time collaboration with team members
 
 ## Key Features
 
-### 🎯 Smart Project Management
+### Smart Project Management
 Create and manage multiple trade study projects with ease. Each project maintains its own criteria, components, and results with full version history.
 
-### 📋 Flexible Criteria Definition
+### Flexible Criteria Definition
 Define exactly what matters for your component selection. Set weights, units, scoring directions (higher or lower is better), and optional min/max requirements. Import criteria from Excel templates or create them from scratch.
 
-### 🔍 AI-Powered Component Discovery
+### AI-Powered Component Discovery
 Let AI do the heavy lifting. TradeForm automatically searches Digi-Key, Mouser, and other distributor APIs to find relevant components based on your project description. No more manual catalog browsing.
 
-### 📚 Intelligent Datasheet Analysis
+### Intelligent Datasheet Analysis
 Upload PDF datasheets and ask questions in natural language. Our AI assistant extracts specifications, answers technical questions, and provides suggestions—all backed by Google's Gemini AI.
 
-### 🧠 Automated AI Scoring
+### Automated AI Scoring
 TradeForm uses Claude (Anthropic's AI) to score each component against your criteria on a 1-10 scale. Every score comes with a detailed rationale explaining the reasoning, making the process transparent and auditable.
 
-### 📊 Rich Visualizations
+### Rich Visualizations
 View your results your way:
 - **Table View**: Classic ranked table with color-coded scores
 - **Heatmap View**: Visual heat map showing strengths and weaknesses at a glance
 - **Charts**: Bar charts, spider charts, and sensitivity analysis to understand how weight changes affect rankings
 
-### 📑 Professional Reporting
+### Professional Reporting
 Export comprehensive Excel reports with multiple sheets:
 - Executive summary with rankings
 - Detailed scores with AI rationale
@@ -57,14 +57,14 @@ Export comprehensive Excel reports with multiple sheets:
 
 Generate PDF reports with full trade study documentation using AI-powered summarization.
 
-### 👥 Team Collaboration
+### Team Collaboration
 Work together seamlessly:
 - Share projects with team members
 - Add comments on specific components or criteria
 - Track all changes with automatic change logging
 - Create versions to snapshot your work at key milestones
 
-### 🔐 Enterprise Authentication
+### Enterprise Authentication
 Secure authentication with:
 - Email/password login
 - WorkOS SSO integration for enterprise customers
@@ -187,10 +187,10 @@ We've built TradeForm with modern, production-ready technologies:
 
 ## How to Use TradeForm
 
-### 1️⃣ Create Your Project
+### 1. Create Your Project
 Start by creating a new trade study project. Give it a name, specify the component type (e.g., "RF Antenna", "Microcontroller", "Pressure Sensor"), and add an optional description.
 
-### 2️⃣ Define Your Criteria
+### 2. Define Your Criteria
 Add the criteria that matter for your component selection:
 - **Name**: What you're evaluating (e.g., "Gain", "Power Consumption", "Cost")
 - **Weight**: How important it is (1-10 scale)
@@ -200,10 +200,10 @@ Add the criteria that matter for your component selection:
 
 You can create criteria manually, import from Excel, or use AI-suggested criteria based on your component type.
 
-### 3️⃣ Discover Components
+### 3. Discover Components
 Click "Discover Components" and let AI search distributor databases for relevant options. Review the discovered components and add any specific parts you want to evaluate. Upload datasheets for each component to enable AI extraction.
 
-### 4️⃣ Ask Questions & Extract Data
+### 4. Ask Questions & Extract Data
 Use the datasheet Q&A feature to ask questions like:
 - "What is the operating voltage range?"
 - "What's the temperature rating?"
@@ -211,22 +211,22 @@ Use the datasheet Q&A feature to ask questions like:
 
 AI reads the datasheets and extracts the information automatically.
 
-### 5️⃣ Score & Analyze
+### 5. Score & Analyze
 Click "Score All Components" to let AI evaluate each component against your criteria. Review the scores and rationales. Override any scores manually if you have additional context.
 
-### 6️⃣ Visualize Results
+### 6. Visualize Results
 Switch between table, heatmap, and chart views to understand your results:
 - See which component ranks highest
 - Identify strengths and weaknesses
 - Run sensitivity analysis to understand how criterion weights affect rankings
 
-### 7️⃣ Generate Reports
+### 7. Generate Reports
 Export your findings:
 - **Excel Export**: Multi-sheet workbook with all details
 - **PDF Report**: Professional document with AI-generated summary
 - **CSV Export**: Simple data export for further analysis
 
-### 8️⃣ Collaborate & Iterate
+### 8. Collaborate & Iterate
 Share your project with team members, add comments, and create versions to track your progress over time.
 
 ## Scoring Methodology
@@ -398,34 +398,34 @@ REACT_APP_API_URL=https://your-backend-domain.com
 ```
 
 ### Production Checklist
-- ✅ Use managed database service (not SQLite)
-- ✅ Enable HTTPS with valid certificates
-- ✅ Set up monitoring and error tracking
-- ✅ Configure API rate limiting
-- ✅ Use secrets manager for API keys
-- ✅ Set up automated backups
-- ✅ Configure CORS properly
-- ✅ Enable logging and analytics
+- Use managed database service (not SQLite)
+- Enable HTTPS with valid certificates
+- Set up monitoring and error tracking
+- Configure API rate limiting
+- Use secrets manager for API keys
+- Set up automated backups
+- Configure CORS properly
+- Enable logging and analytics
 
 ## Roadmap
 
 We're constantly improving TradeForm. Here's what's coming:
 
-- 🔄 Real-time collaboration with WebSockets
-- 🎨 Custom themes and white-labeling
-- 📱 Mobile-responsive improvements
-- 🔌 More distributor integrations (Arrow, Avnet, etc.)
-- 🧪 Monte Carlo simulation for uncertainty analysis
-- 📊 Advanced analytics and insights
-- 🔍 Semantic search across historical trade studies
-- 🤝 Third-party integrations (Slack, Teams, etc.)
+- Real-time collaboration with WebSockets
+- Custom themes and white-labeling
+- Mobile-responsive improvements
+- More distributor integrations (Arrow, Avnet, etc.)
+- Monte Carlo simulation for uncertainty analysis
+- Advanced analytics and insights
+- Semantic search across historical trade studies
+- Third-party integrations (Slack, Teams, etc.)
 
 ## Support & Community
 
-- 📧 **Email**: support@tradeform.io
-- 💬 **Discord**: Join our community (coming soon)
-- 🐛 **Issues**: Report bugs on GitHub Issues
-- 📖 **Documentation**: Full docs at docs.tradeform.io (coming soon)
+- **Email**: support@tradeform.io
+- **Discord**: Join our community (coming soon)
+- **Issues**: Report bugs on GitHub Issues
+- **Documentation**: Full docs at docs.tradeform.io (coming soon)
 
 ## License
 
@@ -433,6 +433,6 @@ Proprietary - All rights reserved. Contact us for licensing inquiries.
 
 ---
 
-**Built with ❤️ for engineers who want to focus on innovation, not spreadsheets.**
+**Built with love for engineers who want to focus on innovation, not spreadsheets.**
 
 *TradeForm: Because your time is better spent designing the future, not wrestling with datasheets.*
