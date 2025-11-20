@@ -4,8 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from sqlalchemy.orm import Session
 from uuid import UUID
 from pathlib import Path
+from typing import Optional, Tuple, List
+from urllib.parse import urljoin
 import shutil
 import httpx
+import re
 
 from app import models, schemas
 from app.database import get_db
@@ -19,6 +22,49 @@ router = APIRouter(tags=["datasheets"])
 MAX_DATASHEET_SIZE = 50 * 1024 * 1024  # 50MB
 DATASHEETS_DIR = Path("datasheets")
 DATASHEETS_DIR.mkdir(exist_ok=True)
+PDF_LINK_PATTERN = re.compile(r'href=["\']([^"\']+\.pdf(?:\?[^"\']*)?)["\']', re.IGNORECASE)
+
+
+def _extract_pdf_link_from_html(html: str, base_url: str) -> Optional[str]:
+    """Find the first PDF link in an HTML document and return an absolute URL."""
+    match = PDF_LINK_PATTERN.search(html or "")
+    if not match:
+        return None
+    pdf_href = match.group(1).strip()
+    return urljoin(base_url, pdf_href)
+
+
+async def _download_pdf_from_url(url: str) -> Tuple[bytes, str]:
+    """
+    Download PDF bytes from a URL. If the URL points to an HTML page, attempt to
+    locate the first PDF link on the page and download that instead.
+    Returns the file bytes and the resolved URL used for the PDF download.
+    """
+    async with httpx.AsyncClient(timeout=60.0) as client:
+        response = await client.get(url, follow_redirects=True)
+        file_bytes = response.content
+        content_type = response.headers.get("content-type", "").lower()
+        resolved_url = str(response.url)
+
+        if "pdf" in content_type or is_pdf_content(file_bytes):
+            return file_bytes, resolved_url
+
+        # Attempt to extract PDF link from HTML detail pages
+        decoded_preview = file_bytes[:2000].decode("utf-8", errors="ignore")
+        if "html" in content_type or "<html" in decoded_preview.lower():
+            html_text = file_bytes.decode("utf-8", errors="ignore")
+            pdf_link = _extract_pdf_link_from_html(html_text, resolved_url)
+            if pdf_link:
+                pdf_response = await client.get(pdf_link, follow_redirects=True)
+                pdf_bytes = pdf_response.content
+                pdf_content_type = pdf_response.headers.get("content-type", "").lower()
+                if "pdf" in pdf_content_type or is_pdf_content(pdf_bytes):
+                    return pdf_bytes, str(pdf_response.url)
+
+    raise HTTPException(
+        status_code=400,
+        detail="The provided URL did not return a PDF file or a PDF link. Please supply a direct datasheet link."
+    )
 
 
 def _save_and_parse_datasheet(
@@ -154,30 +200,15 @@ async def upload_datasheet_from_url(
         raise HTTPException(status_code=400, detail="Valid datasheet URL is required")
 
     try:
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            response = await client.get(request.url, follow_redirects=True)
+        file_bytes, resolved_url = await _download_pdf_from_url(request.url)
 
-        if response.status_code != 200:
-            raise HTTPException(
-                status_code=400,
-                detail=f"Failed to download datasheet (HTTP {response.status_code})"
-            )
-
-        file_bytes = response.content
         if len(file_bytes) > MAX_DATASHEET_SIZE:
             raise HTTPException(
                 status_code=400,
                 detail=f"File too large. Maximum size is {MAX_DATASHEET_SIZE // (1024*1024)}MB."
             )
 
-        content_type = response.headers.get("content-type", "").lower()
-        if "pdf" not in content_type and not is_pdf_content(file_bytes):
-            raise HTTPException(
-                status_code=400,
-                detail="The provided URL did not return a PDF file. Please supply a direct PDF datasheet link."
-            )
-
-        filename = request.url.split("/")[-1].split("?")[0].split("#")[0] or "datasheet.pdf"
+        filename = resolved_url.split("/")[-1].split("?")[0].split("#")[0] or "datasheet.pdf"
         if not filename.lower().endswith(".pdf"):
             filename += ".pdf"
 
@@ -361,6 +392,23 @@ def get_datasheet_suggestions(component_id: UUID, db: Session = Depends(get_db))
         models.Criterion.project_id == component.project_id
     ).all()
     
+    pages: List[models.DatasheetPage] = []
+    if datasheet_doc:
+        pages = db.query(models.DatasheetPage).filter(
+            models.DatasheetPage.datasheet_id == datasheet_doc.id
+        ).order_by(models.DatasheetPage.page_number.asc()).all()
+
+    datasheet_chunks = []
+    for page in pages[:8]:
+        text = (page.raw_text or "").strip()
+        if not text:
+            continue
+        datasheet_chunks.append({
+            "page_number": page.page_number,
+            "section_title": page.section_title,
+            "text": text[:2000],
+        })
+
     context = {
         "project": {
             "name": project.name if project.name is not None else "",
@@ -381,7 +429,8 @@ def get_datasheet_suggestions(component_id: UUID, db: Session = Depends(get_db))
                 "weight": c.weight
             }
             for c in criteria
-        ]
+        ],
+        "datasheet_chunks": datasheet_chunks,
     }
     
     try:
