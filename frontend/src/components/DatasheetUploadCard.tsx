@@ -5,12 +5,22 @@ interface DatasheetUploadCardProps {
   onUploadSuccess: () => void;
   testComponentId: string;
   existingFilename?: string;
+  autoImportUrl?: string;
+  isAutoImporting?: boolean;
+  onAutoImport?: () => void;
+  autoImportError?: string | null;
+  hasDatasheet?: boolean;
 }
 
 const DatasheetUploadCard: React.FC<DatasheetUploadCardProps> = ({
   onUploadSuccess,
   testComponentId,
   existingFilename,
+  autoImportUrl,
+  isAutoImporting = false,
+  onAutoImport,
+  autoImportError,
+  hasDatasheet = false,
 }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -35,15 +45,7 @@ const DatasheetUploadCard: React.FC<DatasheetUploadCardProps> = ({
     const files = e.dataTransfer.files;
     if (files.length > 0) {
       const file = files[0];
-      if (
-        file.type === "application/pdf" ||
-        file.name.toLowerCase().endsWith(".pdf")
-      ) {
-        setSelectedFile(file);
-        setError(null);
-      } else {
-        setError("Please select a PDF file");
-      }
+      processFileSelection(file);
     }
   };
 
@@ -51,27 +53,18 @@ const DatasheetUploadCard: React.FC<DatasheetUploadCardProps> = ({
     const files = e.target.files;
     if (files && files.length > 0) {
       const file = files[0];
-      if (
-        file.type === "application/pdf" ||
-        file.name.toLowerCase().endsWith(".pdf")
-      ) {
-        setSelectedFile(file);
-        setError(null);
-      } else {
-        setError("Please select a PDF file");
-      }
+      processFileSelection(file);
     }
   };
 
-  const handleUpload = async () => {
-    if (!selectedFile) return;
-
+  const uploadFile = async (file: File) => {
+    if (!file || isUploading) return;
     setIsUploading(true);
     setError(null);
 
     try {
       const formData = new FormData();
-      formData.append("file", selectedFile);
+      formData.append("file", file);
 
       const response = await fetch(
         getApiUrl(`/api/components/${testComponentId}/datasheet`),
@@ -103,6 +96,25 @@ const DatasheetUploadCard: React.FC<DatasheetUploadCardProps> = ({
     }
   };
 
+  const processFileSelection = (file: File) => {
+    if (
+      file.type === "application/pdf" ||
+      file.name.toLowerCase().endsWith(".pdf")
+    ) {
+      setSelectedFile(file);
+      setError(null);
+      // Start uploading immediately so parsing begins as soon as the PDF is available
+      void uploadFile(file);
+    } else {
+      setError("Please select a PDF file");
+    }
+  };
+
+  const handleUpload = async () => {
+    if (!selectedFile) return;
+    await uploadFile(selectedFile);
+  };
+
   return (
     <div className="bg-white rounded-lg shadow-md p-6">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">
@@ -131,12 +143,62 @@ const DatasheetUploadCard: React.FC<DatasheetUploadCardProps> = ({
               <p className="text-xs text-green-700 mt-1 break-all">
                 {existingFilename}
               </p>
-              <p className="text-xs text-green-600 mt-2">
-                Upload a new file below to replace it
+              <p className="text-xs text-green-600 mt-2 text-center font-medium">
+                Upload a new file below
               </p>
             </div>
           </div>
         </div>
+      )}
+
+      {/* Auto Import Banner */}
+      {autoImportUrl && !selectedFile && !hasDatasheet && (
+        <div className="mb-4 rounded-lg border border-indigo-100 bg-indigo-50 px-4 py-3 text-center text-xs text-indigo-800">
+          {isAutoImporting ? (
+            <div className="flex items-center justify-center gap-2">
+              <svg
+                className="h-4 w-4 animate-spin text-indigo-600"
+                fill="none"
+                viewBox="0 0 24 24"
+              >
+                <circle
+                  className="opacity-25"
+                  cx="12"
+                  cy="12"
+                  r="10"
+                  stroke="currentColor"
+                  strokeWidth="4"
+                ></circle>
+                <path
+                  className="opacity-75"
+                  fill="currentColor"
+                  d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                ></path>
+              </svg>
+              <span>Auto-importing datasheet from provided URL…</span>
+            </div>
+          ) : (
+            <>
+              <p className="font-semibold text-xs">Datasheet URL detected</p>
+              <p className="mt-1 text-[11px] break-all text-indigo-700">
+                {autoImportUrl}
+              </p>
+              {onAutoImport && (
+                <button
+                  type="button"
+                  onClick={onAutoImport}
+                  className="mt-2 inline-flex items-center justify-center rounded-md border border-indigo-200 px-3 py-1 text-xs font-medium text-indigo-700 hover:bg-white"
+                >
+                  Retry Import
+                </button>
+              )}
+            </>
+          )}
+        </div>
+      )}
+
+      {autoImportError && (
+        <p className="text-xs text-red-600 text-center mb-3">{autoImportError}</p>
       )}
 
       {/* Drag and Drop Area */}
@@ -254,7 +316,7 @@ const DatasheetUploadCard: React.FC<DatasheetUploadCardProps> = ({
       <button
         onClick={handleUpload}
         disabled={!selectedFile || isUploading}
-        className="mt-4 w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        className="mt-4 w-full inline-flex justify-center items-center px-4 py-2 border border-transparent text-base font-medium rounded-md shadow-sm text-white bg-black hover:bg-gray-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-900 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
       >
         {isUploading ? (
           <>

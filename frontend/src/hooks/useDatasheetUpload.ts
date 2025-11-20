@@ -8,6 +8,13 @@
 import { useState } from "react";
 import { API_BASE_URL, getAuthHeaders } from "../utils/apiHelpers";
 
+interface UploadSummary {
+  successCount: number;
+  totalAttempted: number;
+  skippedCount: number;
+  failedDetails?: Array<{ componentId: string; message: string }>;
+}
+
 export const useDatasheetUpload = () => {
   const [isUploading, setIsUploading] = useState(false);
 
@@ -54,13 +61,15 @@ export const useDatasheetUpload = () => {
       console.log("Successfully uploaded datasheet from URL");
       return true;
     } catch (err: any) {
-      console.error("Upload from URL error:", err);
+      const message =
+        err?.message || "Failed to upload datasheet from provided URL";
+      console.error("Upload from URL error:", message);
       console.error("Error details:", {
-        message: err.message,
+        message,
         url: url,
         componentId: componentId,
       });
-      return false;
+      throw new Error(message);
     }
   };
 
@@ -69,10 +78,12 @@ export const useDatasheetUpload = () => {
    */
   const uploadMultipleDatasheets = async (
     components: Array<{ id: string; datasheetUrl?: string }>
-  ): Promise<{ successCount: number; totalAttempted: number; skippedCount: number }> => {
+  ): Promise<UploadSummary> => {
     setIsUploading(true);
     let skippedCount = 0;
-    const uploadTasks: Array<Promise<boolean>> = [];
+    let successCount = 0;
+    const failedDetails: Array<{ componentId: string; message: string }> = [];
+    let totalAttempted = 0;
 
     for (const comp of components) {
       const url = comp.datasheetUrl?.trim();
@@ -81,24 +92,20 @@ export const useDatasheetUpload = () => {
         continue;
       }
 
-      uploadTasks.push(uploadDatasheetFromUrl(comp.id, url));
+      totalAttempted++;
+      try {
+        await uploadDatasheetFromUrl(comp.id, url);
+        successCount++;
+      } catch (err: any) {
+        failedDetails.push({
+          componentId: comp.id,
+          message: err?.message || "Failed to upload datasheet",
+        });
+      }
     }
 
     try {
-      const results = await Promise.all(
-        uploadTasks.map(async (task) => {
-          try {
-            return await task;
-          } catch {
-            return false;
-          }
-        })
-      );
-
-      const successCount = results.filter(Boolean).length;
-      const totalAttempted = uploadTasks.length;
-
-      return { successCount, totalAttempted, skippedCount };
+      return { successCount, totalAttempted, skippedCount, failedDetails };
     } finally {
       setIsUploading(false);
     }
