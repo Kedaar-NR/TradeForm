@@ -7,11 +7,15 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { resultsApi, reportsApi, changesApi } from "../services/api";
+import { changesApi } from "../services/api";
 import { useProjectData } from "../hooks/useProjectData";
 import { ComponentsSection } from "../components/ProjectDetails/ComponentsSection";
 import { CriteriaSection } from "../components/ProjectDetails/CriteriaSection";
+import CollaboratorsSection from "../components/ProjectDetails/CollaboratorsSection";
+import ProjectFileTray from "../components/ProjectDetails/ProjectFileTray";
 import { formatEnumValue } from "../utils/datasheetHelpers";
+import { formatDateForFilename, formatDisplayTimestamp } from "../utils/dateHelpers";
+import { getApiUrl, getAuthHeaders } from "../utils/apiHelpers";
 import type { ProjectChange } from "../types";
 
 type TabType = "overview" | "versions" | "collaboration";
@@ -25,7 +29,15 @@ const ProjectDetails: React.FC = () => {
   const [isLoadingChanges, setIsLoadingChanges] = useState(false);
 
   // Use custom hook for data management
-  const { project, components, criteria, isLoading } = useProjectData(projectId);
+  const {
+    project,
+    components,
+    criteria,
+    isLoading,
+    setProject,
+    loadProject,
+  } =
+    useProjectData(projectId);
   const formatChangeType = (value: string) =>
     value
       .split("_")
@@ -78,6 +90,38 @@ const ProjectDetails: React.FC = () => {
   }, [projectId]);
 
   useEffect(() => {
+    if (!projectId || typeof window === "undefined") {
+      return;
+    }
+
+    const handler = (event: Event) => {
+      const customEvent = event as CustomEvent<{
+        projectId: string;
+        status: string;
+      }>;
+      if (customEvent.detail.projectId !== projectId) {
+        return;
+      }
+      if (customEvent.detail.status === "generating") {
+        setIsDownloadingReport(true);
+        setProject((prev: typeof project) =>
+          prev ? { ...prev, tradeStudyReport: prev.tradeStudyReport || "" } : prev
+        );
+      } else if (customEvent.detail.status === "ready") {
+        setIsDownloadingReport(false);
+        loadProject();
+      } else if (customEvent.detail.status === "failed") {
+        setIsDownloadingReport(false);
+      }
+    };
+
+    window.addEventListener("tradeform-report-status", handler);
+    return () => {
+      window.removeEventListener("tradeform-report-status", handler);
+    };
+  }, [projectId, loadProject, setProject]);
+
+  useEffect(() => {
     loadChanges();
   }, [loadChanges]);
 
@@ -87,16 +131,26 @@ const ProjectDetails: React.FC = () => {
   const handleExportExcel = async () => {
     if (!projectId) return;
     try {
-      const response = await resultsApi.exportFullExcel(projectId);
-      const blob = new Blob([response.data], {
-        type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-      });
+      const response = await fetch(
+        getApiUrl(`/api/projects/${projectId}/export/full`),
+        {
+          headers: {
+            ...getAuthHeaders(),
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to export Excel");
+      }
+
+      const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
+      const dateSlug = formatDateForFilename(new Date());
       a.href = url;
-      a.download = `trade_study_${project?.name || projectId}_${
-        new Date().toISOString().split("T")[0]
-      }.xlsx`;
+      a.download = `trade_study_${project?.name || projectId}_${dateSlug}.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -116,8 +170,21 @@ const ProjectDetails: React.FC = () => {
 
     setIsDownloadingReport(true);
     try {
-      const response = await reportsApi.downloadPdf(projectId);
-      const blob = new Blob([response.data], { type: "application/pdf" });
+      const response = await fetch(
+        getApiUrl(`/api/projects/${projectId}/report/pdf`),
+        {
+          headers: {
+            ...getAuthHeaders(),
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to download report");
+      }
+
+      const blob = await response.blob();
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       const safeName =
@@ -219,6 +286,8 @@ const ProjectDetails: React.FC = () => {
             </div>
           </div>
 
+          <ProjectFileTray projectId={projectId} />
+
           {/* Action Buttons */}
           <div className="flex flex-wrap gap-3">
             <button
@@ -301,7 +370,11 @@ const ProjectDetails: React.FC = () => {
             </button>
             <button
               onClick={handleDownloadReportPdf}
-              className="btn-secondary flex items-center gap-2"
+              className={`flex items-center gap-2 rounded-lg px-4 py-2 font-medium transition-colors ${
+                isDownloadingReport || !project.tradeStudyReport
+                  ? "bg-black text-white cursor-wait opacity-90"
+                  : "btn-secondary"
+              }`}
               disabled={!project.tradeStudyReport || isDownloadingReport}
             >
               <svg
@@ -418,7 +491,7 @@ const ProjectDetails: React.FC = () => {
                       <div className="flex flex-wrap items-center justify-between gap-3">
                         <div>
                           <p className="text-xs text-gray-500">
-                            {new Date(change.createdAt).toLocaleString()}
+                            {formatDisplayTimestamp(change.createdAt)}
                           </p>
                           <p className="text-base font-semibold text-gray-900">
                             {change.changeDescription}
@@ -469,14 +542,7 @@ const ProjectDetails: React.FC = () => {
         )}
 
         {activeTab === "collaboration" && (
-          <div className="card p-8 text-center">
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              Collaboration
-            </h3>
-            <p className="text-sm text-gray-600">
-              Collaboration features coming soon
-            </p>
-          </div>
+          <CollaboratorsSection projectId={projectId} />
         )}
       </div>
     </div>
