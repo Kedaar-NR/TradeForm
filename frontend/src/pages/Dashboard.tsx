@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/useStore";
 import { Project } from "../types";
 import { projectsApi, componentsApi } from "../services/api";
+import { formatDisplayDate } from "../utils/dateHelpers";
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -88,11 +89,7 @@ const Dashboard: React.FC = () => {
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+    return formatDisplayDate(dateString);
   };
 
   const handleDeleteProject = async (
