@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { resultsApi, criteriaApi } from "../services/api";
 import * as XLSX from "xlsx";
+import { formatDateForFilename } from "../utils/dateHelpers";
 import {
   BarChart,
   Bar,
@@ -138,9 +139,8 @@ const Results: React.FC = () => {
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `trade-study-results-${
-      new Date().toISOString().split("T")[0]
-    }.csv`;
+    const dateSlug = formatDateForFilename(new Date());
+    a.download = `trade-study-results-${dateSlug}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -228,9 +228,8 @@ const Results: React.FC = () => {
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `TradeStudy_Full_${
-        new Date().toISOString().split("T")[0]
-      }.xlsx`;
+      const dateSlug = formatDateForFilename(new Date());
+      a.download = `TradeStudy_Full_${dateSlug}.xlsx`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -818,7 +817,7 @@ const Results: React.FC = () => {
           ].map((step, index) => (
             <React.Fragment key={step.label}>
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-full bg-green-500 text-white flex items-center justify-center font-semibold">
+                <div className="w-8 h-8 rounded-full bg-gray-900 text-white flex items-center justify-center font-semibold">
                   ✓
                 </div>
                 <span className="font-medium text-gray-700">{step.label}</span>
