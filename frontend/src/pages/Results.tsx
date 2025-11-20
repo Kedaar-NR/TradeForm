@@ -2,7 +2,6 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { resultsApi, criteriaApi } from "../services/api";
 import * as XLSX from "xlsx";
-import { formatDateForFilename } from "../utils/dateHelpers";
 import {
   BarChart,
   Bar,
@@ -30,6 +29,26 @@ interface ComponentScore {
   totalScore: number;
   rank: number;
 }
+
+const formatDateForFilename = (value: string | number | Date): string => {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "unknown-date";
+  }
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(date);
+  const lookup: Record<string, string> = {};
+  parts.forEach((part) => {
+    if (part.type !== "literal") {
+      lookup[part.type] = part.value;
+    }
+  });
+  return `${lookup.year ?? "0000"}-${lookup.month ?? "00"}-${lookup.day ?? "00"}`;
+};
 
 const Results: React.FC = () => {
   const navigate = useNavigate();
