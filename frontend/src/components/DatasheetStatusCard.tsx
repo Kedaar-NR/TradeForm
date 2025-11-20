@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { DatasheetStatus } from '../types';
 import { getApiUrl, getAuthHeaders } from '../utils/apiHelpers';
+import { formatDisplayTimestamp } from '../utils/dateHelpers';
 
 interface DatasheetStatusCardProps {
   testComponentId: string;
@@ -170,8 +171,8 @@ const DatasheetStatusCard: React.FC<DatasheetStatusCardProps> = ({
 
               {status.parsedAt && (
                 <p className="text-xs text-gray-600">
-                  <span className="font-medium">Parsed:</span>{' '}
-                  {new Date(status.parsedAt).toLocaleString()}
+                  <span className="font-medium">Parsed:</span>{" "}
+                  {formatDisplayTimestamp(status.parsedAt)}.
                 </p>
               )}
 
