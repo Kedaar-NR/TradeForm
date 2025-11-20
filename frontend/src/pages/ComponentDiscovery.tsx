@@ -82,7 +82,6 @@ const ComponentDiscovery: React.FC = () => {
   const { isUploading: isDatasheetUploading, uploadMultipleDatasheets } =
     useDatasheetUpload();
   const [isImportingExcel, setIsImportingExcel] = useState(false);
-  const isUploadingComponents = isDatasheetUploading || isImportingExcel;
   const autoUploadAttemptedRef = useRef<Set<string>>(new Set());
   const canContinueToResults = components.length > 0 && hasScores;
 
@@ -204,15 +203,14 @@ const ComponentDiscovery: React.FC = () => {
     if (!projectId) return;
 
     setIsDiscovering(true);
+    let discoveryRequestCompleted = false;
     try {
       const response = await aiApi.discoverComponents(projectId);
       const data = response.data;
+      discoveryRequestCompleted = true;
+      setIsDiscovering(false);
 
       if (data.discovered_count > 0) {
-        alert(
-          `Successfully discovered ${data.discovered_count} components. Attempting to download datasheets...`
-        );
-
         // Reload to get the new components
         await loadComponents();
 
@@ -242,23 +240,43 @@ const ComponentDiscovery: React.FC = () => {
         );
 
         if (hasDatasheetUrls) {
-          uploadMultipleDatasheets(normalizedComponents)
-            .then(({ successCount, totalAttempted, skippedCount }) => {
-              if (totalAttempted > 0 || skippedCount > 0) {
-                const message = `Datasheet upload results:\n- Successfully uploaded: ${successCount}\n- Failed: ${
-                  totalAttempted - successCount
-                }\n- Skipped (not PDFs): ${skippedCount}\n- Total attempted: ${totalAttempted}\n\nCheck browser console for details.`;
-                alert(message);
+          try {
+            const {
+              successCount,
+              totalAttempted,
+              skippedCount,
+              failedDetails,
+            } = await uploadMultipleDatasheets(normalizedComponents);
+            await loadComponents();
+
+            const failedCount = totalAttempted - successCount;
+            let message = `Successfully discovered ${data.discovered_count} components!\n\nDatasheet upload results:\n- Successfully uploaded: ${successCount}\n- Failed: ${failedCount}\n- Skipped (not PDFs): ${skippedCount}`;
+
+            if (failedCount > 0 && failedDetails?.length) {
+              const detailPreview = failedDetails
+                .slice(0, 3)
+                .map(
+                  (detail) => `• ${detail.componentId.slice(0, 8)}…: ${detail.message}`
+                )
+                .join("\n");
+              message += `\n\nRecent errors:\n${detailPreview}`;
+              if (failedDetails.length > 3) {
+                message += `\n...and ${failedDetails.length - 3} more`;
               }
-              loadComponents();
-            })
-            .catch((err) => {
-              console.error("Automatic datasheet uploads failed:", err);
-            });
+              message += `\n\nYou can retry import from the component drawer or upload manually.`;
+            }
+
+            alert(message);
+          } catch (err) {
+            console.error("Automatic datasheet uploads failed:", err);
+            alert(
+              `Successfully discovered ${data.discovered_count} components!\n\nNote: Datasheets could not be auto-imported. You can manually upload them from the component detail view.`
+            );
+          }
         } else {
           console.warn("No datasheets found or URLs were not valid");
           alert(
-            `Discovered ${data.discovered_count} components, but no datasheet URLs were found. You can manually upload datasheets from the component detail view.`
+            `Successfully discovered ${data.discovered_count} components!\n\nNote: No datasheet URLs were found. You can manually upload datasheets from the component detail view.`
           );
         }
       } else {
@@ -276,7 +294,9 @@ const ComponentDiscovery: React.FC = () => {
         "AI discovery failed";
       alert(`Discovery failed: ${message}`);
     } finally {
-      setIsDiscovering(false);
+      if (!discoveryRequestCompleted) {
+        setIsDiscovering(false);
+      }
     }
   };
 
@@ -296,13 +316,17 @@ const ComponentDiscovery: React.FC = () => {
     try {
       const response = await aiApi.scoreComponents(projectId);
       const data = response.data;
-      alert(
-        `Scoring complete: ${data.total_scores} scores generated (${data.scores_created} new, ${data.scores_updated} updated)`
-      );
+
       await saveProjectStatus("in_progress");
 
       // Trigger refresh of scores in any open drawer
       setScoresRefreshKey((prev) => prev + 1);
+      setIsScoring(false);
+
+      // Show single notification after everything is complete
+      alert(
+        `Scoring complete!\n\n${data.total_scores} total scores\n${data.scores_created} new scores\n${data.scores_updated} updated scores`
+      );
     } catch (error: any) {
       console.error("Failed to score components:", error);
       const message =
@@ -316,6 +340,17 @@ const ComponentDiscovery: React.FC = () => {
   /**
    * Handle generating a trade study report
    */
+  const broadcastReportStatus = (status: "idle" | "generating" | "ready" | "failed") => {
+    if (!projectId || typeof window === "undefined") {
+      return;
+    }
+    window.dispatchEvent(
+      new CustomEvent("tradeform-report-status", {
+        detail: { projectId, status },
+      })
+    );
+  };
+
   const handleGenerateTradeStudyReport = async () => {
     if (!projectId) return;
 
@@ -326,6 +361,7 @@ const ComponentDiscovery: React.FC = () => {
     if (!confirmed) return;
 
     setIsGeneratingReport(true);
+    broadcastReportStatus("generating");
     try {
       const response = await aiApi.generateTradeStudyReport(projectId);
       const data = response.data;
@@ -336,7 +372,12 @@ const ComponentDiscovery: React.FC = () => {
       });
       setLastReportSignature(componentsSignature);
       setIsReportStale(false);
+      setIsGeneratingReport(false);
       setShowReportDialog(true);
+      broadcastReportStatus("ready");
+
+      // Show single notification after everything is complete
+      alert("Trade study report generated successfully!");
     } catch (error: any) {
       console.error("Failed to generate trade study report:", error);
       const message =
@@ -344,6 +385,7 @@ const ComponentDiscovery: React.FC = () => {
         error?.message ||
         "Report generation failed";
       alert(`Failed to generate report: ${message}`);
+      broadcastReportStatus("failed");
     } finally {
       setIsGeneratingReport(false);
     }
@@ -547,7 +589,8 @@ const ComponentDiscovery: React.FC = () => {
           componentCount={components.length}
           isDiscovering={isDiscovering}
           isScoring={isScoring}
-          isUploading={isUploadingComponents}
+          isImportingExcel={isImportingExcel}
+          isDatasheetUploading={isDatasheetUploading}
           hasScores={hasScores}
           isGeneratingReport={isGeneratingReport}
           hasReport={Boolean(reportRecord?.report)}
@@ -614,7 +657,7 @@ const ComponentDiscovery: React.FC = () => {
                   <div
                     className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
                       step.status === "complete"
-                        ? "bg-green-500 text-white"
+                        ? "bg-gray-900 text-white"
                         : "bg-gray-300 text-white"
                     }`}
                   >
