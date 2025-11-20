@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Component, Criterion } from "../types";
 import DatasheetUploadCard from "./DatasheetUploadCard";
 import DatasheetStatusCard from "./DatasheetStatusCard";
@@ -24,9 +24,10 @@ const DatasheetTab: React.FC<DatasheetTabProps> = ({
   const [criteria, setCriteria] = useState<Criterion[]>([]);
   const [showAllCriteria, setShowAllCriteria] = useState(false);
   const [isAutoUploading, setIsAutoUploading] = useState(false);
-  const [lastAutoUploadKey, setLastAutoUploadKey] = useState<string | null>(null);
   const [autoUploadError, setAutoUploadError] = useState<string | null>(null);
   const [shouldPollStatus, setShouldPollStatus] = useState(true);
+  const lastAutoUploadKeyRef = useRef<string | null>(null);
+  const isAutoUploadingRef = useRef(false);
   const autoUploadKey = useMemo(() => {
     if (!component.datasheetUrl) return null;
     return `${component.id}:${component.datasheetUrl}`;
@@ -159,22 +160,22 @@ const DatasheetTab: React.FC<DatasheetTabProps> = ({
         return;
       }
 
+      const currentKey = `${component.id}:${component.datasheetUrl}`;
       if (
         !force &&
         (hasDatasheet ||
-          isAutoUploading ||
-          (autoUploadKey && lastAutoUploadKey === autoUploadKey))
+          isAutoUploadingRef.current ||
+          lastAutoUploadKeyRef.current === currentKey)
       ) {
         return;
       }
 
+      isAutoUploadingRef.current = true;
       setIsAutoUploading(true);
       setAutoUploadError(null);
       try {
         await uploadDatasheetFromUrl(component.id, component.datasheetUrl);
-        if (autoUploadKey) {
-          setLastAutoUploadKey(autoUploadKey);
-        }
+        lastAutoUploadKeyRef.current = currentKey;
         setHasDatasheet(true);
         setShouldPollStatus(true);
         setTimeout(() => setRefreshTrigger((prev) => prev + 1), 500);
@@ -184,7 +185,9 @@ const DatasheetTab: React.FC<DatasheetTabProps> = ({
           "Failed to auto-import datasheet. Please upload it manually.";
         setAutoUploadError(message);
         console.error("Automatic datasheet upload failed:", message);
+        lastAutoUploadKeyRef.current = currentKey;
       } finally {
+        isAutoUploadingRef.current = false;
         setIsAutoUploading(false);
       }
     },
@@ -192,17 +195,16 @@ const DatasheetTab: React.FC<DatasheetTabProps> = ({
       component.id,
       component.datasheetUrl,
       hasDatasheet,
-      isAutoUploading,
       uploadDatasheetFromUrl,
-      autoUploadKey,
-      lastAutoUploadKey,
     ]
   );
 
   useEffect(() => {
     setShouldPollStatus(true);
-    attemptAutoUpload();
-  }, [attemptAutoUpload]);
+    if (autoUploadKey) {
+      attemptAutoUpload();
+    }
+  }, [attemptAutoUpload, autoUploadKey]);
 
   const handleManualAutoImport = () => attemptAutoUpload(true);
 
