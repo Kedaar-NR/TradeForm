@@ -1,8 +1,4 @@
-import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
-} from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import type { ReactNode } from "react";
 import Layout from "./components/Layout";
 import Landing from "./pages/Landing";
@@ -17,7 +13,6 @@ import ComponentDiscovery from "./pages/ComponentDiscovery";
 import ProjectDetails from "./pages/ProjectDetails";
 import Results from "./pages/Results";
 import Documentation from "./pages/Documentation";
-import Help from "./pages/Help";
 import Templates from "./pages/Templates";
 import DatasheetLab from "./pages/DatasheetLab";
 
@@ -125,16 +120,6 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <Documentation />
-              </Layout>
-            </ProtectedRoute>
-          }
-        />
-        <Route
-          path="/help"
-          element={
-            <ProtectedRoute>
-              <Layout>
-                <Help />
               </Layout>
             </ProtectedRoute>
           }

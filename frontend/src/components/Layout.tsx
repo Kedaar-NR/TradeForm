@@ -70,22 +70,25 @@ const Layout = ({ children }: LayoutProps) => {
   return (
     <div className="min-h-screen flex bg-gray-50">
       {/* Sidebar */}
-      <aside className="w-64 bg-white border-r border-gray-200 flex-shrink-0 fixed h-screen flex flex-col">
+      <aside className="w-48 bg-white border-r border-gray-200 flex-shrink-0 fixed h-screen flex flex-col">
         <div className="h-full flex flex-col">
           {/* Logo */}
-          <div className="px-6 py-3 border-b border-gray-200 flex-shrink-0">
-            <div onClick={() => navigate("/dashboard")}>
+          <div className="px-4 py-3 border-b border-gray-200 flex-shrink-0 flex items-center justify-center">
+            <div
+              onClick={() => navigate("/dashboard")}
+              className="cursor-pointer"
+            >
               <Logo />
             </div>
           </div>
 
           {/* Navigation - Scrollable if needed */}
-          <nav className="flex-1 px-4 py-3 space-y-1 overflow-y-auto min-h-0">
+          <nav className="flex-1 px-2 py-3 space-y-1 overflow-y-auto min-h-0">
             {navigation.map((item) => (
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
-                className={`sidebar-link w-full ${
+                className={`sidebar-link ${
                   isActive(item.path) ? "sidebar-link-active" : ""
                 }`}
               >
@@ -101,7 +104,7 @@ const Layout = ({ children }: LayoutProps) => {
           </nav>
 
           {/* Footer - Always visible at bottom */}
-          <div className="px-4 py-2 border-t border-gray-200 space-y-2 flex-shrink-0">
+          <div className="px-2 py-2 border-t border-gray-200 space-y-2 flex-shrink-0">
             <button
               onClick={() => navigate("/new-project")}
               className="w-full btn-primary"
@@ -119,9 +122,9 @@ const Layout = ({ children }: LayoutProps) => {
       </aside>
 
       {/* Main content area */}
-      <div className="flex-1 flex flex-col min-w-0 ml-64">
+      <div className="flex-1 flex flex-col min-w-0 ml-48">
         {/* Top header */}
-        <header className="bg-white border-b border-gray-200 px-8 py-3 flex-shrink-0">
+        <header className="bg-white border-b border-gray-200 px-6 py-3 flex-shrink-0">
           <div className="flex items-center justify-end gap-3">
             <button
               onClick={() => navigate("/documentation")}
@@ -129,18 +132,12 @@ const Layout = ({ children }: LayoutProps) => {
             >
               Documentation
             </button>
-            <button
-              onClick={() => navigate("/help")}
-              className="text-sm text-gray-600 hover:text-gray-900"
-            >
-              Help
-            </button>
           </div>
         </header>
 
         {/* Page content */}
         <main className="flex-1 overflow-auto">
-          <div className="max-w-6xl mx-auto px-8 py-6">{children}</div>
+          <div className="max-w-6xl mx-auto pl-8 pr-6 py-6">{children}</div>
         </main>
       </div>
 
