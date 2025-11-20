@@ -46,7 +46,7 @@ const Features = () => {
               </button>
               <button
                 onClick={() => navigate("/login")}
-                className="text-xs sm:text-sm text-gray-700 hover:text-gray-900 font-medium px-3 sm:px-5 py-2 rounded-lg border border-gray-300 hover:border-gray-400 bg-white hover:bg-gray-50 transition-all shadow-sm hover:shadow-md"
+                className="hidden sm:inline-flex text-xs sm:text-sm text-gray-700 hover:text-gray-900 font-medium px-3 sm:px-5 py-2 rounded-lg border border-gray-300 hover:border-gray-400 bg-white hover:bg-gray-50 transition-all shadow-sm hover:shadow-md"
               >
                 Log In
               </button>
