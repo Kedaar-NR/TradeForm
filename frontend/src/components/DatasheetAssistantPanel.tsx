@@ -5,7 +5,21 @@ import DatasheetCitationsList from "./DatasheetCitationsList";
 import DatasheetSuggestedRatingCard from "./DatasheetSuggestedRatingCard";
 import FormattedMarkdown from "./FormattedMarkdown";
 import { getApiUrl, getAuthHeaders } from "../utils/apiHelpers";
-import { formatDisplayTime } from "../utils/dateHelpers";
+
+type DateInput = string | number | Date;
+
+const formatDisplayTime = (value: DateInput): string => {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return "";
+  }
+  return new Intl.DateTimeFormat("en-US", {
+    timeZone: "America/Los_Angeles",
+    hour: "numeric",
+    minute: "2-digit",
+    second: "2-digit",
+  }).format(date);
+};
 
 interface DatasheetAssistantPanelProps {
   testComponentId: string;
