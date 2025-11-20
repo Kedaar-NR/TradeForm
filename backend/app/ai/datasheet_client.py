@@ -227,9 +227,62 @@ def _extract_questions_from_text(text: str) -> List[str]:
     return questions
 
 
+def _extract_metric_candidates(chunks: List[Dict[str, Any]]) -> List[Dict[str, str]]:
+    """Extract candidate metric names + units from datasheet text."""
+    metrics: List[Dict[str, str]] = []
+    metric_pattern = re.compile(
+        r"([A-Za-z][A-Za-z0-9\s\-/]{3,40})[:\-]\s*([+-]?\d[\d\s\.,/-]*(?:[A-Za-z°/%]+)?)"
+    )
+    unit_pattern = re.compile(r"(dB|GHz|MHz|kHz|Hz|V|mV|A|mA|W|mW|°C|%)", re.IGNORECASE)
+    seen = set()
+
+    for chunk in chunks:
+        text = (chunk.get("text") or "").splitlines()
+        for line in text:
+            clean = line.strip()
+            if not clean or len(clean) > 90:
+                continue
+            match = metric_pattern.search(clean)
+            if not match:
+                continue
+            name = match.group(1).strip(" :-")
+            value = match.group(2).strip()
+            key = name.lower()
+            if key in seen:
+                continue
+            unit_match = unit_pattern.search(value)
+            unit = unit_match.group(0) if unit_match else ""
+            metrics.append({"name": name, "unit": unit})
+            seen.add(key)
+            if len(metrics) >= 8:
+                break
+        if len(metrics) >= 8:
+            break
+    return metrics
+
+
 def _generate_default_suggestions(context: Dict[str, Any]) -> List[str]:
-    """Generate default suggestions based on criteria"""
+    """Generate default suggestions based on datasheet chunks or criteria."""
     suggestions = []
+    datasheet_chunks = context.get("datasheet_chunks") or []
+    metrics = _extract_metric_candidates(datasheet_chunks)
+
+    if metrics:
+        for metric in metrics[:6]:
+            metric_name = metric.get("name", "").strip()
+            unit = metric.get("unit", "").strip()
+            if not metric_name:
+                continue
+            if unit:
+                suggestions.append(
+                    f"What does the datasheet list for {metric_name.lower()} in {unit}?"
+                )
+            else:
+                suggestions.append(
+                    f"What value does the datasheet specify for {metric_name.lower()}?"
+                )
+        if suggestions:
+            return suggestions
     
     criteria = context.get("criteria", [])
     component_type = context.get("project", {}).get("component_type", "component")
@@ -406,6 +459,7 @@ def _build_suggestions_prompt(context: Dict[str, Any]) -> str:
     project = context.get("project", {})
     component = context.get("component", {})
     criteria = context.get("criteria", [])
+    datasheet_chunks = context.get("datasheet_chunks", [])
     
     prompt_parts = [
         "You are an expert engineer helping identify key datasheet parameters to check.",
@@ -434,5 +488,15 @@ def _build_suggestions_prompt(context: Dict[str, Any]) -> str:
         "",
         "Provide the questions as a simple list, one per line, each ending with a question mark.",
     ])
+
+    if datasheet_chunks:
+        prompt_parts.append("")
+        prompt_parts.append("# Datasheet Highlights")
+        for chunk in datasheet_chunks[:4]:
+            label = chunk.get("section_title") or f"Page {chunk.get('page_number')}"
+            snippet = (chunk.get("text", "") or "").replace("\n", " ").strip()
+            if not snippet:
+                continue
+            prompt_parts.append(f"- {label}: {snippet[:180]}")
     
     return "\n".join(prompt_parts)

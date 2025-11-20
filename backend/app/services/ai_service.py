@@ -7,7 +7,7 @@ Encapsulates all AI-related operations using Anthropic Claude API.
 import os
 import json
 from typing import List, Dict, Any, Optional
-from anthropic import Anthropic
+from anthropic import Anthropic, HUMAN_PROMPT, AI_PROMPT
 
 from app import models
 
@@ -76,7 +76,13 @@ Return ONLY valid JSON, no markdown formatting, no explanations."""
                 messages=[{"role": "user", "content": prompt}]
             )
             
-            response_text = message.content[0].text.strip()
+            # Extract text from response, handling different block types
+            response_text = ""
+            for block in message.content:
+                text = getattr(block, 'text', '')
+                if text:
+                    response_text += text
+            response_text = response_text.strip()
             response_text = self._clean_json_response(response_text)
             
             components_data = json.loads(response_text)
@@ -152,7 +158,13 @@ Be realistic and critical. If you don't have enough information, use a moderate 
                 messages=[{"role": "user", "content": prompt}]
             )
 
-            response_text = message.content[0].text.strip()
+            # Extract text from response, handling different block types
+            response_text = ""
+            for block in message.content:
+                text = getattr(block, 'text', '')
+                if text:
+                    response_text += text
+            response_text = response_text.strip()
             response_text = self._clean_json_response(response_text)
 
             score_data = json.loads(response_text)
@@ -204,7 +216,13 @@ Respond in JSON format:
                 messages=[{"role": "user", "content": prompt}]
             )
 
-            response_text = message.content[0].text.strip()
+            # Extract text from response, handling different block types
+            response_text = ""
+            for block in message.content:
+                text = getattr(block, 'text', '')
+                if text:
+                    response_text += text
+            response_text = response_text.strip()
             response_text = self._clean_json_response(response_text)
 
             result = json.loads(response_text)
@@ -282,7 +300,13 @@ Return ONLY valid JSON, no markdown formatting, no explanations."""
                 messages=[{"role": "user", "content": prompt}]
             )
 
-            response_text = message.content[0].text.strip()
+            # Extract text from response, handling different block types
+            response_text = ""
+            for block in message.content:
+                text = getattr(block, 'text', '')
+                if text:
+                    response_text += text
+            response_text = response_text.strip()
             response_text = self._clean_json_response(response_text)
 
             criteria_data = json.loads(response_text)
@@ -346,7 +370,7 @@ Return ONLY valid JSON, no markdown formatting, no explanations."""
         
         desc_text = f"\nProject Description: {project_description}" if project_description else ""
         
-        prompt = f"""You are an expert systems engineer writing a comprehensive trade study report.
+        prompt = f"""You are an expert systems engineer writing a comprehensive, publication-ready trade study report.
 
 Project Information:
 - Project Name: {project_name}
@@ -391,11 +415,20 @@ Task: Write a professional engineering trade study report that includes:
    - Explain why this component best meets the evaluation criteria
    - Address any potential concerns or limitations
 
-6. **Conclusion** (1 paragraph)
-   - Summarize the key findings
-   - Reinforce the recommendation
+6. **Risk, Schedule, and Supply Considerations** (1-2 paragraphs)
+   - Discuss availability, vendor reliability, supply chain risks, and integration considerations for the recommended component
+   - Note any certification, qualification, or schedule impacts
 
-Write the report in a professional, technical style suitable for engineering documentation. Be specific and reference actual scores, weights, and rationales from the data provided. The report should be comprehensive but concise (approximately 1000-1500 words)."""
+7. **Conclusion & Next Steps** (1 paragraph)
+   - Summarize key findings
+   - Reinforce the recommendation
+   - Suggest follow-on actions (e.g., prototype build, vendor negotiation, additional testing)
+
+Formatting requirements:
+- Use Markdown headings and subheadings exactly as requested above.
+- Include bullet lists where appropriate.
+- Reference actual numbers (scores, weights, raw values) wherever they strengthen the argument.
+- Target ~1500-2000 words with clear, highly detailed prose that would satisfy a technical design review."""
 
         try:
             message = self.client.messages.create(
@@ -404,7 +437,13 @@ Write the report in a professional, technical style suitable for engineering doc
                 messages=[{"role": "user", "content": prompt}]
             )
 
-            return message.content[0].text.strip()
+            # Extract text from response, handling different block types
+            response_text = ""
+            for block in message.content:
+                text = getattr(block, 'text', '')
+                if text:
+                    response_text += text
+            return response_text.strip()
 
         except Exception as e:
             raise RuntimeError(f"AI report generation failed: {str(e)}")
@@ -443,7 +482,13 @@ If asked about anything else, politely redirect to TradeForm topics."""
                 messages=[{"role": "user", "content": question}]
             )
 
-            return message.content[0].text.strip()
+            # Extract text from response, handling different block types
+            response_text = ""
+            for block in message.content:
+                text = getattr(block, 'text', '')
+                if text:
+                    response_text += text
+            return response_text.strip()
 
         except Exception as e:
             raise RuntimeError(f"AI chat failed: {str(e)}")
@@ -469,4 +514,3 @@ def get_ai_service() -> AIService:
     if _ai_service is None:
         _ai_service = AIService()
     return _ai_service
-
