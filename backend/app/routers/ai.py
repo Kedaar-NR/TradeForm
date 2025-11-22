@@ -48,6 +48,7 @@ from app.database import get_db
 from app.services.ai_service import get_ai_service
 from app.services.scoring_service import get_scoring_service
 from app.services.change_logger import log_project_change
+from app.services.word_service import get_word_service
 from app.utils.file_helpers import is_pdf_content
 
 router = APIRouter(tags=["ai"])
@@ -845,6 +846,35 @@ def download_trade_study_report_pdf(project_id: UUID, db: Session = Depends(get_
         "Content-Disposition": f"attachment; filename={filename}"
     }
     return StreamingResponse(pdf_buffer, media_type="application/pdf", headers=headers)
+
+
+@router.get("/api/projects/{project_id}/report/docx")
+def download_trade_study_report_docx(project_id: UUID, db: Session = Depends(get_db)):
+    """Download the stored trade study report as a Word (.docx) file."""
+    project = db.query(models.Project).filter(models.Project.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if not project.trade_study_report:
+        raise HTTPException(
+            status_code=404,
+            detail="No trade study report found for this project"
+        )
+
+    word_service = get_word_service()
+    docx_buffer = word_service.generate_report_docx(project.trade_study_report)
+    safe_name = (project.name or "trade_study").lower().replace(" ", "_")
+    safe_name = "".join(ch if ch.isalnum() or ch in ("_", "-") else "_" for ch in safe_name)
+    filename = f"trade_study_report_{safe_name}.docx"
+
+    headers = {
+        "Content-Disposition": f"attachment; filename={filename}"
+    }
+    return StreamingResponse(
+        docx_buffer,
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers=headers
+    )
 
 
 @router.get("/api/proxy-pdf")

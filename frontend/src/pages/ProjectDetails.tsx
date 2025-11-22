@@ -286,6 +286,48 @@ const ProjectDetails: React.FC = () => {
         }
     };
 
+    const handleDownloadReportWord = async () => {
+        if (!projectId) return;
+
+        setIsDownloadingReport(true);
+        try {
+            const response = await fetch(
+                getApiUrl(`/api/projects/${projectId}/report/docx`),
+                {
+                    headers: {
+                        ...getAuthHeaders(),
+                    },
+                }
+            );
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || "Failed to download report");
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            const safeName =
+                project?.name?.toLowerCase().replace(/\s+/g, "_") || projectId;
+            a.href = url;
+            a.download = `trade_study_report_${safeName}.docx`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            window.URL.revokeObjectURL(url);
+        } catch (error: any) {
+            console.error("Failed to download report Word:", error);
+            const message =
+                error?.response?.data?.detail ||
+                error?.message ||
+                "Failed to download report";
+            alert(`Download failed: ${message}`);
+        } finally {
+            setIsDownloadingReport(false);
+        }
+    };
+
     if (isLoading) {
         return (
             <div className="min-h-screen flex items-center justify-center">
@@ -551,6 +593,33 @@ const ProjectDetails: React.FC = () => {
                                 </>
                             )}
                         </button>
+                        {project.tradeStudyReport && (
+                            <button
+                                onClick={handleDownloadReportWord}
+                                className="btn-secondary flex items-center gap-2"
+                                disabled={
+                                    isGeneratingReport ||
+                                    isDownloadingReport ||
+                                    components.length === 0 ||
+                                    criteria.length === 0
+                                }
+                            >
+                                <svg
+                                    className="w-5 h-5"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                >
+                                    <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                                    />
+                                </svg>
+                                Download Word
+                            </button>
+                        )}
                     </div>
                 </div>
 

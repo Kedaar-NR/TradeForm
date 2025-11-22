@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { resultsApi, criteriaApi } from "../services/api";
 import * as XLSX from "xlsx";
+import { getApiUrl, getAuthHeaders } from "../utils/apiHelpers";
 import {
   BarChart,
   Bar,
@@ -259,6 +260,43 @@ const Results: React.FC = () => {
     }
   };
 
+  const handleExportWord = async () => {
+    if (!projectId) return;
+    try {
+      const response = await fetch(
+        getApiUrl(`/api/projects/${projectId}/report/docx`),
+        {
+          headers: {
+            ...getAuthHeaders(),
+          },
+        }
+      );
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to export Word");
+      }
+
+      const blob = await response.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      const dateSlug = formatDateForFilename(new Date());
+      a.href = url;
+      a.download = `trade_study_report_${projectId}_${dateSlug}.docx`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+    } catch (error: any) {
+      console.error("Failed to export Word:", error);
+      alert(
+        `Failed to export Word: ${
+          error.response?.data?.detail || error.message
+        }`
+      );
+    }
+  };
+
   const getScoreColor = (score: number) => {
     if (score >= 8) return "#10b981"; // gray-1000
     if (score >= 6) return "#eab308"; // yellow-500
@@ -435,6 +473,25 @@ const Results: React.FC = () => {
                 />
               </svg>
               Export Full Report (Excel)
+            </button>
+            <button
+              onClick={handleExportWord}
+              className="btn-secondary flex items-center gap-2"
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              Export Report (Word)
             </button>
             <button onClick={handleExportCSV} className="btn-secondary">
               Export CSV
