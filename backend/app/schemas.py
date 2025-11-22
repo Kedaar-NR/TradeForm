@@ -268,3 +268,8 @@ class TradeStudyReportResponse(BaseModel):
     """Stored trade study report with metadata"""
     report: str
     generated_at: Optional[datetime] = None
+
+class DiscoverComponentsRequest(BaseModel):
+    """Request to discover components with optional location preference and number of components"""
+    location_preference: Optional[str] = None
+    number_of_components: Optional[int] = None

@@ -54,7 +54,11 @@ router = APIRouter(tags=["ai"])
 
 
 @router.post("/api/projects/{project_id}/discover")
-def discover_components(project_id: UUID, db: Session = Depends(get_db)):
+def discover_components(
+    project_id: UUID,
+    request: schemas.DiscoverComponentsRequest = schemas.DiscoverComponentsRequest(),
+    db: Session = Depends(get_db)
+):
     """Trigger AI component discovery using Anthropic Claude"""
     project = db.query(models.Project).filter(models.Project.id == project_id).first()
     if not project:
@@ -69,7 +73,9 @@ def discover_components(project_id: UUID, db: Session = Depends(get_db)):
             project_name=project.name,
             component_type=project.component_type,
             description=project.description,
-            criteria_names=criteria_names
+            criteria_names=criteria_names,
+            location_preference=request.location_preference,
+            number_of_components=request.number_of_components
         )
         
         discovered_components = []

@@ -307,12 +307,23 @@ export const datasheetsApi = {
 
 // AI-powered features
 export const aiApi = {
-    discoverComponents: (projectId: string) =>
+    discoverComponents: (
+        projectId: string,
+        locationPreference?: string,
+        numberOfComponents?: number
+    ) =>
         api.post<{
             status: string;
             discovered_count: number;
             components: Component[];
-        }>(`/api/projects/${projectId}/discover`),
+        }>(`/api/projects/${projectId}/discover`, {
+            ...(locationPreference
+                ? { location_preference: locationPreference }
+                : {}),
+            ...(numberOfComponents
+                ? { number_of_components: numberOfComponents }
+                : {}),
+        }),
     scoreComponents: (projectId: string) =>
         api.post<{
             status: string;

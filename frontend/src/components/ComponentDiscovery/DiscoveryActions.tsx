@@ -2,7 +2,7 @@
  * Component discovery actions including AI discovery and bulk operations.
  */
 
-import React, { useRef } from "react";
+import React, { useRef, useState } from "react";
 
 interface DiscoveryActionsProps {
     projectId: string;
@@ -16,7 +16,10 @@ interface DiscoveryActionsProps {
     hasReport: boolean;
     isReportStale: boolean;
     isDownloadingReport: boolean;
-    onDiscover: () => Promise<void>;
+    onDiscover: (
+        locationPreference?: string,
+        numberOfComponents?: number
+    ) => Promise<void>;
     onScoreAll: () => Promise<void>;
     onImportExcel: (
         event: React.ChangeEvent<HTMLInputElement>
@@ -48,6 +51,9 @@ export const DiscoveryActions: React.FC<DiscoveryActionsProps> = ({
     onAddComponent,
 }) => {
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const [showLocationDialog, setShowLocationDialog] = useState(false);
+    const [locationPreference, setLocationPreference] = useState("");
+    const [numberOfComponents, setNumberOfComponents] = useState("");
     const canDownloadReport = hasReport && !isReportStale;
     const reportButtonDisabled = canDownloadReport
         ? isDownloadingReport
@@ -65,8 +71,102 @@ export const DiscoveryActions: React.FC<DiscoveryActionsProps> = ({
         isImportingExcel ||
         isDatasheetUploading;
 
+    const handleDiscoverClick = () => {
+        setShowLocationDialog(true);
+    };
+
+    const handleDialogConfirm = async () => {
+        setShowLocationDialog(false);
+        const location = locationPreference.trim() || undefined;
+        const numComponents = numberOfComponents.trim()
+            ? parseInt(numberOfComponents.trim(), 10)
+            : undefined;
+        await onDiscover(location, numComponents);
+        setLocationPreference(""); // Reset after discovery
+        setNumberOfComponents(""); // Reset after discovery
+    };
+
+    const handleDialogCancel = () => {
+        setShowLocationDialog(false);
+        setLocationPreference("");
+        setNumberOfComponents("");
+    };
+
     return (
         <>
+            {/* Discovery Preferences Dialog */}
+            {showLocationDialog && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                            Discovery Preferences
+                        </h3>
+                        <p className="text-sm text-gray-600 mb-4">
+                            Optionally specify preferences for component
+                            discovery. Leave fields empty to use defaults.
+                        </p>
+                        <div className="mb-4">
+                            <label
+                                htmlFor="location-preference"
+                                className="block text-sm font-medium text-gray-700 mb-2"
+                            >
+                                Location Preference (Optional)
+                            </label>
+                            <input
+                                id="location-preference"
+                                type="text"
+                                value={locationPreference}
+                                onChange={(e) =>
+                                    setLocationPreference(e.target.value)
+                                }
+                                placeholder="e.g., United States, Europe, Asia-Pacific"
+                                className="input-field"
+                            />
+                        </div>
+                        <div className="mb-4">
+                            <label
+                                htmlFor="number-of-components"
+                                className="block text-sm font-medium text-gray-700 mb-2"
+                            >
+                                Number of Components (Optional)
+                            </label>
+                            <input
+                                id="number-of-components"
+                                type="number"
+                                min="1"
+                                value={numberOfComponents}
+                                onChange={(e) =>
+                                    setNumberOfComponents(e.target.value)
+                                }
+                                placeholder="e.g., 5, 10, 15"
+                                className="input-field"
+                            />
+                            <p className="text-xs text-gray-500 mt-1">
+                                Leave empty for default (5-10 components)
+                            </p>
+                        </div>
+                        <div className="flex gap-3 justify-end">
+                            <button
+                                onClick={handleDialogCancel}
+                                className="btn-secondary"
+                                disabled={isDiscovering}
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleDialogConfirm}
+                                className="btn-primary"
+                                disabled={isDiscovering}
+                            >
+                                {isDiscovering
+                                    ? "Discovering..."
+                                    : "Discover Components"}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* AI Discovery Section */}
             <div className="card p-6 mb-8 bg-gradient-to-r from-gray-100 to-teal-50 border-gray-300">
                 <div className="flex items-start justify-between">
@@ -81,7 +181,7 @@ export const DiscoveryActions: React.FC<DiscoveryActionsProps> = ({
                             databases and distributor catalogs.
                         </p>
                         <button
-                            onClick={onDiscover}
+                            onClick={handleDiscoverClick}
                             disabled={discoveryDisabled}
                             className="btn-primary disabled:cursor-not-allowed flex items-center justify-center"
                         >

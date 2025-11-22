@@ -28,7 +28,9 @@ class AIService:
         project_name: str,
         component_type: str,
         description: Optional[str] = None,
-        criteria_names: Optional[List[str]] = None
+        criteria_names: Optional[List[str]] = None,
+        location_preference: Optional[str] = None,
+        number_of_components: Optional[int] = None
     ) -> List[Dict[str, Any]]:
         """
         Discover relevant components for a project using AI.
@@ -38,12 +40,32 @@ class AIService:
             component_type: Type of component to discover
             description: Optional project description
             criteria_names: Optional list of evaluation criteria
+            location_preference: Optional location preference for component sourcing
+            number_of_components: Optional number of components to discover
             
         Returns:
             List of component dictionaries with manufacturer, part_number, etc.
         """
         criteria_text = f"- Evaluation Criteria: {', '.join(criteria_names)}" if criteria_names else ""
         desc_text = f"- Description: {description}" if description else ""
+        location_text = f"- Location Preference: {location_preference}" if location_preference else ""
+        
+        # Build task list conditionally
+        base_tasks = """1. Search the web to find the actual manufacturer's website
+2. Find the best/specific manufacturer page for that exact part number
+3. Prioritize finding a direct PDF datasheet link from the manufacturer
+4. If no PDF is available, provide the specific product page URL from the manufacturer
+5. As a last resort, provide distributor links but ONLY if manufacturer links are unavailable"""
+        
+        location_task = f"\n6. IMPORTANT: Prioritize components from manufacturers/distributors located in: {location_preference}" if location_preference else ""
+        
+        tasks_text = base_tasks + location_task
+        
+        # Build the number of components instruction
+        if number_of_components:
+            component_count_text = f"Discover exactly {number_of_components} commercially available components"
+        else:
+            component_count_text = "Discover 5-10 commercially available components"
         
         prompt = f"""You are an expert component engineer helping to discover components for a trade study.
 
@@ -52,13 +74,10 @@ Project Details:
 - Project Name: {project_name}
 {desc_text}
 {criteria_text}
+{location_text}
 
-Task: Discover 5-10 commercially available components that match this component type. For each component, you MUST:
-1. Search the web to find the actual manufacturer's website
-2. Find the best/specific manufacturer page for that exact part number
-3. Prioritize finding a direct PDF datasheet link from the manufacturer
-4. If no PDF is available, provide the specific product page URL from the manufacturer
-5. As a last resort, provide distributor links but ONLY if manufacturer links are unavailable
+Task: {component_count_text} that match this component type. For each component, you MUST:
+{tasks_text}
 
 Format your response as a JSON array of objects with these fields:
 - manufacturer (string)
