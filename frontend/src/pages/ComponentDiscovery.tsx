@@ -58,7 +58,6 @@ const ComponentDiscovery: React.FC = () => {
     const [scoresRefreshKey, setScoresRefreshKey] = useState(0);
     const [hasScores, setHasScores] = useState(false);
     const [isGeneratingReport, setIsGeneratingReport] = useState(false);
-    const [generatedReport, setGeneratedReport] = useState<string | null>(null);
     const [showReportDialog, setShowReportDialog] = useState(false);
     const [reportRecord, setReportRecord] = useState<{
         report: string;
@@ -399,7 +398,6 @@ const ComponentDiscovery: React.FC = () => {
         try {
             const response = await aiApi.generateTradeStudyReport(projectId);
             const data = response.data;
-            setGeneratedReport(data.report);
             setReportRecord({
                 report: data.report,
                 generatedAt: data.generated_at,
