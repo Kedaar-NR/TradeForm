@@ -28,6 +28,7 @@ import { DiscoveryActions } from "../components/ComponentDiscovery/DiscoveryActi
 import { TradeStudyReportDialog } from "../components/TradeStudyReportDialog";
 import { useComponentManagement } from "../hooks/useComponentManagement";
 import { useDatasheetUpload } from "../hooks/useDatasheetUpload";
+import { getApiUrl, getAuthHeaders } from "../utils/apiHelpers";
 
 const createComponentsSignature = (list: Component[]) =>
     list
@@ -452,6 +453,45 @@ const ComponentDiscovery: React.FC = () => {
         }
     }, [projectId]);
 
+    const handleDownloadReportWord = useCallback(async () => {
+        if (!projectId) return;
+        setIsDownloadingReport(true);
+        try {
+            const response = await fetch(
+                getApiUrl(`/api/projects/${projectId}/report/docx`),
+                {
+                    headers: {
+                        ...getAuthHeaders(),
+                    },
+                }
+            );
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(errorText || "Failed to download report");
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `trade_study_report_${projectId}.docx`;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            window.URL.revokeObjectURL(url);
+        } catch (error: any) {
+            console.error("Failed to download report Word:", error);
+            const message =
+                error?.response?.data?.detail ||
+                error?.message ||
+                "Failed to download report";
+            alert(`Download failed: ${message}`);
+        } finally {
+            setIsDownloadingReport(false);
+        }
+    }, [projectId]);
+
     /**
      * Handle Excel import
      */
@@ -684,6 +724,12 @@ const ComponentDiscovery: React.FC = () => {
                     }
                     canDownloadPdf={Boolean(reportRecord?.report)}
                     isDownloadingPdf={isDownloadingReport}
+                    onDownloadWord={
+                        reportRecord?.report
+                            ? handleDownloadReportWord
+                            : undefined
+                    }
+                    isDownloadingWord={isDownloadingReport}
                 />
 
                 <div className="mt-12">
