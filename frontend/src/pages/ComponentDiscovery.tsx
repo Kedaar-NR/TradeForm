@@ -638,7 +638,11 @@ const ComponentDiscovery: React.FC = () => {
                     onImportExcel={handleImportExcel}
                     onExportExcel={handleExportComponentsExcel}
                     onGenerateTradeStudyReport={handleGenerateTradeStudyReport}
-                    onDownloadReport={handleDownloadReport}
+                    onViewReport={async () => {
+                        // Reload report to ensure we have the latest version
+                        await loadTradeStudyReport();
+                        setShowReportDialog(true);
+                    }}
                     onAddComponent={() => setShowAddForm(true)}
                 />
 
@@ -673,7 +677,7 @@ const ComponentDiscovery: React.FC = () => {
                 {/* Trade Study Report Dialog */}
                 <TradeStudyReportDialog
                     isOpen={showReportDialog}
-                    report={generatedReport}
+                    report={reportRecord?.report || null}
                     onClose={() => setShowReportDialog(false)}
                     onDownloadPdf={
                         reportRecord?.report ? handleDownloadReport : undefined

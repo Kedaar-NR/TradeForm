@@ -13,6 +13,7 @@ import { ComponentsSection } from "../components/ProjectDetails/ComponentsSectio
 import { CriteriaSection } from "../components/ProjectDetails/CriteriaSection";
 import CollaboratorsSection from "../components/ProjectDetails/CollaboratorsSection";
 import ProjectFileTray from "../components/ProjectDetails/ProjectFileTray";
+import { TradeStudyReportDialog } from "../components/TradeStudyReportDialog";
 import { formatEnumValue } from "../utils/datasheetHelpers";
 import { getApiUrl, getAuthHeaders } from "../utils/apiHelpers";
 import type { ProjectChange } from "../types";
@@ -70,6 +71,7 @@ const ProjectDetails: React.FC = () => {
     const [activeTab, setActiveTab] = useState<TabType>("overview");
     const [isDownloadingReport, setIsDownloadingReport] = useState(false);
     const [isGeneratingReport, setIsGeneratingReport] = useState(false);
+    const [showReportDialog, setShowReportDialog] = useState(false);
     const [changes, setChanges] = useState<ProjectChange[]>([]);
     const [isLoadingChanges, setIsLoadingChanges] = useState(false);
 
@@ -505,7 +507,7 @@ const ProjectDetails: React.FC = () => {
                         <button
                             onClick={
                                 project.tradeStudyReport
-                                    ? handleDownloadReportPdf
+                                    ? () => setShowReportDialog(true)
                                     : handleGenerateReport
                             }
                             className="btn-secondary flex items-center gap-2"
@@ -569,10 +571,16 @@ const ProjectDetails: React.FC = () => {
                                             strokeLinecap="round"
                                             strokeLinejoin="round"
                                             strokeWidth={2}
-                                            d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"
+                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                                        />
+                                        <path
+                                            strokeLinecap="round"
+                                            strokeLinejoin="round"
+                                            strokeWidth={2}
+                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
                                         />
                                     </svg>
-                                    Download Report
+                                    View Report
                                 </>
                             ) : (
                                 <>
@@ -795,6 +803,16 @@ const ProjectDetails: React.FC = () => {
                     <CollaboratorsSection projectId={projectId} />
                 )}
             </div>
+
+            {/* Trade Study Report Dialog */}
+            <TradeStudyReportDialog
+                isOpen={showReportDialog}
+                report={project.tradeStudyReport || null}
+                onClose={() => setShowReportDialog(false)}
+                onDownloadPdf={handleDownloadReportPdf}
+                canDownloadPdf={Boolean(project.tradeStudyReport)}
+                isDownloadingPdf={isDownloadingReport}
+            />
         </div>
     );
 };
