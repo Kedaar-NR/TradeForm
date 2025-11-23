@@ -605,6 +605,22 @@ def _build_report_pdf(report_text: str) -> io.BytesIO:
 
 def _build_styled_report_pdf(report_text: str) -> io.BytesIO:
     """High-quality PDF with headings, subheadings, and bullet formatting."""
+    if not REPORTLAB_AVAILABLE:
+        raise RuntimeError("reportlab is not available")
+    
+    # Type assertions for type checker - these are guaranteed to be non-None when REPORTLAB_AVAILABLE is True
+    assert SimpleDocTemplate is not None
+    assert letter is not None
+    assert inch is not None
+    assert HexColor is not None
+    assert getSampleStyleSheet is not None
+    assert ParagraphStyle is not None
+    assert TA_LEFT is not None
+    assert Paragraph is not None
+    assert HRFlowable is not None
+    assert ListItem is not None
+    assert ListFlowable is not None
+    
     blocks = _parse_report_blocks(report_text)
     buffer = io.BytesIO()
 
@@ -633,7 +649,7 @@ def _build_styled_report_pdf(report_text: str) -> io.BytesIO:
             fontSize=18,
             leading=22,
             textColor=palette["ink"],
-            alignment=TA_LEFT,
+            alignment=TA_LEFT,  # type: ignore
             spaceAfter=10,
         )
     )
@@ -645,7 +661,7 @@ def _build_styled_report_pdf(report_text: str) -> io.BytesIO:
             fontSize=10.5,
             leading=13,
             textColor=palette["muted"],
-            alignment=TA_LEFT,
+            alignment=TA_LEFT,  # type: ignore
             spaceAfter=12,
         )
     )
@@ -707,12 +723,12 @@ def _build_styled_report_pdf(report_text: str) -> io.BytesIO:
                         Paragraph(str(item), styles["Body"]),
                         leftIndent=6,
                     )
-                    for item in block.get("items", [])
+                    for item in block.get("items", [])  # type: ignore
                 ]
                 if items:
                     story.append(
-                        ListFlowable(
-                            items,
+                        ListFlowable(  # type: ignore[arg-type]
+                            items,  # type: ignore[arg-type]
                             bulletType="bullet",
                             start="•",
                             bulletFontName="Helvetica-Bold",
@@ -723,7 +739,7 @@ def _build_styled_report_pdf(report_text: str) -> io.BytesIO:
                         )
                     )
 
-    doc.build(story)
+    doc.build(story)  # type: ignore
     buffer.seek(0)
     return buffer
 
