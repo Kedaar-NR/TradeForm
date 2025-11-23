@@ -13,6 +13,7 @@ interface UploadSummary {
   totalAttempted: number;
   skippedCount: number;
   failedDetails?: Array<{ componentId: string; message: string }>;
+  skippedDetails?: Array<{ componentId: string; message: string }>;
 }
 
 export const useDatasheetUpload = () => {
@@ -32,43 +33,72 @@ export const useDatasheetUpload = () => {
     }
 
     try {
-      console.log("Downloading PDF from URL:", trimmedUrl);
+      console.log("========================================");
+      console.log("STARTING AUTO-IMPORT PROCESS");
+      console.log("Component ID:", componentId);
+      console.log("PDF URL:", trimmedUrl);
+      console.log("API Base URL:", API_BASE_URL);
 
       const apiUrl = API_BASE_URL;
-      const uploadResponse = await fetch(
-        `${apiUrl}/api/components/${componentId}/datasheet/from-url`,
-        {
-          method: "POST",
-          headers: {
-            ...getAuthHeaders(),
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ url: trimmedUrl }),
-        }
-      );
+      const endpoint = `${apiUrl}/api/components/${componentId}/datasheet/from-url`;
+      console.log("API Endpoint:", endpoint);
+
+      const requestBody = { url: trimmedUrl };
+      console.log("Request body:", JSON.stringify(requestBody));
+
+      const headers = {
+        ...getAuthHeaders(),
+        "Content-Type": "application/json",
+      };
+      console.log("Request headers:", headers);
+
+      console.log("Sending POST request to backend...");
+      const uploadResponse = await fetch(endpoint, {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify(requestBody),
+      });
+
+      console.log("Response status:", uploadResponse.status);
+      console.log("Response status text:", uploadResponse.statusText);
 
       if (!uploadResponse.ok) {
         let errorMessage = "Upload failed";
+        let errorDetails = null;
         try {
           const errorData = await uploadResponse.json();
+          console.log("Error response data:", errorData);
           errorMessage = errorData.detail || errorData.message || errorMessage;
-        } catch {
+          errorDetails = errorData;
+        } catch (parseErr) {
+          console.error("Could not parse error response:", parseErr);
           errorMessage = `Upload failed with status ${uploadResponse.status}`;
         }
+        console.error("========================================");
+        console.error("AUTO-IMPORT FAILED");
+        console.error("Status:", uploadResponse.status);
+        console.error("Error message:", errorMessage);
+        console.error("Error details:", errorDetails);
+        console.error("========================================");
         throw new Error(errorMessage);
       }
 
-      console.log("Successfully uploaded datasheet from URL");
+      const responseData = await uploadResponse.json();
+      console.log("Success response data:", responseData);
+      console.log("========================================");
+      console.log("AUTO-IMPORT SUCCESSFUL");
+      console.log("========================================");
       return true;
     } catch (err: any) {
       const message =
         err?.message || "Failed to upload datasheet from provided URL";
-      console.error("Upload from URL error:", message);
-      console.error("Error details:", {
-        message,
-        url: url,
-        componentId: componentId,
-      });
+      console.error("========================================");
+      console.error("EXCEPTION IN AUTO-IMPORT");
+      console.error("Error message:", message);
+      console.error("Error object:", err);
+      console.error("URL:", url);
+      console.error("Component ID:", componentId);
+      console.error("========================================");
       throw new Error(message);
     }
   };
@@ -83,12 +113,28 @@ export const useDatasheetUpload = () => {
     let skippedCount = 0;
     let successCount = 0;
     const failedDetails: Array<{ componentId: string; message: string }> = [];
+    const skippedDetails: Array<{ componentId: string; message: string }> = [];
     let totalAttempted = 0;
 
     for (const comp of components) {
       const url = comp.datasheetUrl?.trim();
       if (!url) {
         skippedCount++;
+        skippedDetails.push({
+          componentId: comp.id,
+          message: "No datasheet URL provided",
+        });
+        continue;
+      }
+
+      const urlLower = url.toLowerCase();
+      const looksLikePdf = urlLower.includes(".pdf") || urlLower.endsWith("/pdf");
+      if (!looksLikePdf) {
+        skippedCount++;
+        skippedDetails.push({
+          componentId: comp.id,
+          message: "Link does not look like a direct PDF URL",
+        });
         continue;
       }
 
@@ -97,15 +143,34 @@ export const useDatasheetUpload = () => {
         await uploadDatasheetFromUrl(comp.id, url);
         successCount++;
       } catch (err: any) {
-        failedDetails.push({
-          componentId: comp.id,
-          message: err?.message || "Failed to upload datasheet",
-        });
+        const message =
+          err?.message || "Failed to upload datasheet";
+        const isNotPdfError =
+          message.toLowerCase().includes("did not return a pdf");
+
+        if (isNotPdfError) {
+          skippedCount++;
+          skippedDetails.push({
+            componentId: comp.id,
+            message: "URL did not return a PDF. Please supply a direct PDF link.",
+          });
+        } else {
+          failedDetails.push({
+            componentId: comp.id,
+            message,
+          });
+        }
       }
     }
 
     try {
-      return { successCount, totalAttempted, skippedCount, failedDetails };
+      return {
+        successCount,
+        totalAttempted,
+        skippedCount,
+        failedDetails,
+        skippedDetails,
+      };
     } finally {
       setIsUploading(false);
     }

@@ -183,22 +183,47 @@ const DatasheetUploadCard: React.FC<DatasheetUploadCardProps> = ({
               <p className="mt-1 text-[11px] break-all text-indigo-700">
                 {autoImportUrl}
               </p>
-              {onAutoImport && (
+              {autoImportError && (
+                <div className="mt-2 text-xs text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1.5">
+                  <p className="font-semibold mb-1">Import Failed:</p>
+                  <p>{autoImportError}</p>
+                  <p className="mt-1 text-[10px] text-red-600">
+                    Check browser console for details or try uploading the PDF manually
+                  </p>
+                </div>
+              )}
+              {onAutoImport ? (
                 <button
                   type="button"
-                  onClick={onAutoImport}
-                  className="mt-2 inline-flex items-center justify-center rounded-md border border-indigo-200 px-3 py-1 text-xs font-medium text-indigo-700 hover:bg-white"
+                  onClick={() => {
+                    console.log("Manual retry button clicked for URL:", autoImportUrl);
+                    onAutoImport();
+                  }}
+                  className="mt-2 inline-flex items-center justify-center rounded-md bg-indigo-600 px-4 py-1.5 text-xs font-semibold text-white hover:bg-indigo-700 transition-colors shadow-sm"
                 >
-                  Retry Import
+                  <svg
+                    className="w-4 h-4 mr-1.5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"
+                    />
+                  </svg>
+                  {autoImportError ? "Retry Import from URL" : "Import from URL"}
                 </button>
+              ) : (
+                <p className="mt-2 text-xs text-indigo-600 italic">
+                  Auto-import will begin shortly...
+                </p>
               )}
             </>
           )}
         </div>
-      )}
-
-      {autoImportError && (
-        <p className="text-xs text-red-600 text-center mb-3">{autoImportError}</p>
       )}
 
       {/* Drag and Drop Area */}

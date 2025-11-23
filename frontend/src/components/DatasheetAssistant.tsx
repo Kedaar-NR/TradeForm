@@ -325,26 +325,52 @@ const DatasheetAssistant: React.FC<DatasheetAssistantProps> = ({
             <div>
               <h3 className="text-sm font-medium text-gray-900 mb-2">Answer</h3>
               <FormattedMarkdown content={answer.answer} className="text-gray-700" />
-              {answer.confidence !== undefined && answer.confidence !== null && (
-                <div className="mt-3 flex items-center">
-                  <span className="text-xs text-gray-500 mr-2">Confidence:</span>
-                  <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden max-w-xs">
-                    <div 
-                      className={`h-full ${
-                        answer.confidence > 0.7 
-                          ? 'bg-green-500' 
-                          : answer.confidence > 0.4 
-                          ? 'bg-yellow-500' 
-                          : 'bg-red-500'
-                      }`}
-                      style={{ width: `${answer.confidence * 100}%` }}
-                    />
+              {(() => {
+                const missingPatterns = [
+                  /not found/i,
+                  /does not specify/i,
+                  /not provided/i,
+                  /no information/i,
+                ];
+                const isMissing = missingPatterns.some((p) =>
+                  p.test(answer.answer || "")
+                );
+                const baseConfidence =
+                  answer.confidence !== undefined && answer.confidence !== null
+                    ? answer.confidence
+                    : 0;
+                const adjustedConfidence = isMissing
+                  ? Math.min(baseConfidence, 0.3)
+                  : baseConfidence;
+                const barColor =
+                  adjustedConfidence > 0.7
+                    ? "bg-green-500"
+                    : adjustedConfidence > 0.4
+                    ? "bg-yellow-500"
+                    : "bg-red-500";
+
+                return (
+                  <div className="mt-3 space-y-1">
+                    {isMissing && (
+                      <div className="inline-flex items-center text-xs font-medium text-amber-700 bg-amber-100 px-2 py-1 rounded">
+                        Data not found in datasheet
+                      </div>
+                    )}
+                    <div className="flex items-center">
+                      <span className="text-xs text-gray-500 mr-2">Confidence:</span>
+                      <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden max-w-xs">
+                        <div
+                          className={`h-full ${barColor}`}
+                          style={{ width: `${adjustedConfidence * 100}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-gray-600 ml-2">
+                        {Math.round(adjustedConfidence * 100)}%
+                      </span>
+                    </div>
                   </div>
-                  <span className="text-xs text-gray-600 ml-2">
-                    {Math.round(answer.confidence * 100)}%
-                  </span>
-                </div>
-              )}
+                );
+              })()}
             </div>
 
             {answer.citations && answer.citations.length > 0 && (
@@ -382,4 +408,3 @@ const DatasheetAssistant: React.FC<DatasheetAssistantProps> = ({
 };
 
 export default DatasheetAssistant;
-
