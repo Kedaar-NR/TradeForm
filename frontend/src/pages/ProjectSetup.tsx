@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import api, { projectsApi } from "../services/api";
 import { useStore } from "../store/useStore";
 import { Project } from "../types";
@@ -43,7 +43,11 @@ const componentTypesSuggestions: Record<string, string[]> = {
 
 const ProjectSetup: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const { addProject } = useStore();
+
+  // Get projectGroupId from navigation state (if coming from ProjectGroupDetail)
+  const projectGroupId = (location.state as any)?.projectGroupId;
 
   const [formData, setFormData] = useState({
     name: "",
@@ -124,6 +128,7 @@ const ProjectSetup: React.FC = () => {
         componentType: formData.componentType.trim(),
         description: formData.description.trim() || undefined,
         status: "draft",
+        projectGroupId: projectGroupId || undefined,
       });
 
       const data = response.data as any;
@@ -173,7 +178,7 @@ const ProjectSetup: React.FC = () => {
       <div className="mb-8">
         <div className="flex items-center gap-2">
           <div className="flex items-center">
-            <div className="w-8 h-8 bg-gray-1000 text-white rounded-lg flex items-center justify-center font-semibold text-sm">
+            <div className="w-8 h-8 bg-black text-white rounded-lg flex items-center justify-center font-semibold text-sm">
               1
             </div>
             <span className="ml-2 text-sm font-medium text-gray-900">
