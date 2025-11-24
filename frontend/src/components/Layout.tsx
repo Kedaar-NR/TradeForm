@@ -2,6 +2,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useState, type ReactNode } from "react";
 import Logo from "./Logo";
 import FloatingAIAssistant from "./FloatingAIAssistant";
+import { projectGroupsApi } from "../services/api";
+import { useStore } from "../store/useStore";
 
 interface LayoutProps {
   children: ReactNode;
@@ -10,7 +12,27 @@ interface LayoutProps {
 const Layout = ({ children }: LayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-    const [isCollapsed, setIsCollapsed] = useState(false);
+  const { searchTerm, setSearchTerm } = useStore();
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showCreateProjectModal, setShowCreateProjectModal] = useState(false);
+  const [projectName, setProjectName] = useState("");
+  const [projectDescription, setProjectDescription] = useState("");
+  const [selectedColor, setSelectedColor] = useState("#6B7280");
+  const [isCreating, setIsCreating] = useState(false);
+
+  // Check if we're on the dashboard page
+  const isDashboardPage = location.pathname === "/dashboard";
+
+  const COLORS = [
+    { name: "gray", value: "#6B7280" },
+    { name: "blue", value: "#3B82F6" },
+    { name: "green", value: "#10B981" },
+    { name: "purple", value: "#8B5CF6" },
+    { name: "pink", value: "#EC4899" },
+    { name: "orange", value: "#F59E0B" },
+    { name: "red", value: "#EF4444" },
+    { name: "teal", value: "#14B8A6" },
+  ];
 
   // Treat a path as active if it matches exactly or if it's a nested route under it
   const isActive = (path: string) =>
@@ -89,72 +111,74 @@ const Layout = ({ children }: LayoutProps) => {
     navigate("/login");
   };
 
+  const handleCreateProject = async () => {
+    if (!projectName.trim()) {
+      alert("Please enter a project name");
+      return;
+    }
+
+    try {
+      setIsCreating(true);
+      const response = await projectGroupsApi.create({
+        name: projectName,
+        description: projectDescription,
+        icon: "folder",
+        color: selectedColor,
+      });
+
+      // Navigate to the new project
+      navigate(`/project-group/${response.data.id}`);
+
+      // Reset form
+      setShowCreateProjectModal(false);
+      setProjectName("");
+      setProjectDescription("");
+      setSelectedColor("#6B7280");
+    } catch (error: any) {
+      console.error("Failed to create project:", error);
+      alert(`Failed to create project: ${error.response?.data?.detail || error.message}`);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
   return (
     <div className="min-h-screen flex bg-gray-50">
       {/* Sidebar */}
             <aside
                 className={`${
-                    isCollapsed ? "w-16" : "w-48"
+                    isCollapsed ? "w-20" : "w-48"
                 } bg-white border-r border-gray-200 flex-shrink-0 fixed h-screen flex flex-col transition-all duration-300 ease-in-out`}
             >
         <div className="h-full flex flex-col">
                     {/* Logo and Toggle */}
-                    <div
-                        className={`px-4 py-3 border-b border-gray-200 flex-shrink-0 flex items-center ${
-                            isCollapsed ? "justify-center" : "justify-between"
-                        }`}
-                    >
+                    <div className="px-4 py-3 border-b border-gray-200 flex-shrink-0 flex items-center justify-between">
             <div
               onClick={() => navigate("/dashboard")}
               className="cursor-pointer"
             >
                             <Logo showText={!isCollapsed} />
                         </div>
-                        {!isCollapsed && (
-                            <button
-                                onClick={() => setIsCollapsed(!isCollapsed)}
-                                className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-                                aria-label="Collapse sidebar"
+                        <button
+                            onClick={() => setIsCollapsed(!isCollapsed)}
+                            className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors flex-shrink-0"
+                            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+                        >
+                            <svg
+                                className="w-5 h-5"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
                             >
-                                <svg
-                                    className="w-5 h-5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M15 19l-7-7 7-7"
-                                    />
-                                </svg>
-                            </button>
-                        )}
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d={isCollapsed ? "M9 5l7 7-7 7" : "M15 19l-7-7 7-7"}
+                                />
+                            </svg>
+                        </button>
             </div>
-                    {isCollapsed && (
-                        <div className="px-2 py-2 border-b border-gray-200 flex-shrink-0 flex justify-center">
-                            <button
-                                onClick={() => setIsCollapsed(!isCollapsed)}
-                                className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
-                                aria-label="Expand sidebar"
-                            >
-                                <svg
-                                    className="w-5 h-5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M9 5l7 7-7 7"
-                                    />
-                                </svg>
-                            </button>
-          </div>
-                    )}
 
           {/* Navigation - Scrollable if needed */}
                     <nav className="flex-1 px-2 py-3 space-y-1 overflow-y-auto min-h-0 flex flex-col">
@@ -183,11 +207,11 @@ const Layout = ({ children }: LayoutProps) => {
           {/* Footer - Always visible at bottom */}
           <div className="px-2 py-2 border-t border-gray-200 space-y-2 flex-shrink-0">
             <button
-              onClick={() => navigate("/new-project")}
+              onClick={() => setShowCreateProjectModal(true)}
                             className={`w-full btn-primary ${
                                 isCollapsed ? "px-2" : ""
                             }`}
-                            title={isCollapsed ? "Start New Study" : undefined}
+                            title={isCollapsed ? "Start New Project" : undefined}
                         >
                             {isCollapsed ? (
                                 <svg
@@ -204,7 +228,7 @@ const Layout = ({ children }: LayoutProps) => {
                                     />
                                 </svg>
                             ) : (
-                                "Start New Study"
+                                "Start New Project"
                             )}
             </button>
             <button
@@ -239,15 +263,25 @@ const Layout = ({ children }: LayoutProps) => {
       {/* Main content area */}
             <div
                 className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out ${
-                    isCollapsed ? "ml-16" : "ml-48"
+                    isCollapsed ? "ml-20" : "ml-48"
                 }`}
             >
         {/* Top header */}
         <header className="bg-white border-b border-gray-200 px-6 py-3 flex-shrink-0">
-          <div className="flex items-center justify-end gap-3">
+          <div className="flex items-center justify-between gap-4">
+            {isDashboardPage && (
+              <input
+                type="text"
+                placeholder="Search projects..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="input-field max-w-sm"
+              />
+            )}
+            {!isDashboardPage && <div />}
             <button
               onClick={() => navigate("/documentation")}
-              className="text-sm text-gray-600 hover:text-gray-900"
+              className="text-sm text-gray-600 hover:text-gray-900 whitespace-nowrap"
             >
               Documentation
             </button>
@@ -264,6 +298,79 @@ const Layout = ({ children }: LayoutProps) => {
 
       {/* Floating AI Assistant - Always visible */}
       <FloatingAIAssistant />
+
+      {/* Create Project Modal */}
+      {showCreateProjectModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <h2 className="text-xl font-bold text-gray-900 mb-4">Create New Project</h2>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Project Name</label>
+                <input
+                  type="text"
+                  value={projectName}
+                  onChange={(e) => setProjectName(e.target.value)}
+                  placeholder="e.g., Q4 Power Supply Studies"
+                  className="input-field w-full"
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Description (Optional)</label>
+                <textarea
+                  value={projectDescription}
+                  onChange={(e) => setProjectDescription(e.target.value)}
+                  placeholder="Brief description of this project..."
+                  className="input-field w-full h-20"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Choose Color</label>
+                <div className="grid grid-cols-4 gap-2">
+                  {COLORS.map((color) => (
+                    <button
+                      key={color.name}
+                      onClick={() => setSelectedColor(color.value)}
+                      type="button"
+                      className={`h-10 rounded-lg border-2 transition-all ${
+                        selectedColor === color.value ? "border-black" : "border-gray-200"
+                      }`}
+                      style={{ backgroundColor: color.value }}
+                      title={color.name}
+                    />
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowCreateProjectModal(false);
+                  setProjectName("");
+                  setProjectDescription("");
+                  setSelectedColor("#6B7280");
+                }}
+                className="px-4 py-2 text-gray-700 hover:text-gray-900"
+                disabled={isCreating}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateProject}
+                className="btn-primary"
+                disabled={isCreating || !projectName.trim()}
+              >
+                {isCreating ? "Creating..." : "Create Project"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
