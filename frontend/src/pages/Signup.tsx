@@ -55,7 +55,14 @@ const Signup: React.FC = () => {
       localStorage.setItem('isAuthenticated', 'true');
       localStorage.setItem('authToken', data.access_token);
       localStorage.setItem('currentUser', JSON.stringify(data.user));
-      navigate('/dashboard');
+      
+      // Check onboarding status and redirect appropriately
+      const onboardingStatus = data.user.onboarding_status || data.user.onboardingStatus;
+      if (onboardingStatus === 'not_started' || onboardingStatus === 'in_progress') {
+        navigate('/onboarding');
+      } else {
+        navigate('/dashboard');
+      }
     } catch (error: any) {
       console.error('Signup failed:', error);
       // TODO: TEMPORARILY BYPASSED FOR DEVELOPMENT - Re-enable when fixing auth
@@ -66,7 +73,9 @@ const Signup: React.FC = () => {
       localStorage.setItem('currentUser', JSON.stringify({
         id: 'dev-user',
         email: formData.email,
-        name: formData.name || 'Development User'
+        name: formData.name || 'Development User',
+        onboarding_status: 'completed',
+        onboardingStatus: 'completed'
       }));
       navigate('/dashboard');
       

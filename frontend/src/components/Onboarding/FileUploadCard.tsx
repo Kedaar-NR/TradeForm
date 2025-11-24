@@ -23,47 +23,21 @@ const FileUploadCard: React.FC<FileUploadCardProps> = ({
   const [dragActive, setDragActive] = useState(false);
   const [error, setError] = useState<string>('');
 
-  // Load existing files on mount
-  React.useEffect(() => {
-    loadFiles();
-  }, [docType]);
-
-  const loadFiles = async () => {
+  const loadFiles = useCallback(async () => {
     try {
       const response = await onboardingApi.getDocuments(docType);
       setFiles(response.data);
     } catch (err) {
       console.error('Failed to load files:', err);
     }
-  };
+  }, [docType]);
 
-  const handleDrag = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    if (e.type === 'dragenter' || e.type === 'dragover') {
-      setDragActive(true);
-    } else if (e.type === 'dragleave') {
-      setDragActive(false);
-    }
-  }, []);
+  // Load existing files on mount
+  React.useEffect(() => {
+    loadFiles();
+  }, [loadFiles]);
 
-  const handleDrop = useCallback(async (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setDragActive(false);
-
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      await handleFiles(Array.from(e.dataTransfer.files));
-    }
-  }, []);
-
-  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      await handleFiles(Array.from(e.target.files));
-    }
-  };
-
-  const handleFiles = async (fileList: File[]) => {
+  const handleFiles = useCallback(async (fileList: File[]) => {
     setError('');
 
     for (const file of fileList) {
@@ -95,6 +69,32 @@ const FileUploadCard: React.FC<FileUploadCardProps> = ({
       } finally {
         setUploading(false);
       }
+    }
+  }, [acceptedTypes, docType]);
+
+  const handleDrag = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === 'dragenter' || e.type === 'dragover') {
+      setDragActive(true);
+    } else if (e.type === 'dragleave') {
+      setDragActive(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback(async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      await handleFiles(Array.from(e.dataTransfer.files));
+    }
+  }, [handleFiles]);
+
+  const handleFileInput = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files) {
+      await handleFiles(Array.from(e.target.files));
     }
   };
 

@@ -73,7 +73,9 @@ const Login: React.FC = () => {
       localStorage.setItem('currentUser', JSON.stringify({
         id: 'dev-user',
         email: formData.email,
-        name: 'Development User'
+        name: 'Development User',
+        onboarding_status: 'completed',
+        onboardingStatus: 'completed'
       }));
       navigate('/dashboard');
       
