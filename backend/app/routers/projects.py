@@ -17,8 +17,6 @@ router = APIRouter(prefix="/api/projects", tags=["projects"])
 def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)):
     """Create a new trade study project"""
     try:
-        project_data = project.model_dump(exclude={"status"})
-        
         # Get first user or create a default one if none exists
         user = db.query(models.User).first()
         if not user:
@@ -31,12 +29,16 @@ def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)
             db.add(user)
             db.commit()
             db.refresh(user)
-        
+
+        # Persist project with group and status so it shows up under the correct template
+        status_value = models.ProjectStatus(project.status.value) if project.status else models.ProjectStatus.DRAFT
         db_project = models.Project(
-            name=project_data["name"],
-            component_type=project_data["component_type"],
-            description=project_data.get("description"),
-            created_by=user.id
+            name=project.name,
+            component_type=project.component_type,
+            description=project.description,
+            status=status_value,
+            project_group_id=project.project_group_id,
+            created_by=user.id,
         )
         
         db.add(db_project)
@@ -51,6 +53,8 @@ def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)
             new_value={
                 "name": db_project.name,
                 "component_type": db_project.component_type,
+                "status": db_project.status.value if db_project.status else None,
+                "project_group_id": str(db_project.project_group_id) if db_project.project_group_id else None,
             },
         )
         db.commit()
