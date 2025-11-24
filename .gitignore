@@ -51,6 +51,8 @@ yarn-error.log*
 *.db
 *.sqlite
 *.sqlite3
+*.backup
+/backend/chroma_db/
 
 # Logs
 *.log
