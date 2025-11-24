@@ -34,15 +34,24 @@ const getFileBadgeColor = (extension: string) => {
 
 interface ProjectFileTrayProps {
   projectId?: string;
+  title?: string;
+  subtitle?: string;
+  storageKeyOverride?: string;
 }
 
-const ProjectFileTray: React.FC<ProjectFileTrayProps> = ({ projectId }) => {
+const ProjectFileTray: React.FC<ProjectFileTrayProps> = ({
+  projectId,
+  title,
+  subtitle,
+  storageKeyOverride,
+}) => {
   const [files, setFiles] = useState<StoredProjectFile[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const storageKey = useMemo(() => {
+    if (storageKeyOverride) return storageKeyOverride;
     return projectId ? `${STORAGE_PREFIX}_${projectId}` : undefined;
-  }, [projectId]);
+  }, [projectId, storageKeyOverride]);
 
   useEffect(() => {
     if (!storageKey) return;
@@ -113,10 +122,10 @@ const ProjectFileTray: React.FC<ProjectFileTrayProps> = ({ projectId }) => {
       <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
         <div>
           <p className="text-sm font-semibold text-gray-900">
-            Project Context Files
+            {title || "Project Context Files"}
           </p>
           <p className="text-xs text-gray-500">
-            Attach PDF or Excel references to keep them handy for this study.
+            {subtitle || "Attach PDF or Excel references to keep them handy for this study."}
           </p>
         </div>
         <button

@@ -6,7 +6,7 @@
  */
 
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
 import { changesApi, aiApi } from "../services/api";
 import { useProjectData } from "../hooks/useProjectData";
 import { ComponentsSection } from "../components/ProjectDetails/ComponentsSection";
@@ -67,6 +67,8 @@ const formatDateForFilename = (value: DateInput): string => {
 
 const ProjectDetails: React.FC = () => {
     const navigate = useNavigate();
+    const location = useLocation();
+    const { projectGroupId: fromProjectGroupId } = (location.state as { projectGroupId?: string } | null) || {};
     const { projectId } = useParams<{ projectId: string }>();
     const [activeTab, setActiveTab] = useState<TabType>("overview");
     const [isDownloadingReport, setIsDownloadingReport] = useState(false);
@@ -349,10 +351,16 @@ const ProjectDetails: React.FC = () => {
                         Project Not Found
                     </h2>
                     <button
-                        onClick={() => navigate("/dashboard")}
+                        onClick={() => {
+                            if (fromProjectGroupId) {
+                                navigate(`/project-group/${fromProjectGroupId}`);
+                            } else {
+                                navigate("/dashboard");
+                            }
+                        }}
                         className="btn-primary"
                     >
-                        Back to Dashboard
+                        {fromProjectGroupId ? "Back to Project" : "Back to Dashboard"}
                     </button>
                 </div>
             </div>
@@ -365,7 +373,13 @@ const ProjectDetails: React.FC = () => {
                 {/* Header */}
                 <div className="mb-8">
                     <button
-                        onClick={() => navigate("/dashboard")}
+                        onClick={() => {
+                            if (fromProjectGroupId) {
+                                navigate(`/project-group/${fromProjectGroupId}`);
+                            } else {
+                                navigate("/dashboard");
+                            }
+                        }}
                         className="text-gray-700 hover:text-gray-900 mb-4 flex items-center gap-2 text-sm font-medium"
                     >
                         <svg
@@ -381,7 +395,7 @@ const ProjectDetails: React.FC = () => {
                                 d="M15 19l-7-7 7-7"
                             />
                         </svg>
-                        Back to Dashboard
+                        {fromProjectGroupId ? "Back to Project" : "Back to Dashboard"}
                     </button>
 
                     <div className="flex items-start justify-between mb-6">

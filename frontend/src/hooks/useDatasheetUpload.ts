@@ -127,26 +127,16 @@ export const useDatasheetUpload = () => {
         continue;
       }
 
-      const urlLower = url.toLowerCase();
-      const looksLikePdf = urlLower.includes(".pdf") || urlLower.endsWith("/pdf");
-      if (!looksLikePdf) {
-        skippedCount++;
-        skippedDetails.push({
-          componentId: comp.id,
-          message: "Link does not look like a direct PDF URL",
-        });
-        continue;
-      }
-
+      // Be permissive on URL shape (backend will try to resolve/locate PDFs)
       totalAttempted++;
       try {
         await uploadDatasheetFromUrl(comp.id, url);
         successCount++;
       } catch (err: any) {
-        const message =
-          err?.message || "Failed to upload datasheet";
+        const message = err?.message || "Failed to upload datasheet";
         const isNotPdfError =
-          message.toLowerCase().includes("did not return a pdf");
+          message.toLowerCase().includes("did not return a pdf") ||
+          message.toLowerCase().includes("pdf file or a pdf link");
 
         if (isNotPdfError) {
           skippedCount++;
