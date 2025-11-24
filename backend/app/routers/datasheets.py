@@ -40,7 +40,13 @@ async def _download_pdf_from_url(url: str) -> Tuple[bytes, str]:
     locate the first PDF link on the page and download that instead.
     Returns the file bytes and the resolved URL used for the PDF download.
     """
-    async with httpx.AsyncClient(timeout=60.0) as client:
+    common_headers = {
+        "User-Agent": "Mozilla/5.0 (compatible; TradeFormBot/1.0; +https://tradeform.app)",
+        "Accept": "application/pdf,application/octet-stream,*/*;q=0.8",
+        "Accept-Language": "en-US,en;q=0.9",
+    }
+
+    async with httpx.AsyncClient(timeout=60.0, headers=common_headers) as client:
         response = await client.get(url, follow_redirects=True)
         file_bytes = response.content
         content_type = response.headers.get("content-type", "").lower()
