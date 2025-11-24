@@ -11,3 +11,4 @@ node_modules
 .DS_Store
 vids
 sample_datasheet_pdfs
+=0.3.0
