@@ -33,6 +33,14 @@ def register(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(db_user)
 
+    # Create user profile for onboarding
+    user_profile = models.UserProfile(
+        user_id=db_user.id,
+        onboarding_status=models.OnboardingStatus.NOT_STARTED
+    )
+    db.add(user_profile)
+    db.commit()
+
     # Create access token
     access_token = auth.create_access_token(
         data={"sub": str(db_user.id)},
@@ -46,7 +54,8 @@ def register(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
             "id": db_user.id,
             "email": db_user.email,
             "name": db_user.name,
-            "created_at": db_user.created_at
+            "created_at": db_user.created_at,
+            "onboarding_status": user_profile.onboarding_status.value
         }
     }
 
@@ -62,6 +71,20 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
             headers={"WWW-Authenticate": "Bearer"},
         )
 
+    # Get or create user profile
+    profile = db.query(models.UserProfile).filter(
+        models.UserProfile.user_id == user.id
+    ).first()
+    
+    if not profile:
+        profile = models.UserProfile(
+            user_id=user.id,
+            onboarding_status=models.OnboardingStatus.NOT_STARTED
+        )
+        db.add(profile)
+        db.commit()
+        db.refresh(profile)
+
     # Create access token
     access_token = auth.create_access_token(
         data={"sub": str(user.id)},
@@ -75,7 +98,8 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
             "id": user.id,
             "email": user.email,
             "name": user.name,
-            "created_at": user.created_at
+            "created_at": user.created_at,
+            "onboarding_status": profile.onboarding_status.value
         }
     }
 

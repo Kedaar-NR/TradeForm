@@ -20,6 +20,23 @@ class ComponentSource(str, enum.Enum):
     AI_DISCOVERED = "ai_discovered"
     MANUALLY_ADDED = "manually_added"
 
+class OnboardingStatus(str, enum.Enum):
+    NOT_STARTED = "not_started"
+    IN_PROGRESS = "in_progress"
+    COMPLETED = "completed"
+    SKIPPED = "skipped"
+
+class UserDocumentType(str, enum.Enum):
+    CRITERIA = "criteria"
+    RATING_DOC = "rating_doc"
+    REPORT_TEMPLATE = "report_template"
+
+class ProcessingStatus(str, enum.Enum):
+    UPLOADED = "uploaded"
+    PROCESSING = "processing"
+    READY = "ready"
+    FAILED = "failed"
+
 class User(Base):
     __tablename__ = "users"
 
@@ -31,6 +48,54 @@ class User(Base):
 
     # Relationships
     projects = relationship("Project", back_populates="creator")
+    profile = relationship("UserProfile", back_populates="user", uselist=False)
+
+class UserProfile(Base):
+    __tablename__ = "user_profiles"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), unique=True, nullable=False)
+    onboarding_status = Column(Enum(OnboardingStatus), default=OnboardingStatus.NOT_STARTED)
+    onboarding_last_updated_at = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    user = relationship("User", back_populates="profile")
+
+class UserDocument(Base):
+    __tablename__ = "user_documents"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    type = Column(Enum(UserDocumentType), nullable=False)
+    storage_url = Column(String, nullable=False)
+    original_filename = Column(String, nullable=False)
+    mime_type = Column(String, nullable=False)
+    file_size = Column(Integer, nullable=False)
+    onboarding_source = Column(Boolean, default=True)
+    processing_status = Column(Enum(ProcessingStatus), default=ProcessingStatus.UPLOADED)
+    processing_error = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    deleted_at = Column(DateTime(timezone=True))
+    
+    # Relationships
+    user = relationship("User")
+    content = relationship("UserDocumentContent", back_populates="document", uselist=False, cascade="all, delete-orphan")
+
+class UserDocumentContent(Base):
+    __tablename__ = "user_document_contents"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_document_id = Column(UUID(as_uuid=True), ForeignKey("user_documents.id"), unique=True, nullable=False)
+    raw_text = Column(Text)
+    parsed_json = Column(Text)
+    embedding_id = Column(String)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
+    # Relationships
+    document = relationship("UserDocument", back_populates="content")
 
 class Project(Base):
     __tablename__ = "projects"

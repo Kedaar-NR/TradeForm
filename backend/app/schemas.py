@@ -4,6 +4,9 @@ from datetime import datetime
 from uuid import UUID
 from enum import Enum
 
+# Import enums from models to avoid duplication and type mismatches
+from app.models import OnboardingStatus, UserDocumentType, ProcessingStatus
+
 class ProjectStatus(str, Enum):
     DRAFT = "draft"
     IN_PROGRESS = "in_progress"
@@ -33,10 +36,18 @@ class User(UserBase):
     class Config:
         from_attributes = True
 
+class UserWithOnboarding(UserBase):
+    id: UUID
+    created_at: datetime
+    onboarding_status: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
 class AuthResponse(BaseModel):
     access_token: str
     token_type: str
-    user: User
+    user: UserWithOnboarding
 
 # Project Schemas
 class ProjectBase(BaseModel):
@@ -273,3 +284,44 @@ class DiscoverComponentsRequest(BaseModel):
     """Request to discover components with optional location preference and number of components"""
     location_preference: Optional[str] = None
     number_of_components: Optional[int] = None
+
+# ============================================================================
+# ONBOARDING SCHEMAS
+# ============================================================================
+# Note: Enums are imported from models.py to avoid duplication and type mismatches
+
+class OnboardingStatusResponse(BaseModel):
+    onboarding_status: OnboardingStatus = Field(..., alias="onboardingStatus")
+    criteria_count: int = Field(..., alias="criteriaCount")
+    rating_docs_count: int = Field(..., alias="ratingDocsCount")
+    report_templates_count: int = Field(..., alias="reportTemplatesCount")
+    
+    class Config:
+        populate_by_name = True
+
+class OnboardingStatusUpdate(BaseModel):
+    status: OnboardingStatus
+
+class UserDocumentBase(BaseModel):
+    original_filename: str = Field(..., alias="originalFilename")
+    type: UserDocumentType
+    file_size: int = Field(..., alias="fileSize")
+    mime_type: str = Field(..., alias="mimeType")
+    
+    class Config:
+        populate_by_name = True
+
+class UserDocumentResponse(UserDocumentBase):
+    id: UUID
+    processing_status: ProcessingStatus = Field(..., alias="processingStatus")
+    processing_error: Optional[str] = Field(None, alias="processingError")
+    created_at: datetime = Field(..., alias="createdAt")
+    
+    class Config:
+        from_attributes = True
+        populate_by_name = True
+
+class UploadUrlRequest(BaseModel):
+    doc_type: UserDocumentType
+    file_name: str
+    content_type: str

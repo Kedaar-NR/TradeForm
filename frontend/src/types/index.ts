@@ -106,3 +106,25 @@ export interface ProjectChange {
   newValue?: string | null;
   createdAt: string;
 }
+
+// Onboarding types
+export type OnboardingStatus = 'not_started' | 'in_progress' | 'completed' | 'skipped';
+export type UserDocumentType = 'criteria' | 'rating_doc' | 'report_template';
+export type ProcessingStatus = 'uploaded' | 'processing' | 'ready' | 'failed';
+
+export interface UserDocument {
+  id: string;
+  originalFilename: string;
+  type: UserDocumentType;
+  processingStatus: ProcessingStatus;
+  processingError?: string;
+  fileSize: number;
+  createdAt: string;
+}
+
+export interface OnboardingStatusData {
+  onboardingStatus: OnboardingStatus;
+  criteriaCount: number;
+  ratingDocsCount: number;
+  reportTemplatesCount: number;
+}

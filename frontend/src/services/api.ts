@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Project, Component, Criterion, Score } from "../types";
+import { Project, Component, Criterion, Score, OnboardingStatusData, UserDocument } from "../types";
 import { API_BASE_URL } from "../utils/apiHelpers";
 
 const getStoredToken = () => {
@@ -357,6 +357,27 @@ export const reportsApi = {
         api.get(`/api/projects/${projectId}/report/pdf`, {
             responseType: "blob",
         }),
+};
+
+// Onboarding
+export const onboardingApi = {
+    getStatus: () => api.get<OnboardingStatusData>('/api/onboarding/status'),
+    updateStatus: (status: string) => 
+        api.post('/api/onboarding/status', { status }),
+    uploadDocument: (docType: string, file: File) => {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('doc_type', docType);
+        return api.post<UserDocument>('/api/onboarding/upload', formData, {
+            headers: { 'Content-Type': 'multipart/form-data' }
+        });
+    },
+    getDocuments: (docType?: string) => 
+        api.get<UserDocument[]>('/api/onboarding/documents', { 
+            params: docType ? { doc_type: docType } : undefined 
+        }),
+    deleteDocument: (docId: string) => 
+        api.delete(`/api/onboarding/documents/${docId}`)
 };
 
 export default api;

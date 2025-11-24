@@ -32,7 +32,8 @@ from app.routers import (
     datasheets,
     results,
     collaboration,
-    ai
+    ai,
+    onboarding
 )
 
 # Create all database tables
@@ -68,6 +69,7 @@ app.include_router(datasheets.router)
 app.include_router(results.router)
 app.include_router(collaboration.router)
 app.include_router(ai.router)
+app.include_router(onboarding.router)
 
 
 @app.on_event("startup")

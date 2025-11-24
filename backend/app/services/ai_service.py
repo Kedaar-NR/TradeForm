@@ -7,9 +7,14 @@ Encapsulates all AI-related operations using Anthropic Claude API.
 import os
 import json
 from typing import List, Dict, Any, Optional
+from uuid import UUID
 from anthropic import Anthropic, HUMAN_PROMPT, AI_PROMPT
+import logging
 
 from app import models
+from app.utils.ai_context_builder import AIContextBuilder
+
+logger = logging.getLogger(__name__)
 
 
 class AIService:
@@ -22,6 +27,13 @@ class AIService:
             raise ValueError("ANTHROPIC_API_KEY environment variable not set")
         self.client = Anthropic(api_key=self.api_key)
         self.model = "claude-sonnet-4-5"
+        
+        # Initialize context builder for user document augmentation
+        try:
+            self.context_builder = AIContextBuilder()
+        except Exception as e:
+            logger.warning(f"Failed to initialize context builder: {str(e)}")
+            self.context_builder = None
     
     def discover_components(
         self,
@@ -30,7 +42,8 @@ class AIService:
         description: Optional[str] = None,
         criteria_names: Optional[List[str]] = None,
         location_preference: Optional[str] = None,
-        number_of_components: Optional[int] = None
+        number_of_components: Optional[int] = None,
+        user_id: Optional[UUID] = None
     ) -> List[Dict[str, Any]]:
         """
         Discover relevant components for a project using AI.
@@ -67,7 +80,7 @@ class AIService:
         else:
             component_count_text = "Discover 5-10 commercially available components"
         
-        prompt = f"""You are an expert component engineer helping to discover components for a trade study.
+        base_prompt = f"""You are an expert component engineer helping to discover components for a trade study.
 
 Project Details:
 - Component Type: {component_type}
@@ -87,6 +100,19 @@ Format your response as a JSON array of objects with these fields:
 - availability (one of: "in_stock", "limited", "obsolete")
 
 Return ONLY valid JSON, no markdown formatting, no explanations."""
+
+        # Augment with user context if available
+        prompt = base_prompt
+        if user_id and self.context_builder and criteria_names:
+            try:
+                criteria_context = self.context_builder.get_criteria_context(
+                    user_id, 
+                    f"criteria for {component_type} selection"
+                )
+                if criteria_context:
+                    prompt = criteria_context + "\n\n---\n\n" + base_prompt
+            except Exception as e:
+                logger.warning(f"Failed to augment prompt with user context: {str(e)}")
 
         try:
             message = self.client.messages.create(
@@ -342,7 +368,8 @@ Return ONLY valid JSON, no markdown formatting, no explanations."""
         project_description: Optional[str],
         component_type: str,
         criteria: List[Dict[str, Any]],
-        components: List[Dict[str, Any]]
+        components: List[Dict[str, Any]],
+        user_id: Optional[UUID] = None
     ) -> str:
         """
         Generate a comprehensive trade study report using AI.
@@ -389,7 +416,7 @@ Return ONLY valid JSON, no markdown formatting, no explanations."""
         
         desc_text = f"\nProject Description: {project_description}" if project_description else ""
         
-        prompt = f"""You are an expert systems engineer writing a comprehensive, publication-ready trade study report.
+        base_prompt = f"""You are an expert systems engineer writing a comprehensive, publication-ready trade study report.
 
 Project Information:
 - Project Name: {project_name}
@@ -448,6 +475,19 @@ Formatting requirements:
 - Include bullet lists where appropriate.
 - Reference actual numbers (scores, weights, raw values) wherever they strengthen the argument.
 - Target ~1500-2000 words with clear, highly detailed prose that would satisfy a technical design review."""
+
+        # Augment with user report templates if available
+        prompt = base_prompt
+        if user_id and self.context_builder:
+            try:
+                report_context = self.context_builder.get_report_context(
+                    user_id,
+                    f"trade study report for {component_type}"
+                )
+                if report_context:
+                    prompt = report_context + "\n\n---\n\n" + base_prompt
+            except Exception as e:
+                logger.warning(f"Failed to augment report with user context: {str(e)}")
 
         try:
             message = self.client.messages.create(
