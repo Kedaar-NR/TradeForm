@@ -1,5 +1,5 @@
 import axios from "axios";
-import { Project, Component, Criterion, Score, OnboardingStatusData, UserDocument } from "../types";
+import { Project, ProjectGroup, ProjectGroupWithProjects, Component, Criterion, Score, OnboardingStatusData, UserDocument } from "../types";
 import { API_BASE_URL } from "../utils/apiHelpers";
 
 const getStoredToken = () => {
@@ -85,6 +85,27 @@ export const authApi = {
     getCurrentUser: () => api.get("/api/auth/me"),
 };
 
+// Project Groups
+export const projectGroupsApi = {
+    getAll: () => api.get<ProjectGroup[]>("/api/project-groups"),
+    getById: (id: string) => api.get<ProjectGroupWithProjects>(`/api/project-groups/${id}`),
+    create: (projectGroup: Omit<ProjectGroup, "id" | "createdAt" | "updatedAt" | "createdBy">) =>
+        api.post<ProjectGroup>("/api/project-groups", {
+            name: projectGroup.name,
+            description: projectGroup.description,
+            icon: projectGroup.icon,
+            color: projectGroup.color,
+        }),
+    update: (id: string, updates: Partial<ProjectGroup>) =>
+        api.put<ProjectGroup>(`/api/project-groups/${id}`, {
+            ...(updates.name !== undefined && { name: updates.name }),
+            ...(updates.description !== undefined && { description: updates.description }),
+            ...(updates.icon !== undefined && { icon: updates.icon }),
+            ...(updates.color !== undefined && { color: updates.color }),
+        }),
+    delete: (id: string) => api.delete(`/api/project-groups/${id}`),
+};
+
 // Projects
 export const projectsApi = {
     getAll: () => api.get<Project[]>("/api/projects"),
@@ -95,6 +116,7 @@ export const projectsApi = {
             component_type: project.componentType,
             description: project.description,
             status: project.status,
+            project_group_id: project.projectGroupId,
         }),
     update: (id: string, updates: Partial<Project>) =>
         api.put<Project>(`/api/projects/${id}`, {
@@ -106,6 +128,9 @@ export const projectsApi = {
                 description: updates.description,
             }),
             ...(updates.status !== undefined && { status: updates.status }),
+            ...(updates.projectGroupId !== undefined && {
+                project_group_id: updates.projectGroupId,
+            }),
         }),
     delete: (id: string) => api.delete(`/api/projects/${id}`),
 };

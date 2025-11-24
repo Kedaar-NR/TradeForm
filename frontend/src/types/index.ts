@@ -1,14 +1,31 @@
+export interface ProjectGroup {
+  id: string;
+  name: string;
+  description?: string;
+  icon: string;
+  color: string;
+  createdAt: string;
+  updatedAt: string;
+  createdBy?: string;
+}
+
+export interface ProjectGroupWithProjects extends ProjectGroup {
+  projects: Project[];
+}
+
 export interface Project {
   id: string;
   name: string;
   componentType: string;
   description?: string;
+  projectGroupId?: string;
   status: 'draft' | 'in_progress' | 'completed';
   createdAt: string;
   updatedAt: string;
   createdBy?: string;
   tradeStudyReport?: string | null;
   reportGeneratedAt?: string | null;
+  createdViaTemplateGroup?: boolean;
 }
 
 export interface Criterion {
