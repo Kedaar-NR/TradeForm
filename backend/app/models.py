@@ -49,6 +49,7 @@ class User(Base):
     # Relationships
     projects = relationship("Project", back_populates="creator")
     profile = relationship("UserProfile", back_populates="user", uselist=False)
+    project_groups = relationship("ProjectGroup", back_populates="creator")
 
 class UserProfile(Base):
     __tablename__ = "user_profiles"
@@ -97,6 +98,22 @@ class UserDocumentContent(Base):
     # Relationships
     document = relationship("UserDocument", back_populates="content")
 
+class ProjectGroup(Base):
+    __tablename__ = "project_groups"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False)
+    description = Column(Text)
+    icon = Column(String, default="folder")  # Icon identifier (e.g., 'folder', 'chip', 'lightning', etc.)
+    color = Column(String, default="#6B7280")  # Hex color code
+    created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    creator = relationship("User", back_populates="project_groups")
+    projects = relationship("Project", back_populates="project_group")
+
 class Project(Base):
     __tablename__ = "projects"
 
@@ -104,6 +121,7 @@ class Project(Base):
     name = Column(String, nullable=False)
     component_type = Column(String, nullable=False)
     description = Column(Text)
+    project_group_id = Column(UUID(as_uuid=True), ForeignKey("project_groups.id"), nullable=True)
     created_by = Column(UUID(as_uuid=True), ForeignKey("users.id"))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
@@ -113,6 +131,7 @@ class Project(Base):
 
     # Relationships
     creator = relationship("User", back_populates="projects")
+    project_group = relationship("ProjectGroup", back_populates="projects")
     criteria = relationship("Criterion", back_populates="project", cascade="all, delete-orphan")
     components = relationship("Component", back_populates="project", cascade="all, delete-orphan")
     changes = relationship("ProjectChange", back_populates="project", cascade="all, delete-orphan")

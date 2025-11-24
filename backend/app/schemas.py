@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from pydantic import BaseModel, EmailStr, Field
 from typing import Optional, List
 from datetime import datetime
@@ -49,6 +51,31 @@ class AuthResponse(BaseModel):
     token_type: str
     user: UserWithOnboarding
 
+# ProjectGroup Schemas
+class ProjectGroupBase(BaseModel):
+    name: str
+    description: Optional[str] = None
+    icon: str = "folder"
+    color: str = "#6B7280"
+
+class ProjectGroupCreate(ProjectGroupBase):
+    pass
+
+class ProjectGroupUpdate(BaseModel):
+    name: Optional[str] = None
+    description: Optional[str] = None
+    icon: Optional[str] = None
+    color: Optional[str] = None
+
+class ProjectGroup(ProjectGroupBase):
+    id: UUID
+    created_at: datetime
+    updated_at: datetime
+    created_by: Optional[UUID] = None
+
+    class Config:
+        from_attributes = True
+
 # Project Schemas
 class ProjectBase(BaseModel):
     name: str
@@ -57,12 +84,14 @@ class ProjectBase(BaseModel):
 
 class ProjectCreate(ProjectBase):
     status: Optional[ProjectStatus] = ProjectStatus.DRAFT
+    project_group_id: Optional[UUID] = None
 
 class ProjectUpdate(BaseModel):
     name: Optional[str] = None
     component_type: Optional[str] = None
     description: Optional[str] = None
     status: Optional[ProjectStatus] = None
+    project_group_id: Optional[UUID] = None
 
 class Project(ProjectBase):
     id: UUID
@@ -70,6 +99,7 @@ class Project(ProjectBase):
     created_at: datetime
     updated_at: datetime
     created_by: Optional[UUID] = None
+    project_group_id: Optional[UUID] = None
     trade_study_report: Optional[str] = None
     report_generated_at: Optional[datetime] = None
 
@@ -325,3 +355,13 @@ class UploadUrlRequest(BaseModel):
     doc_type: UserDocumentType
     file_name: str
     content_type: str
+
+# Forward reference resolution for ProjectGroupWithProjects
+class ProjectGroupWithProjects(ProjectGroup):
+    projects: List[Project] = []
+
+    class Config:
+        from_attributes = True
+
+# Rebuild models to resolve forward references
+ProjectGroupWithProjects.model_rebuild()

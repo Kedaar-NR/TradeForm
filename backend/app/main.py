@@ -26,6 +26,7 @@ from app.database import engine
 from app.routers import (
     auth,
     projects,
+    project_groups,
     criteria,
     components,
     scores,
@@ -62,6 +63,7 @@ app.add_middleware(
 # Include routers
 app.include_router(auth.router)
 app.include_router(projects.router)
+app.include_router(project_groups.router)
 app.include_router(criteria.router)
 app.include_router(components.router)
 app.include_router(scores.router)
