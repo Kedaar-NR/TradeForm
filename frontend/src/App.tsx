@@ -11,6 +11,7 @@ import ProjectSetup from "./pages/ProjectSetup";
 import CriteriaDefinition from "./pages/CriteriaDefinition";
 import ComponentDiscovery from "./pages/ComponentDiscovery";
 import ProjectDetails from "./pages/ProjectDetails";
+import ProjectGroupDetail from "./pages/ProjectGroupDetail";
 import Results from "./pages/Results";
 import Documentation from "./pages/Documentation";
 import Templates from "./pages/Templates";
@@ -63,6 +64,16 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <Dashboard />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/project-group/:projectGroupId"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <ProjectGroupDetail />
               </Layout>
             </ProtectedRoute>
           }
