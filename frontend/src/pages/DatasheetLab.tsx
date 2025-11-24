@@ -43,7 +43,7 @@ const DatasheetLab: React.FC = () => {
   }, [input]);
 
   useEffect(() => {
-    const envKey = process.env.REACT_APP_GEMINI_API_KEY;
+    const envKey = import.meta.env.VITE_GEMINI_API_KEY;
     if (envKey && envKey !== 'your_api_key_here') {
       setApiKey(envKey);
     } else {

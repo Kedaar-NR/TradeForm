@@ -585,7 +585,7 @@ const Results: React.FC = () => {
                     height={80}
                     wrapperStyle={{ bottom: 0, paddingTop: 10 }}
                   />
-                  {criteria.map((criterion, idx) => (
+                  {criteria.map((criterion, _idx) => (
                     <Bar
                       key={criterion.id}
                       dataKey={criterion.name}

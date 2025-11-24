@@ -1,10 +1,10 @@
-const envUrl = process.env.REACT_APP_API_URL?.trim();
+const envUrl = import.meta.env.VITE_API_URL?.trim();
 const resolvedUrl = envUrl || "http://localhost:8000";
 
 if (!envUrl && typeof window !== "undefined") {
   console.warn(
-    "REACT_APP_API_URL is not set. Falling back to http://localhost:8000. " +
-      "Set REACT_APP_API_URL in your environment for production deployments."
+    "VITE_API_URL is not set. Falling back to http://localhost:8000. " +
+      "Set VITE_API_URL in your environment for production deployments."
   );
 }
 

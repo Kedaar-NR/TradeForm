@@ -265,7 +265,7 @@ const Templates: React.FC = () => {
         // Check if backend is actually reachable
         try {
           const apiBaseUrl =
-            process.env.REACT_APP_API_URL || "http://localhost:8000";
+            import.meta.env.VITE_API_URL || "http://localhost:8000";
           const healthCheck = await fetch(`${apiBaseUrl}/health`);
           if (healthCheck.ok) {
             errorMessage =

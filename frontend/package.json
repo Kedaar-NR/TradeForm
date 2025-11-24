@@ -2,6 +2,7 @@
   "name": "frontend",
   "version": "0.1.0",
   "private": true,
+  "type": "module",
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@heroicons/react": "^2.2.0",
@@ -10,8 +11,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
     "@testing-library/user-event": "^13.5.0",
-    "@types/jest": "^27.5.2",
-    "@types/node": "^16.18.126",
+    "@types/node": "^22.10.5",
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "axios": "^1.13.2",
@@ -19,18 +19,17 @@
     "react-dom": "^19.2.0",
     "react-markdown": "^9.0.1",
     "react-router-dom": "^7.9.5",
-    "react-scripts": "5.0.1",
     "recharts": "^3.4.1",
-    "typescript": "^4.9.5",
+    "typescript": "^5.7.2",
     "web-vitals": "^2.1.4",
     "xlsx": "^0.18.5",
     "zustand": "^5.0.8"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "dev": "vite",
+    "start": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview"
   },
   "eslintConfig": {
     "extends": [
@@ -51,12 +50,15 @@
     ]
   },
   "devDependencies": {
+    "@types/jest": "^29.5.14",
+    "@vitejs/plugin-react": "^4.3.4",
     "autoprefixer": "^10.4.22",
     "postcss": "^8.5.6",
-    "tailwindcss": "^3.4.18"
+    "tailwindcss": "^3.4.18",
+    "vite": "^6.0.7"
   },
   "engines": {
-    "node": ">=18.0.0 <21.0.0",
+    "node": ">=18.0.0",
     "npm": ">=9.0.0"
   }
 }

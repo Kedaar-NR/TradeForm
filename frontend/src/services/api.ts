@@ -26,7 +26,7 @@ api.interceptors.request.use(
             config.headers.Authorization = `Bearer ${token}`;
         }
 
-        if (process.env.NODE_ENV === "development") {
+        if (import.meta.env.DEV) {
             console.log(
                 `API Request: ${config.method?.toUpperCase()} ${
                     config.baseURL
@@ -47,12 +47,12 @@ api.interceptors.response.use(
         if (error.code === "ERR_NETWORK" || error.message === "Network Error") {
             const errorMsg = API_BASE_URL
                 ? `Network error - cannot reach backend at ${API_BASE_URL}. Is it running?`
-                : "Network error - REACT_APP_API_URL is not set. Please configure your backend URL.";
+                : "Network error - VITE_API_URL is not set. Please configure your backend URL.";
             console.error(errorMsg);
 
             // Show user-friendly error in production
             if (
-                process.env.NODE_ENV === "production" &&
+                import.meta.env.PROD &&
                 typeof window !== "undefined"
             ) {
                 // You could dispatch a toast notification here if you have a notification system

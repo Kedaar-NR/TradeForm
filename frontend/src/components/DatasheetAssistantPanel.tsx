@@ -384,7 +384,7 @@ const DatasheetAssistantPanel: React.FC<DatasheetAssistantPanelProps> = ({
                     )}
                   </div>
                   <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
-                    {qaHistory.map((entry, index) => (
+                    {qaHistory.map((entry, _index) => (
                       <button
                         key={entry.timestamp}
                         onClick={() => {
