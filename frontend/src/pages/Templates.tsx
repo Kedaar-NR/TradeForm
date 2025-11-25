@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { projectsApi, criteriaApi, projectGroupsApi, componentsApi } from "../services/api";
 import { projectTemplates, studyTemplates } from "../data/templateData";
 import type { ProjectTemplate, StudyTemplate } from "../data/templateTypes";
-import { getAuthToken } from "../utils/apiHelpers";
+import { API_BASE_URL, getAuthToken } from "../utils/apiHelpers";
 
 const Templates: React.FC = () => {
   const navigate = useNavigate();
@@ -175,8 +175,7 @@ const Templates: React.FC = () => {
       ) {
         // Check if backend is actually reachable
         try {
-          const apiBaseUrl =
-            import.meta.env.VITE_API_URL || "http://localhost:8000";
+          const apiBaseUrl = API_BASE_URL;
           const healthCheck = await fetch(`${apiBaseUrl}/health`);
           if (healthCheck.ok) {
             errorMessage =
@@ -185,7 +184,7 @@ const Templates: React.FC = () => {
             errorMessage = `Network Error - Cannot reach backend at ${apiBaseUrl}. Please check if the backend is running.`;
           }
         } catch (healthErr) {
-          errorMessage = `Network Error - Cannot reach backend. Please check if the backend is running on http://localhost:8000`;
+          errorMessage = `Network Error - Cannot reach backend. Please check if the backend is running on ${API_BASE_URL}`;
         }
       } else if (error?.response?.status === 401) {
         errorMessage = "Authentication required. Please log in first.";
