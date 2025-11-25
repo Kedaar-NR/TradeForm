@@ -273,7 +273,7 @@ const GlobalSearch: React.FC = () => {
 
       {/* Results dropdown */}
       {isOpen && query && (
-        <div className="absolute top-full mt-2 w-full bg-white rounded-lg shadow-xl border border-gray-200 max-h-[400px] overflow-y-auto z-50">
+        <div className="absolute top-full mt-2 w-full bg-white rounded-lg shadow-xl border border-gray-200 max-h-[400px] overflow-y-auto z-[9999]">
           {results.length === 0 && !isLoading ? (
             <div className="p-4 text-sm text-gray-500 text-center">
               No results found for "{query}"
