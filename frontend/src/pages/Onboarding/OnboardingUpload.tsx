@@ -1,33 +1,68 @@
-import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import FileUploadCard from '../../components/Onboarding/FileUploadCard';
-import { onboardingApi } from '../../services/api';
-import { updateLocalStorageOnboardingStatus } from '../../utils/onboardingHelpers';
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import FileUploadCard from "../../components/Onboarding/FileUploadCard";
+import { onboardingApi } from "../../services/api";
+import { updateLocalStorageOnboardingStatus } from "../../utils/onboardingHelpers";
 
 // Simple inline icons to avoid external dependencies
 const IconCheckSquare = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
     <rect x="4" y="4" width="16" height="16" rx="2" ry="2" strokeWidth={2} />
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4" />
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M9 12l2 2 4-4"
+    />
   </svg>
 );
 
 const IconTable = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+  <svg
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
     <rect x="3" y="4" width="18" height="16" rx="2" ry="2" strokeWidth={2} />
     <path strokeLinecap="round" strokeWidth={2} d="M3 9h18M9 4v16M15 4v16" />
   </svg>
 );
 
 const IconFileText = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6M9 16h6M9 8h2m4-6H7a2 2 0 00-2 2v16l4-4h8a2 2 0 002-2V6a2 2 0 00-2-2z" />
+  <svg
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M9 12h6M9 16h6M9 8h2m4-6H7a2 2 0 00-2 2v16l4-4h8a2 2 0 002-2V6a2 2 0 00-2-2z"
+    />
   </svg>
 );
 
 const IconArrowRight = ({ className }: { className?: string }) => (
-  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+  <svg
+    className={className}
+    fill="none"
+    stroke="currentColor"
+    viewBox="0 0 24 24"
+  >
+    <path
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      strokeWidth={2}
+      d="M9 5l7 7-7 7"
+    />
   </svg>
 );
 
@@ -38,14 +73,14 @@ const OnboardingUpload: React.FC = () => {
   const handleContinue = async () => {
     try {
       setLoading(true);
-      await onboardingApi.updateStatus('completed');
-      updateLocalStorageOnboardingStatus('completed');
-      navigate('/dashboard');
+      await onboardingApi.updateStatus("completed");
+      updateLocalStorageOnboardingStatus("completed");
+      navigate("/dashboard");
     } catch (error) {
-      console.error('Failed to update onboarding status:', error);
+      console.error("Failed to update onboarding status:", error);
       // Still update localStorage and navigate even if API call failed
-      updateLocalStorageOnboardingStatus('completed');
-      navigate('/dashboard');
+      updateLocalStorageOnboardingStatus("completed");
+      navigate("/dashboard");
     } finally {
       setLoading(false);
     }
@@ -59,31 +94,33 @@ const OnboardingUpload: React.FC = () => {
           Document Library
         </h1>
         <p className="text-gray-600 mb-3">
-          Upload your existing trade study documents to help TradeForm understand your workflow and preferences. 
-          All files are processed securely and used to personalize your experience.
+          Upload your existing trade study documents to help TradeForm
+          understand your workflow and preferences. All files are processed
+          securely and used to personalize your experience.
         </p>
         <div className="flex items-center space-x-2 text-sm text-gray-500">
-          <svg 
-            className="w-4 h-4" 
-            fill="none" 
-            stroke="currentColor" 
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
             viewBox="0 0 24 24"
           >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              strokeWidth={2} 
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
           <span>
-            You can navigate to Dashboard or other pages anytime using the sidebar. Documents can be uploaded now or later.
+            You can navigate to Dashboard or other pages anytime using the
+            sidebar. Documents can be uploaded now or later.
           </span>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
         {/* Criteria Upload Card */}
         <FileUploadCard
           docType="criteria"
@@ -115,17 +152,17 @@ const OnboardingUpload: React.FC = () => {
       {/* Info Footer */}
       <div className="mt-8 bg-blue-50 border border-blue-200 rounded-lg p-6">
         <div className="flex items-start space-x-3">
-          <svg 
-            className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0" 
-            fill="none" 
-            stroke="currentColor" 
+          <svg
+            className="w-5 h-5 text-blue-600 mt-0.5 flex-shrink-0"
+            fill="none"
+            stroke="currentColor"
             viewBox="0 0 24 24"
           >
-            <path 
-              strokeLinecap="round" 
-              strokeLinejoin="round" 
-              strokeWidth={2} 
-              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" 
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
             />
           </svg>
           <div>
@@ -133,9 +170,11 @@ const OnboardingUpload: React.FC = () => {
               How this helps you
             </h3>
             <p className="text-sm text-blue-800">
-              Your uploaded documents help TradeForm's AI understand your specific evaluation methodology, 
-              criteria preferences, and reporting style. This allows the system to provide more relevant 
-              suggestions and generate reports that match your organization's standards.
+              Your uploaded documents help TradeForm's AI understand your
+              specific evaluation methodology, criteria preferences, and
+              reporting style. This allows the system to provide more relevant
+              suggestions and generate reports that match your organization's
+              standards.
             </p>
           </div>
         </div>
@@ -148,7 +187,7 @@ const OnboardingUpload: React.FC = () => {
           disabled={loading}
           className="btn-primary px-8 py-3 text-base disabled:opacity-50 flex items-center space-x-2"
         >
-          <span>{loading ? 'Saving...' : 'Continue to Dashboard'}</span>
+          <span>{loading ? "Saving..." : "Continue to Dashboard"}</span>
           {!loading && <IconArrowRight className="w-5 h-5" />}
         </button>
       </div>
