@@ -416,7 +416,7 @@ Return ONLY valid JSON, no markdown formatting, no explanations."""
         
         desc_text = f"\nProject Description: {project_description}" if project_description else ""
         
-        base_prompt = f"""You are an expert systems engineer writing a comprehensive, publication-ready trade study report for a technical design review.
+        base_prompt = f"""You are an expert aerospace systems engineer writing a comprehensive, publication-ready trade study report for a Preliminary Design Review (PDR) or Critical Design Review (CDR).
 
 Project Information:
 - Project Name: {project_name}
@@ -428,70 +428,91 @@ Evaluation Criteria (sorted by importance):
 Component Evaluation Results:
 {components_text}
 
-Task: Write a professional engineering trade study report following aerospace/defense documentation standards. The report must be detailed, quantitative, and cite specific data points.
+Task: Write a professional engineering trade study report following NASA/aerospace industry documentation standards. The report must be detailed, quantitative, and cite specific data points with scoring justifications.
 
-1. **Executive Summary** (2-3 paragraphs)
-   - State the trade study objectives and scope
-   - Summarize the weighted scoring methodology with specific criteria weights (e.g., "Gain (25%), Noise Figure (25%), Power Consumption (20%)")
-   - Clearly state the recommended component with its weighted score
-   - Highlight the key performance advantages (cite specific values like "18.5 dB gain", "2.7 dB noise figure")
-   - Note the score differential between top candidates
+SECTION 1: EXECUTIVE SUMMARY (2-3 substantive paragraphs)
 
-2. **Methodology** (2-3 paragraphs)
-   - Explain the weighted multi-criteria decision analysis (MCDA) approach
-   - List each criterion with its assigned weight percentage and justify why that weight was chosen
-   - Describe the 1-10 scoring scale with specific thresholds:
-     * 9-10: Significantly exceeds requirements
-     * 7-8: Exceeds requirements  
-     * 5-6: Adequately meets requirements
-     * 3-4: Marginally meets requirements
-     * 1-2: Does not meet requirements
-   - Explain how raw values (when available) were used to justify scores
+Write a comprehensive executive summary that:
+- States the trade study objectives: evaluating {len(components)} candidate {component_type} components against {len(criteria)} weighted criteria
+- Explicitly lists ALL criteria with their percentage weights (e.g., "Criteria weights were assigned as follows: [Criterion A] (X%), [Criterion B] (Y%), [Criterion C] (Z%)...")
+- Clearly identifies the recommended component with its weighted total score (e.g., "scored the highest overall with XX%")
+- Highlights 2-3 key performance advantages with specific measured values
+- States the score differential between the top two candidates
+- Summarizes why this component best meets the project requirements
 
-3. **Component Analysis** (detailed subsection for EACH component)
-   For each component, write 2-3 paragraphs covering:
-   - Technical overview: What is this component designed for? What are its key specifications?
-   - Strengths: List specific high-scoring criteria with actual values (e.g., "achieves 8/10 on Gain with a measured 18.5 dB")
-   - Weaknesses: List specific low-scoring criteria with rationale
-   - Trade-offs: What compromises does this component represent?
-   - Suitability assessment: How well does it fit the project requirements?
+SECTION 2: METHODOLOGY (2-3 paragraphs)
 
-4. **Comparative Analysis** (2-3 paragraphs)
-   - Create a direct comparison of the top 2-3 candidates
-   - Use specific numbers: "Component A achieves X while Component B achieves Y"
-   - Identify which criteria each component excels at
-   - Discuss the technical trade-offs between candidates
-   - Calculate and cite score differentials
+Explain the evaluation approach in detail:
+- Describe the weighted multi-criteria decision analysis (MCDA) framework
+- For EACH criterion, explain WHY that specific weight was assigned. Example: "[Criterion Name] was given the highest weighting (XX%) as [technical justification - e.g., 'robust and reliable data transmission is essential for mission-critical operations']"
+- Explain the 1-10 scoring scale with clear thresholds:
+  * 9-10: Significantly exceeds requirements
+  * 7-8: Exceeds requirements  
+  * 5-6: Adequately meets requirements
+  * 3-4: Marginally meets requirements
+  * 1-2: Does not meet requirements
+- Describe how raw technical values were normalized to scores
+- Note the total weight sums to 100%
 
-5. **Recommendation** (2-3 paragraphs)
-   - Clearly state: "[Component Name] is recommended as the optimal solution"
-   - Justify with weighted total score (e.g., "achieving the highest weighted score of 6.80/10")
-   - Explain performance on the highest-weighted criteria specifically
-   - Reference the scoring rationales as supporting evidence
-   - Address any limitations of the recommended component and mitigation strategies
-   - State confidence level in the recommendation
+SECTION 3: COMPONENT ANALYSIS (Detailed analysis for EACH component)
 
-6. **Risk, Schedule, and Supply Considerations** (1-2 paragraphs)
-   - Availability and lead time considerations
-   - Vendor reliability and heritage
-   - Supply chain risks (single source, geographic, etc.)
-   - Integration complexity and schedule impacts
-   - Any certification or qualification requirements
+For EACH component, write 2-3 paragraphs structured as follows:
 
-7. **Conclusion & Next Steps** (1 paragraph)
-   - Summarize the key finding with specific score
-   - Reinforce why this recommendation best serves the project
-   - Propose concrete next steps (prototype procurement, detailed analysis, vendor engagement)
+**[Component Name]**
 
-Writing Style Requirements:
-- Write in third person, formal technical prose
-- Use precise engineering language
-- Include specific numerical values throughout (scores, weights, raw measurements)
-- Format scores consistently as "X/10" 
-- Use paragraphs, not just bullet lists - this should read like a professional report
-- Reference the rationales provided as technical justification
-- Target 2000-2500 words for thoroughness
-- Every claim should be backed by data from the evaluation results"""
+Technical Overview: Describe what this component is designed for and its key specifications.
+
+Scoring Analysis: The [Component] scored [total score]% overall. For each major criterion, cite the specific score and justify it:
+- "[Criterion]: Score X/10 - [explanation with raw value if available, e.g., 'achieving 18.5 dB gain which exceeds the 15 dB requirement']"
+- Highlight both strengths (scores 7+) and weaknesses (scores 4 or below)
+
+Trade-off Assessment: Discuss what compromises this component represents. For example: "While the [Component] excels in [strength areas], it scored lower in [weakness areas] due to [specific reasons]."
+
+SECTION 4: COMPARATIVE ANALYSIS (2-3 paragraphs)
+
+Create a direct head-to-head comparison:
+- Compare the top 2-3 candidates criterion by criterion
+- Use specific comparative statements: "[Component A] achieved a score of X for [Criterion] while [Component B] achieved Y"
+- Identify which component wins each criterion category
+- Calculate and state score differentials (e.g., "a margin of X.XX points separates the top two candidates")
+- Discuss the technical trade-offs: what you gain vs. what you sacrifice choosing one over another
+
+SECTION 5: RECOMMENDATION (2-3 paragraphs)
+
+Provide a clear, justified recommendation:
+- State definitively: "[Full Component Name] is recommended as the optimal solution for [project name]"
+- Justify with the weighted total score and percentage (e.g., "achieving the highest weighted score of X.XX/10 (XX%)")
+- Explain performance on the highest-weighted criteria with specific values
+- Address any limitations of the recommended component and proposed mitigation strategies
+- State confidence level based on score margin (high if >10% margin, moderate if 5-10%, low if <5%)
+
+SECTION 6: RISK & SUPPLY CHAIN CONSIDERATIONS (1-2 paragraphs)
+
+Address practical implementation factors:
+- Technology Readiness Level (TRL) and flight heritage
+- Vendor reliability and manufacturing capability
+- Supply chain risks (single source, lead times, geographic factors)
+- Integration complexity and schedule impacts
+- Any certification or qualification requirements
+
+SECTION 7: CONCLUSION & NEXT STEPS (1 paragraph)
+
+Summarize and propose action items:
+- Restate the recommended component with its score
+- Propose 2-3 concrete next steps (e.g., prototype procurement, detailed qualification testing, vendor engagement)
+
+WRITING REQUIREMENTS:
+- Write in third person, formal technical prose suitable for a design review
+- Use precise aerospace engineering terminology
+- Include specific numerical values throughout (scores, weights, raw measurements with units)
+- Format all scores as "X/10" and percentages as "XX%"
+- Write flowing paragraphs, not bullet lists - this must read like a professional technical report
+- Reference the provided rationales as technical justification for scores
+- Target 2500-3500 words for comprehensive coverage
+- Every claim must be backed by data from the evaluation results
+- Use language like "based on the evaluation data", "the analysis shows", "scoring indicates"
+
+Begin the report with "# {project_name} Trade Study Report" as the title."""
 
         # Augment with user report templates if available
         prompt = base_prompt
@@ -509,7 +530,7 @@ Writing Style Requirements:
         try:
             message = self.client.messages.create(
                 model=self.model,
-                max_tokens=6000,  # Increased for more detailed reports
+                max_tokens=8000,  # Increased for comprehensive aerospace-quality reports
                 messages=[{"role": "user", "content": prompt}]
             )
 

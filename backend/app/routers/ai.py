@@ -861,63 +861,79 @@ def download_trade_study_report_pdf(project_id: UUID, db: Session = Depends(get_
         models.Component.project_id == project_id
     ).all()
 
-    # Try to generate professional PDF if we have the data
-    if components and criteria and all_scores:
+    import logging
+    logger = logging.getLogger(__name__)
+    
+    # Log data availability for debugging
+    logger.info(f"PDF Generation - Project {project_id}: components={len(components)}, criteria={len(criteria)}, scores={len(all_scores)}")
+
+    # Generate professional PDF with tables and charts
+    # Only fall back to text-only if reportlab is truly unavailable
+    from app.services.pdf_report_service import get_pdf_service, REPORTLAB_AVAILABLE
+    
+    if not REPORTLAB_AVAILABLE:
+        logger.warning("reportlab not available - generating text-only PDF")
+        pdf_buffer = _build_report_pdf(project.trade_study_report)
+    elif not components or not criteria or not all_scores:
+        # Missing data - log details and generate text-only PDF
+        logger.warning(f"Missing data for professional PDF: components={len(components)}, criteria={len(criteria)}, scores={len(all_scores)}")
+        pdf_buffer = _build_report_pdf(project.trade_study_report)
+    else:
+        # Create scores dict for scoring service
+        scores_dict = {(str(score.component_id), str(score.criterion_id)): score for score in all_scores}
+        
+        # Calculate weighted scores and rankings
+        scoring_service = get_scoring_service()
+        results = scoring_service.calculate_weighted_scores(components, criteria, scores_dict)
+        
+        # Format components data for PDF service
+        components_data = []
+        for result in results:
+            component = result["component"]
+            component_scores = []
+            
+            for criterion in criteria:
+                key = (str(component.id), str(criterion.id))
+                if key in scores_dict:
+                    score = scores_dict[key]
+                    component_scores.append({
+                        "criterion_name": criterion.name,
+                        "criterion_description": criterion.description,
+                        "criterion_weight": criterion.weight,
+                        "criterion_unit": criterion.unit,
+                        "score": score.score,
+                        "rationale": score.rationale,
+                        "raw_value": score.raw_value
+                    })
+            
+            components_data.append({
+                "manufacturer": component.manufacturer,
+                "part_number": component.part_number,
+                "description": component.description,
+                "rank": result["rank"],
+                "total_score": result["total_score"],
+                "scores": component_scores
+            })
+        
+        # Format criteria for PDF service
+        criteria_data = [
+            {
+                "name": c.name,
+                "description": c.description,
+                "weight": c.weight,
+                "unit": c.unit,
+                "higher_is_better": c.higher_is_better
+            }
+            for c in criteria
+        ]
+        
+        logger.info(f"Generating professional PDF with {len(components_data)} components, {len(criteria_data)} criteria")
+        
+        # Generate professional PDF with error handling
         try:
-            # Create scores dict for scoring service
-            scores_dict = {(str(score.component_id), str(score.criterion_id)): score for score in all_scores}
-            
-            # Calculate weighted scores and rankings
-            scoring_service = get_scoring_service()
-            results = scoring_service.calculate_weighted_scores(components, criteria, scores_dict)
-            
-            # Format components data for PDF service
-            components_data = []
-            for result in results:
-                component = result["component"]
-                component_scores = []
-                
-                for criterion in criteria:
-                    key = (str(component.id), str(criterion.id))
-                    if key in scores_dict:
-                        score = scores_dict[key]
-                        component_scores.append({
-                            "criterion_name": criterion.name,
-                            "criterion_description": criterion.description,
-                            "criterion_weight": criterion.weight,
-                            "criterion_unit": criterion.unit,
-                            "score": score.score,
-                            "rationale": score.rationale,
-                            "raw_value": score.raw_value
-                        })
-                
-                components_data.append({
-                    "manufacturer": component.manufacturer,
-                    "part_number": component.part_number,
-                    "description": component.description,
-                    "rank": result["rank"],
-                    "total_score": result["total_score"],
-                    "scores": component_scores
-                })
-            
-            # Format criteria for PDF service
-            criteria_data = [
-                {
-                    "name": c.name,
-                    "description": c.description,
-                    "weight": c.weight,
-                    "unit": c.unit,
-                    "higher_is_better": c.higher_is_better
-                }
-                for c in criteria
-            ]
-            
-            # Generate professional PDF (lazy import to handle missing reportlab gracefully)
-            from app.services.pdf_report_service import get_pdf_service
             pdf_service = get_pdf_service()
             if pdf_service is None:
-                # reportlab not available, fall back to simple PDF
-                raise ImportError("reportlab not available")
+                raise ImportError("PDF service unavailable")
             pdf_buffer = pdf_service.generate_report(
                 project_name=project.name,
                 project_description=project.description,
@@ -926,19 +942,16 @@ def download_trade_study_report_pdf(project_id: UUID, db: Session = Depends(get_
                 components_data=components_data,
                 report_text=project.trade_study_report,
             )
+            logger.info("Professional PDF generated successfully")
         except Exception as e:
-            # Fall back to simple PDF on error with detailed logging
-            import logging
+            # Log the error with full details, then fall back gracefully
             import traceback
-            logging.error(f"Professional PDF generation failed for project {project_id}")
-            logging.error(f"Error type: {type(e).__name__}")
-            logging.error(f"Error message: {str(e)}")
-            logging.error(f"Traceback: {traceback.format_exc()}")
-            logging.info("Falling back to simple PDF generation")
+            logger.error(f"Professional PDF generation failed for project {project_id}")
+            logger.error(f"Error type: {type(e).__name__}")
+            logger.error(f"Error message: {str(e)}")
+            logger.error(f"Traceback: {traceback.format_exc()}")
+            logger.info("Falling back to text-only PDF generation")
             pdf_buffer = _build_report_pdf(project.trade_study_report)
-    else:
-        # Fall back to simple text-based PDF
-        pdf_buffer = _build_report_pdf(project.trade_study_report)
 
     safe_name = (project.name or "trade_study").lower().replace(" ", "_")
     safe_name = "".join(ch if ch.isalnum() or ch in ("_", "-") else "_" for ch in safe_name)

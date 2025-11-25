@@ -998,14 +998,15 @@ class ProfessionalPDFService:
                     has_rationale = original_score and original_score.get('rationale') and len(original_score.get('rationale', '')) > 10
                     
                     if has_rationale:
-                        cit_ref = f"<super><font size='6' color='#6B7280'>[{self.citation_counter + strength_cit_offset + 1}]</font></super>"
+                        # More visible citation with blue color to stand out
+                        cit_ref = f"<super><font size='7' color='#2563EB'><b>[{self.citation_counter + strength_cit_offset + 1}]</b></font></super>"
                         strength_cit_offset += 1
                     else:
                         cit_ref = ""
                     
                     body_content.append([
                         Paragraph(
-                            f"  <font color='#059669'>+</font> {s_entry} {cit_ref}",
+                            f"  <font color='#059669'>+</font> {s_entry}{cit_ref}",
                             ParagraphStyle(name='StrengthItem', parent=self.styles['body'], fontSize=8, leftIndent=10)
                         )
                     ])
@@ -1024,14 +1025,15 @@ class ProfessionalPDFService:
                     has_rationale = original_score and original_score.get('rationale') and len(original_score.get('rationale', '')) > 10
                     
                     if has_rationale:
-                        cit_ref = f"<super><font size='6' color='#6B7280'>[{self.citation_counter + strength_cit_offset + weakness_cit_offset + 1}]</font></super>"
+                        # More visible citation with blue color to stand out
+                        cit_ref = f"<super><font size='7' color='#2563EB'><b>[{self.citation_counter + strength_cit_offset + weakness_cit_offset + 1}]</b></font></super>"
                         weakness_cit_offset += 1
                     else:
                         cit_ref = ""
                     
                     body_content.append([
                         Paragraph(
-                            f"  <font color='#DC2626'>-</font> {w_entry} {cit_ref}",
+                            f"  <font color='#DC2626'>-</font> {w_entry}{cit_ref}",
                             ParagraphStyle(name='WeaknessItem', parent=self.styles['body'], fontSize=8, leftIndent=10)
                         )
                     ])
@@ -1721,6 +1723,9 @@ class ProfessionalPDFService:
         - Components sorted by rank
         - For each component: strengths (score >= 7) first, then weaknesses (score <= 4)
         - Each category sorted by score descending, limited to first 4
+        
+        Formatted following aerospace/academic documentation standards with
+        numbered footnote-style citations.
         """
         elements = []
         
@@ -1728,9 +1733,9 @@ class ProfessionalPDFService:
         elements.extend(self._create_section_header("6. References & Notes"))
         
         elements.append(Paragraph(
-            "This section contains the technical justifications and rationales used to support "
-            "the scoring decisions in this trade study. Each reference corresponds to a specific "
-            "criterion evaluation for a component.",
+            "This section documents the technical justifications and source data supporting "
+            "the scoring decisions in this trade study. Each numbered reference corresponds to "
+            "a specific criterion evaluation cited in the Component Analysis section.",
             self.styles['body']
         ))
         elements.append(Spacer(1, 0.2 * inch))
@@ -1742,6 +1747,7 @@ class ProfessionalPDFService:
         
         for comp in sorted(components_data, key=lambda x: x.get('rank', 999)):
             comp_name = f"{comp.get('manufacturer', '')} {comp.get('part_number', '')}"
+            manufacturer = comp.get('manufacturer', 'Unknown')
             scores = comp.get('scores', [])
             
             # Sort scores by value descending (same as component cards)
@@ -1758,6 +1764,7 @@ class ProfessionalPDFService:
                     citations_data.append({
                         'number': citation_num,
                         'component': comp_name,
+                        'manufacturer': manufacturer,
                         'criterion': score_data.get('criterion_name', 'N/A'),
                         'score': score_data.get('score', 0),
                         'raw_value': score_data.get('raw_value'),
@@ -1774,6 +1781,7 @@ class ProfessionalPDFService:
                     citations_data.append({
                         'number': citation_num,
                         'component': comp_name,
+                        'manufacturer': manufacturer,
                         'criterion': score_data.get('criterion_name', 'N/A'),
                         'score': score_data.get('score', 0),
                         'raw_value': score_data.get('raw_value'),
@@ -1784,78 +1792,109 @@ class ProfessionalPDFService:
                     citation_num += 1
         
         if citations_data:
-            elements.append(Paragraph("Score Justifications:", self.styles['subsection_heading']))
+            elements.append(Paragraph("Technical Justifications:", self.styles['subsection_heading']))
             
-            # Group citations by component
-            current_component = None
+            # Create a professional footnotes table
+            footnotes_data = []
             for cit in citations_data:
-                if cit['component'] != current_component:
-                    current_component = cit['component']
-                    elements.append(Spacer(1, 0.1 * inch))
-                    elements.append(Paragraph(
-                        f"<b>{current_component}</b>",
-                        ParagraphStyle(
-                            name='CitCompHeader',
-                            parent=self.styles['body'],
-                            fontSize=10,
-                            textColor=self.COLORS['header'],
-                            spaceBefore=8,
-                        )
-                    ))
-                
                 # Format raw value if available
                 raw_text = ""
                 if cit['raw_value'] is not None:
                     if isinstance(cit['raw_value'], float):
-                        raw_text = f" (Raw: {cit['raw_value']:.2g} {cit['unit']})"
+                        raw_text = f" ({cit['raw_value']:.2g} {cit['unit']})"
                     else:
-                        raw_text = f" (Raw: {cit['raw_value']} {cit['unit']})"
+                        raw_text = f" ({cit['raw_value']} {cit['unit']})"
                 
-                # Citation entry
-                cit_text = (
-                    f"<font size='8' color='#6B7280'>[{cit['number']}]</font> "
-                    f"<b>{cit['criterion']}</b> - Score: {cit['score']}/10{raw_text}<br/>"
-                    f"<font color='#4B5563'><i>{cit['rationale'][:200]}{'...' if len(cit['rationale']) > 200 else ''}</i></font>"
+                # Academic-style citation format
+                cit_entry = (
+                    f"<super>[{cit['number']}]</super> "
+                    f"<b>{cit['component']}</b>, \"{cit['criterion']}\" evaluation{raw_text}. "
+                    f"Score: {cit['score']}/10 ({cit['category']}). "
+                    f"<i>{cit['rationale'][:250]}{'...' if len(cit['rationale']) > 250 else ''}</i>"
                 )
                 
-                elements.append(Paragraph(
-                    cit_text,
-                    ParagraphStyle(
-                        name=f'Citation_{cit["number"]}',
-                        parent=self.styles['body'],
-                        fontSize=9,
-                        leftIndent=15,
-                        spaceBefore=4,
-                        spaceAfter=4,
+                footnotes_data.append([
+                    Paragraph(
+                        cit_entry,
+                        ParagraphStyle(
+                            name=f'Footnote_{cit["number"]}',
+                            parent=self.styles['body'],
+                            fontSize=8,
+                            leading=11,
+                            textColor=self.COLORS['body'],
+                            spaceBefore=2,
+                            spaceAfter=4,
+                        )
                     )
-                ))
+                ])
+            
+            # Create footnotes table with light border
+            if footnotes_data:
+                footnotes_table = Table(
+                    footnotes_data,
+                    colWidths=[6.3 * inch],
+                )
+                footnotes_table.setStyle(TableStyle([
+                    ('BACKGROUND', (0, 0), (-1, -1), colors.HexColor('#FAFAFA')),
+                    ('BOX', (0, 0), (-1, -1), 0.5, self.COLORS['border']),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 10),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 10),
+                    ('TOPPADDING', (0, 0), (-1, -1), 6),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                    ('LINEBELOW', (0, 0), (-1, -2), 0.25, self.COLORS['border']),
+                ]))
+                elements.append(footnotes_table)
         else:
             elements.append(Paragraph(
-                "No detailed scoring rationales were provided for this trade study.",
+                "No detailed scoring rationales were provided for this trade study. "
+                "Consider adding rationales when scoring components to enable citation generation.",
                 self.styles['body']
             ))
         
         elements.append(Spacer(1, 0.3 * inch))
         
-        # Data Sources subsection
+        # Data Sources subsection - formatted as proper bibliography
         elements.append(Paragraph("Data Sources:", self.styles['subsection_heading']))
         
-        source_items = []
+        # Only include components with meaningful data (description or at least manufacturer info)
+        source_entries = []
+        source_num = 1
         for comp in components_data:
-            comp_name = f"{comp.get('manufacturer', '')} {comp.get('part_number', '')}"
+            manufacturer = comp.get('manufacturer', '')
+            part_number = comp.get('part_number', '')
             desc = comp.get('description', '')
-            if desc:
-                source_items.append(f"<b>{comp_name}:</b> {desc[:100]}{'...' if len(desc) > 100 else ''}")
+            
+            # Only add source entry if we have meaningful information
+            if desc or (manufacturer and part_number):
+                # Format as academic bibliography entry
+                source_entry = (
+                    f"<b>[S{source_num}]</b> {manufacturer or 'Unknown'}, "
+                    f"\"<i>{part_number or 'N/A'} Technical Datasheet</i>,\" "
+                    f"Manufacturer Documentation. "
+                )
+                if desc:
+                    source_entry += f"Summary: {desc[:80]}{'...' if len(desc) > 80 else ''}"
+                
+                source_entries.append((source_num, source_entry))
+                source_num += 1
         
-        if source_items:
-            for item in source_items:
+        if source_entries:
+            elements.append(Paragraph(
+                "Component specifications and performance data were obtained from the following sources:",
+                self.styles['body']
+            ))
+            elements.append(Spacer(1, 0.1 * inch))
+            
+            for num, entry in source_entries:
                 elements.append(Paragraph(
-                    f"• {item}",
+                    entry,
                     ParagraphStyle(
-                        name='SourceItem',
+                        name=f'Source_{num}',
                         parent=self.styles['body'],
                         fontSize=9,
                         leftIndent=10,
+                        spaceBefore=2,
+                        spaceAfter=4,
                     )
                 ))
         else:

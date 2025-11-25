@@ -6,6 +6,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
 
+// Import react-pdf styles for proper text and annotation rendering
+import 'react-pdf/dist/Page/TextLayer.css';
+import 'react-pdf/dist/Page/AnnotationLayer.css';
+
 // Import PDF.js worker using Vite's URL import syntax
 import pdfjsWorker from 'pdfjs-dist/build/pdf.worker.min.mjs?url';
 
