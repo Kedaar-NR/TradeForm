@@ -414,105 +414,164 @@ Return ONLY valid JSON, no markdown formatting, no explanations."""
         
         components_text = "\n".join(components_text_parts)
         
-        desc_text = f"\nProject Description: {project_description}" if project_description else ""
+        # Helper to escape curly braces for safe f-string interpolation
+        def escape_fstring(value: str) -> str:
+            """Escape curly braces to prevent f-string parsing errors."""
+            if value is None:
+                return "N/A"
+            return str(value).replace("{", "{{").replace("}", "}}")
         
-        base_prompt = f"""You are an expert aerospace systems engineer writing a comprehensive, publication-ready trade study report for a Preliminary Design Review (PDR) or Critical Design Review (CDR).
+        # Escape user-provided values that will be interpolated in f-strings
+        safe_project_name = escape_fstring(project_name)
+        safe_component_type = escape_fstring(component_type)
+        safe_project_description = escape_fstring(project_description) if project_description else ""
+        
+        desc_text = f"\nProject Description: {safe_project_description}" if project_description else ""
+        
+        # Helper to escape characters that break markdown table structure AND f-string interpolation
+        def escape_table_cell(value: str) -> str:
+            """Escape pipes, newlines, and curly braces that break markdown tables or f-strings."""
+            if value is None:
+                return "N/A"
+            result = str(value)
+            # Replace newlines and carriage returns with spaces (tables must be single-line)
+            result = result.replace("\r\n", " ").replace("\n", " ").replace("\r", " ")
+            # Escape curly braces for f-string safety (table cells are interpolated into f-strings)
+            result = result.replace("{", "{{").replace("}", "}}")
+            # Escape pipe characters to prevent column splitting
+            result = result.replace("|", "\\|")
+            # Collapse multiple spaces into one
+            while "  " in result:
+                result = result.replace("  ", " ")
+            return result.strip()
+        
+        # Build concrete table examples using actual data
+        # Get the recommended (top-ranked) component safely
+        sorted_components = sorted(components, key=lambda x: x['rank']) if components else []
+        recommended_comp = sorted_components[0] if sorted_components else {
+            'manufacturer': 'N/A',
+            'part_number': 'N/A', 
+            'total_score': 0.0,
+            'rank': 1
+        }
+        
+        # Rankings table example
+        rankings_example_rows = []
+        for i, comp in enumerate(sorted_components):
+            rec = "**RECOMMENDED**" if i == 0 else ("Runner-up" if i == 1 else "Alternative")
+            manufacturer = escape_table_cell(comp['manufacturer'])
+            part_number = escape_table_cell(comp['part_number'])
+            rankings_example_rows.append(f"| {comp['rank']} | {manufacturer} {part_number} | {comp['total_score']:.2f}/10 | {rec} |")
+        rankings_example = "\n".join(rankings_example_rows) if rankings_example_rows else "| - | No components | - | - |"
+        
+        # Criteria weights table example
+        criteria_example_rows = []
+        for c in criteria:
+            higher = "Yes" if c.get('higher_is_better', True) else "No"
+            name = escape_table_cell(c['name'])
+            unit = escape_table_cell(c.get('unit') or 'N/A')
+            # Use 'or' to handle both missing key AND explicit None value
+            desc_raw = c.get('description') or 'N/A'
+            desc = escape_table_cell(desc_raw[:50] if len(desc_raw) > 50 else desc_raw)
+            criteria_example_rows.append(f"| {name} | {c['weight']}% | {unit} | {higher} | {desc}... |")
+        criteria_example = "\n".join(criteria_example_rows) if criteria_example_rows else "| - | - | - | - | No criteria defined |"
+        
+        # Scoring matrix header - handle empty criteria case
+        criteria_names = [escape_table_cell(c['name']) for c in criteria]
+        if criteria_names:
+            matrix_header = "| Component | " + " | ".join(criteria_names) + " | **Total** |"
+            matrix_separator = "|" + "|".join(["---"] * (len(criteria_names) + 2)) + "|"
+        else:
+            matrix_header = "| Component | **Total** |"
+            matrix_separator = "|---|---|"
+        
+        # Escape recommended component values for f-string safety
+        safe_rec_manufacturer = escape_fstring(recommended_comp['manufacturer'])
+        safe_rec_part_number = escape_fstring(recommended_comp['part_number'])
+        
+        base_prompt = f"""You are an expert aerospace systems engineer writing a comprehensive, publication-ready trade study report.
 
-Project Information:
-- Project Name: {project_name}
-- Component Type: {component_type}{desc_text}
+Project: {safe_project_name}
+Component Type: {safe_component_type}{desc_text}
 
-Evaluation Criteria (sorted by importance):
+================================================================================
+MANDATORY TABLE REQUIREMENTS - YOUR REPORT MUST INCLUDE THESE 4 TABLES
+================================================================================
+
+You MUST include these exact tables in your report. Use the data provided below.
+
+**TABLE 1: RANKINGS TABLE** (place in Executive Summary section)
+| Rank | Component | Total Score | Recommendation |
+|------|-----------|-------------|----------------|
+{rankings_example}
+
+**TABLE 2: CRITERIA WEIGHTS TABLE** (place in Methodology section)
+| Criterion | Weight | Unit | Higher is Better | Description |
+|-----------|--------|------|------------------|-------------|
+{criteria_example}
+
+**TABLE 3: SCORING MATRIX TABLE** (place in Component Analysis section)
+{matrix_header}
+{matrix_separator}
+[Fill in each component's scores for each criterion from the data below]
+
+**TABLE 4: HEAD-TO-HEAD COMPARISON TABLE** (place in Comparative Analysis section)
+| Criterion | [Winner] | [Runner-up] | [Third] | Winner |
+|-----------|----------|-------------|---------|--------|
+[Compare top 3 components criterion by criterion]
+
+================================================================================
+SOURCE DATA FOR REPORT
+================================================================================
+
+Evaluation Criteria:
 {criteria_text}
 
 Component Evaluation Results:
 {components_text}
 
-Task: Write a professional engineering trade study report following NASA/aerospace industry documentation standards. The report must be detailed, quantitative, and cite specific data points with scoring justifications.
+================================================================================
+REPORT STRUCTURE
+================================================================================
 
-SECTION 1: EXECUTIVE SUMMARY (2-3 substantive paragraphs)
+Write the report with these sections:
 
-Write a comprehensive executive summary that:
-- States the trade study objectives: evaluating {len(components)} candidate {component_type} components against {len(criteria)} weighted criteria
-- Explicitly lists ALL criteria with their percentage weights (e.g., "Criteria weights were assigned as follows: [Criterion A] (X%), [Criterion B] (Y%), [Criterion C] (Z%)...")
-- Clearly identifies the recommended component with its weighted total score (e.g., "scored the highest overall with XX%")
-- Highlights 2-3 key performance advantages with specific measured values
-- States the score differential between the top two candidates
-- Summarizes why this component best meets the project requirements
+## 1. Executive Summary
+- 2-3 paragraphs summarizing the trade study
+- State the recommended component ({safe_rec_manufacturer} {safe_rec_part_number}) with score {recommended_comp['total_score']:.2f}/10
+- INCLUDE TABLE 1 (Rankings) after the summary paragraphs
 
-SECTION 2: METHODOLOGY (2-3 paragraphs)
+## 2. Methodology  
+- 2-3 paragraphs on weighted MCDA framework
+- INCLUDE TABLE 2 (Criteria Weights)
+- Explain 1-10 scoring scale
 
-Explain the evaluation approach in detail:
-- Describe the weighted multi-criteria decision analysis (MCDA) framework
-- For EACH criterion, explain WHY that specific weight was assigned. Example: "[Criterion Name] was given the highest weighting (XX%) as [technical justification - e.g., 'robust and reliable data transmission is essential for mission-critical operations']"
-- Explain the 1-10 scoring scale with clear thresholds:
-  * 9-10: Significantly exceeds requirements
-  * 7-8: Exceeds requirements  
-  * 5-6: Adequately meets requirements
-  * 3-4: Marginally meets requirements
-  * 1-2: Does not meet requirements
-- Describe how raw technical values were normalized to scores
-- Note the total weight sums to 100%
+## 3. Component Analysis
+- INCLUDE TABLE 3 (Scoring Matrix) FIRST
+- Then for each component: Overview, Strengths (7+), Weaknesses (4-), Trade-offs
 
-SECTION 3: COMPONENT ANALYSIS (Detailed analysis for EACH component)
+## 4. Comparative Analysis
+- 1-2 paragraphs comparing top candidates
+- INCLUDE TABLE 4 (Head-to-Head Comparison)
 
-For EACH component, write 2-3 paragraphs structured as follows:
+## 5. Recommendation
+- 2-3 paragraphs with final recommendation and confidence level
 
-**[Component Name]**
+## 6. Risk & Supply Chain
+- 1-2 paragraphs on TRL, vendor reliability, integration
 
-Technical Overview: Describe what this component is designed for and its key specifications.
+## 7. Conclusion & Next Steps
+- 1 paragraph with 2-3 action items
 
-Scoring Analysis: The [Component] scored [total score]% overall. For each major criterion, cite the specific score and justify it:
-- "[Criterion]: Score X/10 - [explanation with raw value if available, e.g., 'achieving 18.5 dB gain which exceeds the 15 dB requirement']"
-- Highlight both strengths (scores 7+) and weaknesses (scores 4 or below)
-
-Trade-off Assessment: Discuss what compromises this component represents. For example: "While the [Component] excels in [strength areas], it scored lower in [weakness areas] due to [specific reasons]."
-
-SECTION 4: COMPARATIVE ANALYSIS (2-3 paragraphs)
-
-Create a direct head-to-head comparison:
-- Compare the top 2-3 candidates criterion by criterion
-- Use specific comparative statements: "[Component A] achieved a score of X for [Criterion] while [Component B] achieved Y"
-- Identify which component wins each criterion category
-- Calculate and state score differentials (e.g., "a margin of X.XX points separates the top two candidates")
-- Discuss the technical trade-offs: what you gain vs. what you sacrifice choosing one over another
-
-SECTION 5: RECOMMENDATION (2-3 paragraphs)
-
-Provide a clear, justified recommendation:
-- State definitively: "[Full Component Name] is recommended as the optimal solution for [project name]"
-- Justify with the weighted total score and percentage (e.g., "achieving the highest weighted score of X.XX/10 (XX%)")
-- Explain performance on the highest-weighted criteria with specific values
-- Address any limitations of the recommended component and proposed mitigation strategies
-- State confidence level based on score margin (high if >10% margin, moderate if 5-10%, low if <5%)
-
-SECTION 6: RISK & SUPPLY CHAIN CONSIDERATIONS (1-2 paragraphs)
-
-Address practical implementation factors:
-- Technology Readiness Level (TRL) and flight heritage
-- Vendor reliability and manufacturing capability
-- Supply chain risks (single source, lead times, geographic factors)
-- Integration complexity and schedule impacts
-- Any certification or qualification requirements
-
-SECTION 7: CONCLUSION & NEXT STEPS (1 paragraph)
-
-Summarize and propose action items:
-- Restate the recommended component with its score
-- Propose 2-3 concrete next steps (e.g., prototype procurement, detailed qualification testing, vendor engagement)
-
-WRITING REQUIREMENTS:
-- Write in third person, formal technical prose suitable for a design review
-- Use precise aerospace engineering terminology
-- Include specific numerical values throughout (scores, weights, raw measurements with units)
-- Format all scores as "X/10" and percentages as "XX%"
-- Write flowing paragraphs, not bullet lists - this must read like a professional technical report
-- Reference the provided rationales as technical justification for scores
-- Target 2500-3500 words for comprehensive coverage
-- Every claim must be backed by data from the evaluation results
-- Use language like "based on the evaluation data", "the analysis shows", "scoring indicates"
-
-Begin the report with "# {project_name} Trade Study Report" as the title."""
+================================================================================
+FORMATTING
+================================================================================
+- Title: # {safe_project_name} Trade Study Report
+- Use ## for sections, ### for subsections
+- ALL 4 TABLES ARE REQUIRED - do not skip any
+- Format scores as X/10
+- Use **bold** for emphasis
+- Target 2500-3500 words"""
 
         # Augment with user report templates if available
         prompt = base_prompt
@@ -527,10 +586,30 @@ Begin the report with "# {project_name} Trade Study Report" as the title."""
             except Exception as e:
                 logger.warning(f"Failed to augment report with user context: {str(e)}")
 
+        # System prompt to enforce table generation - this is critical for getting tables in output
+        system_prompt = """You are an expert aerospace systems engineer writing trade study reports.
+
+MANDATORY: You MUST include markdown tables in every report you generate. Tables are REQUIRED, not optional.
+
+Your reports MUST contain these 4 tables:
+1. Rankings Table - Component rankings with scores (in Executive Summary)
+2. Criteria Weights Table - All criteria with weights and descriptions (in Methodology)
+3. Scoring Matrix Table - All components vs all criteria with scores (in Component Analysis)
+4. Head-to-Head Table - Top components compared criterion by criterion (in Comparative Analysis)
+
+CRITICAL TABLE FORMATTING RULES:
+- Use standard markdown table syntax with | delimiters
+- Always include the header separator row (|---|---|---|)
+- Align columns properly
+- Include ALL components and ALL criteria in the scoring matrix
+
+If a report does not contain these 4 tables, it is INCOMPLETE and UNACCEPTABLE."""
+
         try:
             message = self.client.messages.create(
                 model=self.model,
                 max_tokens=8000,  # Increased for comprehensive aerospace-quality reports
+                system=system_prompt,
                 messages=[{"role": "user", "content": prompt}]
             )
 
