@@ -80,11 +80,12 @@ export const TradeStudyReportDialog: React.FC<TradeStudyReportDialogProps> = ({
 
     const handleClosePdfViewer = useCallback(() => {
         setShowPdfViewer(false);
-        if (pdfUrl) {
-            URL.revokeObjectURL(pdfUrl);
+        if (pdfUrlRef.current) {
+            URL.revokeObjectURL(pdfUrlRef.current);
+            pdfUrlRef.current = null;
             setPdfUrl(null);
         }
-    }, [pdfUrl]);
+    }, []);
 
     if (!isOpen) return null;
 
