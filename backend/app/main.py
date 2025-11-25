@@ -34,7 +34,8 @@ from app.routers import (
     results,
     collaboration,
     ai,
-    onboarding
+    onboarding,
+    search
 )
 
 # Create all database tables
@@ -78,6 +79,7 @@ app.include_router(results.router)
 app.include_router(collaboration.router)
 app.include_router(ai.router)
 app.include_router(onboarding.router)
+app.include_router(search.router)
 
 
 @app.on_event("startup")

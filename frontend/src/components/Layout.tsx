@@ -2,8 +2,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useState, type ReactNode } from "react";
 import Logo from "./Logo";
 import FloatingAIAssistant from "./FloatingAIAssistant";
+import GlobalSearch from "./GlobalSearch";
 import { projectGroupsApi } from "../services/api";
-import { useStore } from "../store/useStore";
 
 interface LayoutProps {
   children: ReactNode;
@@ -12,7 +12,6 @@ interface LayoutProps {
 const Layout = ({ children }: LayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { searchTerm, setSearchTerm } = useStore();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showCreateProjectModal, setShowCreateProjectModal] = useState(false);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
@@ -20,9 +19,6 @@ const Layout = ({ children }: LayoutProps) => {
   const [projectDescription, setProjectDescription] = useState("");
   const [selectedColor, setSelectedColor] = useState("#6B7280");
   const [isCreating, setIsCreating] = useState(false);
-
-  // Check if we're on the dashboard page
-  const isDashboardPage = location.pathname === "/dashboard";
 
   const COLORS = [
     { name: "gray", value: "#6B7280" },
@@ -251,16 +247,8 @@ const Layout = ({ children }: LayoutProps) => {
         {/* Top header */}
         <header className="bg-white border-b border-gray-200 px-6 py-3 flex-shrink-0">
           <div className="flex items-center justify-between gap-4">
-            {isDashboardPage && (
-              <input
-                type="text"
-                placeholder="Search projects..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="input-field max-w-sm"
-              />
-            )}
-            {!isDashboardPage && <div />}
+            {/* Global Search - always visible */}
+            <GlobalSearch />
             <div className="flex items-center gap-4">
               <button
                 onClick={() => navigate("/documentation")}
