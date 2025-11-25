@@ -36,17 +36,26 @@ const GlobalSearch: React.FC = () => {
     const timer = setTimeout(async () => {
       setIsLoading(true);
       try {
-        const res = await fetch(
-          getApiUrl(`/api/search?q=${encodeURIComponent(query)}`),
-          { headers: getAuthHeaders() }
-        );
+        const url = getApiUrl(`/api/search?q=${encodeURIComponent(query)}`);
+        console.log("[GlobalSearch] Fetching:", url);
+        const res = await fetch(url, { headers: getAuthHeaders() });
+        console.log("[GlobalSearch] Response status:", res.status);
         if (res.ok) {
           const data: SearchResponse = await res.json();
+          console.log("[GlobalSearch] Results:", data.results.length);
           setResults(data.results);
           setSelectedIndex(-1);
+        } else {
+          console.error(
+            "[GlobalSearch] Non-OK response:",
+            res.status,
+            await res.text()
+          );
+          setResults([]);
         }
       } catch (err) {
-        console.error("Search failed:", err);
+        console.error("[GlobalSearch] Search failed:", err);
+        setResults([]);
       } finally {
         setIsLoading(false);
       }
@@ -111,32 +120,82 @@ const GlobalSearch: React.FC = () => {
     switch (type) {
       case "project_group":
         return (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"
+            />
           </svg>
         );
       case "project":
         return (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
           </svg>
         );
       case "component":
         return (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"
+            />
           </svg>
         );
       case "criterion":
         return (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3" />
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"
+            />
           </svg>
         );
       default:
         return (
-          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          <svg
+            className="w-4 h-4"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+            />
           </svg>
         );
     }
@@ -230,13 +289,13 @@ const GlobalSearch: React.FC = () => {
                     setQuery("");
                   }}
                   className={`w-full px-3 py-2 text-left flex items-start gap-3 transition-colors ${
-                    index === selectedIndex
-                      ? "bg-gray-100"
-                      : "hover:bg-gray-50"
+                    index === selectedIndex ? "bg-gray-100" : "hover:bg-gray-50"
                   }`}
                 >
                   <div
-                    className={`p-1.5 rounded ${getTypeColor(result.type)} flex-shrink-0 mt-0.5`}
+                    className={`p-1.5 rounded ${getTypeColor(
+                      result.type
+                    )} flex-shrink-0 mt-0.5`}
                   >
                     {getIcon(result.type)}
                   </div>
@@ -269,14 +328,25 @@ const GlobalSearch: React.FC = () => {
           )}
           <div className="border-t border-gray-100 px-3 py-2 text-[10px] text-gray-400 flex items-center gap-3">
             <span>
-              <kbd className="px-1 py-0.5 bg-gray-100 rounded text-[9px]">↑</kbd>{" "}
-              <kbd className="px-1 py-0.5 bg-gray-100 rounded text-[9px]">↓</kbd> to navigate
+              <kbd className="px-1 py-0.5 bg-gray-100 rounded text-[9px]">
+                ↑
+              </kbd>{" "}
+              <kbd className="px-1 py-0.5 bg-gray-100 rounded text-[9px]">
+                ↓
+              </kbd>{" "}
+              to navigate
             </span>
             <span>
-              <kbd className="px-1 py-0.5 bg-gray-100 rounded text-[9px]">Enter</kbd> to select
+              <kbd className="px-1 py-0.5 bg-gray-100 rounded text-[9px]">
+                Enter
+              </kbd>{" "}
+              to select
             </span>
             <span>
-              <kbd className="px-1 py-0.5 bg-gray-100 rounded text-[9px]">Esc</kbd> to close
+              <kbd className="px-1 py-0.5 bg-gray-100 rounded text-[9px]">
+                Esc
+              </kbd>{" "}
+              to close
             </span>
           </div>
         </div>
@@ -286,4 +356,3 @@ const GlobalSearch: React.FC = () => {
 };
 
 export default GlobalSearch;
-
