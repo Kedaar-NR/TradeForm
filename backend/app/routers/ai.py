@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from uuid import UUID
 import io
 import asyncio
-from typing import Tuple, Optional
+from typing import Tuple, Optional, List
 from datetime import datetime
 import logging
 
@@ -103,35 +103,53 @@ def discover_components(
         raise HTTPException(status_code=500, detail=str(e))
 
 
-async def _score_single_component_criterion(
+async def _score_component_batch(
     ai_service,
     component: models.Component,
-    criterion: models.Criterion
-) -> Tuple[Optional[dict], Optional[Exception]]:
-    """Score a single component-criterion pair. Returns (score_data, error)."""
+    criteria: List[models.Criterion],
+    timeout_seconds: int = 60
+) -> Tuple[models.Component, List[dict], Optional[Exception]]:
+    """Score a component against ALL criteria in one AI call. Much faster."""
     try:
-        score_data = await asyncio.to_thread(
-            ai_service.score_component,
-            component_manufacturer=component.manufacturer,
-            component_part_number=component.part_number,
-            component_description=component.description,
-            component_datasheet_url=component.datasheet_url,
-            criterion_name=criterion.name,
-            criterion_description=criterion.description,
-            criterion_unit=criterion.unit,
-            criterion_higher_is_better=criterion.higher_is_better,
-            criterion_min_req=criterion.minimum_requirement,
-            criterion_max_req=criterion.maximum_requirement
+        component_dict = {
+            "manufacturer": component.manufacturer,
+            "part_number": component.part_number,
+            "description": component.description or "",
+        }
+        criteria_dicts = [
+            {
+                "name": c.name,
+                "description": c.description or "",
+                "unit": c.unit or "",
+                "higher_is_better": c.higher_is_better,
+            }
+            for c in criteria
+        ]
+        
+        # Add timeout to prevent hanging
+        scores = await asyncio.wait_for(
+            asyncio.to_thread(
+                ai_service.score_component_batch,
+                component=component_dict,
+                criteria=criteria_dicts
+            ),
+            timeout=timeout_seconds
         )
-        return score_data, None
+        logger.info(f"Scored component {component.manufacturer} {component.part_number}")
+        return component, scores, None
+    except asyncio.TimeoutError:
+        logger.error(f"Timeout scoring component {component.id}")
+        return component, [], Exception("Scoring timed out")
     except Exception as e:
-        logger.error(f"Error scoring component {component.id} for criterion {criterion.id}: {str(e)}")
-        return None, e
+        logger.error(f"Error batch scoring component {component.id}: {str(e)}")
+        return component, [], e
 
 
 @router.post("/api/projects/{project_id}/score")
 async def score_all_components(project_id: UUID, db: Session = Depends(get_db)):
-    """Trigger AI scoring for all components against all criteria."""
+    """Trigger AI scoring for all components against all criteria.
+    Uses batch scoring - one AI call per component (scores all criteria at once).
+    """
     project = db.query(models.Project).filter(models.Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
@@ -143,6 +161,9 @@ async def score_all_components(project_id: UUID, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail="No components found for this project")
     if not criteria:
         raise HTTPException(status_code=400, detail="No criteria found for this project")
+    
+    # Build criterion name to ID mapping
+    criterion_map = {c.name: c for c in criteria}
     
     # Pre-fetch existing scores
     component_ids = [c.id for c in components]
@@ -162,16 +183,12 @@ async def score_all_components(project_id: UUID, db: Session = Depends(get_db)):
     try:
         ai_service = get_ai_service()
         
-        scoring_pairs = []
-        scoring_tasks = []
+        # Create batch scoring tasks - one per component (scores ALL criteria at once)
+        # Process in smaller batches to avoid API overload
+        logger.info(f"Starting batch scoring for {len(components)} components with {len(criteria)} criteria")
         
-        for component in components:
-            for criterion in criteria:
-                scoring_pairs.append((component, criterion))
-                task = _score_single_component_criterion(ai_service, component, criterion)
-                scoring_tasks.append(task)
-        
-        semaphore = asyncio.Semaphore(20)
+        # Run with low concurrency to avoid API rate limits (2 at a time)
+        semaphore = asyncio.Semaphore(2)
         
         async def bounded_score(task):
             async with semaphore:
@@ -180,40 +197,51 @@ async def score_all_components(project_id: UUID, db: Session = Depends(get_db)):
         bounded_tasks = [bounded_score(task) for task in scoring_tasks]
         results = await asyncio.gather(*bounded_tasks, return_exceptions=True)
         
-        for i, result in enumerate(results):
+        for result in results:
             if isinstance(result, Exception):
                 errors.append(str(result))
                 continue
             
-            if not isinstance(result, tuple) or len(result) != 2:
-                errors.append(f"Unexpected result format at index {i}")
+            component, scores_list, error = result
+            if error:
+                errors.append(str(error))
                 continue
             
-            score_data, error = result
-            if error or not score_data:
-                continue
-            
-            component, criterion = scoring_pairs[i]
-            score_key = (component.id, criterion.id)
-            existing_score = existing_scores.get(score_key)
-            
-            if existing_score:
-                existing_score.score = score_data["score"]
-                existing_score.rationale = score_data.get("rationale", "")
-                existing_score.raw_value = score_data.get("raw_value")
-                existing_score.extraction_confidence = score_data.get("confidence", 0.5)
-                scores_updated += 1
-            else:
-                db_score = models.Score(
-                    component_id=component.id,
-                    criterion_id=criterion.id,
-                    score=score_data["score"],
-                    rationale=score_data.get("rationale", ""),
-                    raw_value=score_data.get("raw_value"),
-                    extraction_confidence=score_data.get("confidence", 0.5)
-                )
-                db.add(db_score)
-                scores_created += 1
+            # Process each score from the batch
+            for score_data in scores_list:
+                criterion_name = score_data.get("criterion_name", "")
+                criterion = criterion_map.get(criterion_name)
+                
+                if not criterion:
+                    # Try fuzzy match
+                    for crit_name, crit in criterion_map.items():
+                        if crit_name.lower() in criterion_name.lower() or criterion_name.lower() in crit_name.lower():
+                            criterion = crit
+                            break
+                
+                if not criterion:
+                    continue
+                
+                score_key = (component.id, criterion.id)
+                existing_score = existing_scores.get(score_key)
+                
+                if existing_score:
+                    existing_score.score = score_data["score"]
+                    existing_score.rationale = score_data.get("rationale", "")
+                    existing_score.raw_value = score_data.get("raw_value")
+                    existing_score.extraction_confidence = score_data.get("confidence", 0.5)
+                    scores_updated += 1
+                else:
+                    db_score = models.Score(
+                        component_id=component.id,
+                        criterion_id=criterion.id,
+                        score=score_data["score"],
+                        rationale=score_data.get("rationale", ""),
+                        raw_value=score_data.get("raw_value"),
+                        extraction_confidence=score_data.get("confidence", 0.5)
+                    )
+                    db.add(db_score)
+                    scores_created += 1
         
         db.commit()
         

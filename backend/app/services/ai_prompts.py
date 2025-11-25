@@ -23,8 +23,8 @@ Return a JSON array with this structure:
     "manufacturer": "Company Name",
     "part_number": "Exact Model/Part Number",
     "description": "Brief technical description with key specs",
-    "datasheet_url": "URL to official datasheet if known (or null)",
-    "availability": "in_stock" or "lead_time" or "discontinued"
+    "datasheet_url": "Direct URL to PDF datasheet (must end in .pdf if possible)",
+    "availability": "in_stock" or "lead_time" or "limited"
   }}
 ]
 
@@ -32,6 +32,8 @@ IMPORTANT:
 - Only include real, existing products
 - Include accurate manufacturer names and part numbers
 - Provide specific technical descriptions
+- For datasheet_url: STRONGLY prefer direct PDF links ending in .pdf from manufacturer websites
+- If no direct PDF available, use the manufacturer product page URL
 - Return ONLY valid JSON, no markdown formatting"""
 
 
