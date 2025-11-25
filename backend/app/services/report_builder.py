@@ -262,3 +262,4 @@ def build_simple_pdf(lines: List[str]) -> io.BytesIO:
     buffer.seek(0)
     return buffer
 
+

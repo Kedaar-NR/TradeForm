@@ -191,3 +191,4 @@ class PDFStyles:
         else:
             return colors.HexColor('#FECACA')  # Red - poor
 
+

@@ -167,3 +167,4 @@ def prepare_report_lines(report_text: str) -> List[str]:
     ]
     return header + [""] + (paragraphs or [""])
 
+
