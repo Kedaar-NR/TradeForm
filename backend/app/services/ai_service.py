@@ -53,13 +53,15 @@ class AIService:
         if not api_key:
             raise ValueError("ANTHROPIC_API_KEY environment variable is not set")
         
-        if not ANTHROPIC_AVAILABLE:
+        if not ANTHROPIC_AVAILABLE or anthropic is None:
             raise RuntimeError("anthropic package is not installed")
         
+        # Type checker doesn't know anthropic is not None here, so we assert it
+        assert anthropic is not None
         self.client = anthropic.Anthropic(api_key=api_key)
-        self.context_builder = AIContextBuilder() if CONTEXT_BUILDER_AVAILABLE else None
+        self.context_builder = AIContextBuilder() if CONTEXT_BUILDER_AVAILABLE and AIContextBuilder is not None else None
     
-    def _call_claude(self, system: str, user: str, max_tokens: int = None) -> str:
+    def _call_claude(self, system: str, user: str, max_tokens: Optional[int] = None) -> str:
         """Make a call to Claude API and extract response text."""
         message = self.client.messages.create(
             model=self.MODEL,
@@ -82,7 +84,9 @@ class AIService:
             elif context_type == "report":
                 return self.context_builder.get_report_context(user_id, query)
             else:
-                return self.context_builder.get_full_context(user_id, query)
+                full_context = self.context_builder.get_full_context(user_id, query)
+                # Convert dict to string by joining all values
+                return "\n\n".join(full_context.values()) if full_context else ""
         except Exception as e:
             logger.warning(f"Failed to get context: {e}")
             return ""

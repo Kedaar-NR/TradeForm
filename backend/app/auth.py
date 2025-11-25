@@ -60,8 +60,9 @@ def authenticate_user(db: Session, email: str, password: str) -> Optional[models
     if not user:
         return None
 
-    hashed_password: Optional[str] = user.password_hash if user.password_hash else None
-    if not hashed_password or not verify_password(password, hashed_password):
+    # Get the actual password hash value from the user object
+    password_hash_value = getattr(user, 'password_hash', None)
+    if not password_hash_value or not verify_password(password, password_hash_value):
         return None
     return user
 

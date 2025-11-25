@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TradeForm Logo Symbol Export</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: #f5f5f5;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            text-align: center;
+        }
+        .logo-preview {
+            background: white;
+            padding: 40px;
+            border-radius: 12px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin: 20px 0;
+        }
+        .sizes {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        .size-option {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .instructions {
+            background: #e3f2fd;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+            text-align: left;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>TradeForm Logo Symbol</h1>
+        
+        <div class="logo-preview">
+            <h3>Logo Symbol (512x512)</h3>
+            <svg width="512" height="512" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" id="logo-512">
+                <rect width="32" height="32" rx="6" fill="#000000" />
+                <path d="M8 11H24M16 11V24M12 16H20" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+            </svg>
+        </div>
+
+        <div class="sizes">
+            <div class="size-option">
+                <h4>256x256</h4>
+                <svg width="256" height="256" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="32" height="32" rx="6" fill="#000000" />
+                    <path d="M8 11H24M16 11V24M12 16H20" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+                </svg>
+            </div>
+            
+            <div class="size-option">
+                <h4>128x128</h4>
+                <svg width="128" height="128" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="32" height="32" rx="6" fill="#000000" />
+                    <path d="M8 11H24M16 11V24M12 16H20" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+                </svg>
+            </div>
+            
+            <div class="size-option">
+                <h4>64x64</h4>
+                <svg width="64" height="64" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="32" height="32" rx="6" fill="#000000" />
+                    <path d="M8 11H24M16 11V24M12 16H20" stroke="white" strokeWidth="2.5" strokeLinecap="round" />
+                </svg>
+            </div>
+        </div>
+
+        <div class="instructions">
+            <h3>How to save as PNG:</h3>
+            <ol>
+                <li>Right-click on any logo above</li>
+                <li>Select "Save image as..." or "Copy image"</li>
+                <li>Save as "trade-form.png"</li>
+            </ol>
+            <p><strong>Alternative:</strong> Use browser developer tools to save the SVG, then convert using online tools like <code>convertio.co</code> or <code>cloudconvert.com</code></p>
+        </div>
+
+        <button onclick="downloadSVG()" style="padding: 12px 24px; background: #000; color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 16px;">
+            Download SVG
+        </button>
+    </div>
+
+    <script>
+        function downloadSVG() {
+            const svg = document.getElementById('logo-512');
+            const svgData = new XMLSerializer().serializeToString(svg);
+            const svgBlob = new Blob([svgData], {type: 'image/svg+xml;charset=utf-8'});
+            const svgUrl = URL.createObjectURL(svgBlob);
+            
+            const downloadLink = document.createElement('a');
+            downloadLink.href = svgUrl;
+            downloadLink.download = 'trade-form-logo.svg';
+            document.body.appendChild(downloadLink);
+            downloadLink.click();
+            document.body.removeChild(downloadLink);
+        }
+    </script>
+</body>
+</html>

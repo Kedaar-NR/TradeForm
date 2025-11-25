@@ -1,5 +1,5 @@
 import { useNavigate, useLocation } from "react-router-dom";
-import { useState, type ReactNode } from "react";
+import { useState, useEffect, useRef, type ReactNode } from "react";
 import Logo from "./Logo";
 import FloatingAIAssistant from "./FloatingAIAssistant";
 import GlobalSearch from "./GlobalSearch";
@@ -19,6 +19,7 @@ const Layout = ({ children }: LayoutProps) => {
   const [projectDescription, setProjectDescription] = useState("");
   const [selectedColor, setSelectedColor] = useState("#6B7280");
   const [isCreating, setIsCreating] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
 
   const COLORS = [
     { name: "gray", value: "#6B7280" },
@@ -30,6 +31,26 @@ const Layout = ({ children }: LayoutProps) => {
     { name: "red", value: "#EF4444" },
     { name: "teal", value: "#14B8A6" },
   ];
+
+  // Close profile menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        profileMenuRef.current &&
+        !profileMenuRef.current.contains(event.target as Node)
+      ) {
+        setShowProfileMenu(false);
+      }
+    };
+
+    if (showProfileMenu) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showProfileMenu]);
 
   // Treat a path as active if it matches exactly or if it's a nested route under it
   const isActive = (path: string) =>
@@ -257,9 +278,12 @@ const Layout = ({ children }: LayoutProps) => {
                 Documentation
               </button>
               {/* Profile Menu */}
-              <div className="relative">
+              <div className="relative" ref={profileMenuRef}>
                 <button
-                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowProfileMenu(!showProfileMenu);
+                  }}
                   className="w-9 h-9 rounded-full bg-gray-900 flex items-center justify-center text-white font-semibold text-sm hover:bg-gray-800 transition-all shadow-sm"
                 >
                   {(() => {
@@ -280,36 +304,34 @@ const Layout = ({ children }: LayoutProps) => {
                   })()}
                 </button>
                 {showProfileMenu && (
-                  <>
-                    <div
-                      className="fixed inset-0 z-40"
-                      onClick={() => setShowProfileMenu(false)}
-                    />
-                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
-                      <button
-                        onClick={() => {
-                          navigate("/onboarding/upload");
-                          setShowProfileMenu(false);
-                        }}
-                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                  <div
+                    className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigate("/onboarding/upload");
+                        setShowProfileMenu(false);
+                      }}
+                      className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                    >
+                      <svg
+                        className="w-4 h-4"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
                       >
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
-                        >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                          />
-                        </svg>
-                        View Profile
-                      </button>
-                    </div>
-                  </>
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                        />
+                      </svg>
+                      View Profile
+                    </button>
+                  </div>
                 )}
               </div>
             </div>
