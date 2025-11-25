@@ -17,16 +17,26 @@ export const getApiUrl = (path: string) => {
   return `${API_BASE_URL}${path}`;
 };
 
-export const getAuthHeaders = (): Record<string, string> => {
+/**
+ * Get the auth token from localStorage.
+ * Returns null if not available (e.g., SSR or not logged in).
+ */
+export const getAuthToken = (): string | null => {
   if (typeof window === "undefined") {
-    return {};
+    return null;
   }
+  return localStorage.getItem("authToken");
+};
 
-  const token = localStorage.getItem("authToken");
+/**
+ * Get authorization headers for API requests.
+ * Returns empty object if no token is available.
+ */
+export const getAuthHeaders = (): Record<string, string> => {
+  const token = getAuthToken();
   if (!token) {
     return {};
   }
-
   return {
     Authorization: `Bearer ${token}`,
   };

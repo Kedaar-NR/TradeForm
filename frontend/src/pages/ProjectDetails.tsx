@@ -16,54 +16,10 @@ import ProjectFileTray from "../components/ProjectDetails/ProjectFileTray";
 import { TradeStudyReportDialog } from "../components/TradeStudyReportDialog";
 import { formatEnumValue } from "../utils/datasheetHelpers";
 import { getApiUrl, getAuthHeaders } from "../utils/apiHelpers";
+import { formatDisplayTimestamp, formatDateForFilename } from "../utils/dateFormatters";
 import type { ProjectChange } from "../types";
 
 type TabType = "overview" | "versions" | "collaboration";
-
-type DateInput = string | number | Date;
-
-const toDate = (value: DateInput): Date => {
-    return value instanceof Date ? value : new Date(value);
-};
-
-const formatDisplayTimestamp = (value: DateInput): string => {
-    const date = toDate(value);
-    if (Number.isNaN(date.getTime())) {
-        return "";
-    }
-    return new Intl.DateTimeFormat("en-US", {
-        timeZone: "America/Los_Angeles",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-        hour: "numeric",
-        minute: "2-digit",
-        second: "2-digit",
-    }).format(date);
-};
-
-const formatDateForFilename = (value: DateInput): string => {
-    const date = toDate(value);
-    if (Number.isNaN(date.getTime())) {
-        return "unknown-date";
-    }
-    const parts = new Intl.DateTimeFormat("en-US", {
-        timeZone: "America/Los_Angeles",
-        year: "numeric",
-        month: "2-digit",
-        day: "2-digit",
-    }).formatToParts(date);
-    const lookup: Record<string, string> = {};
-    parts.forEach((part) => {
-        if (part.type !== "literal") {
-            lookup[part.type] = part.value;
-        }
-    });
-    const year = lookup.year ?? "0000";
-    const month = lookup.month ?? "00";
-    const day = lookup.day ?? "00";
-    return `${year}-${month}-${day}`;
-};
 
 const ProjectDetails: React.FC = () => {
     const navigate = useNavigate();

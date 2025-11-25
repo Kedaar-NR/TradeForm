@@ -1,24 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import type { DatasheetStatus } from '../types';
 import { getApiUrl, getAuthHeaders } from '../utils/apiHelpers';
-
-type DateInput = string | number | Date;
-
-const formatDisplayTimestamp = (value: DateInput): string => {
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Los_Angeles",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "numeric",
-    minute: "2-digit",
-    second: "2-digit",
-  }).format(date);
-};
+import { formatDisplayTimestamp } from '../utils/dateFormatters';
 
 interface DatasheetStatusCardProps {
   testComponentId: string;

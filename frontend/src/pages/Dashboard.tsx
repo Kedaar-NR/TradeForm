@@ -3,21 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useStore } from "../store/useStore";
 import { ProjectGroup } from "../types";
 import { projectGroupsApi, projectsApi } from "../services/api";
-
-type DateInput = string | number | Date;
-
-const formatDisplayDate = (value: DateInput): string => {
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Los_Angeles",
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(date);
-};
+import { formatDisplayDate } from "../utils/dateFormatters";
 
 const Dashboard: React.FC = () => {
   const navigate = useNavigate();

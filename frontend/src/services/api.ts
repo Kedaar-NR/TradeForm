@@ -1,13 +1,6 @@
 import axios from "axios";
 import { Project, ProjectGroup, ProjectGroupWithProjects, Component, Criterion, Score, OnboardingStatusData, UserDocument } from "../types";
-import { API_BASE_URL } from "../utils/apiHelpers";
-
-const getStoredToken = () => {
-    if (typeof window === "undefined") {
-        return null;
-    }
-    return localStorage.getItem("authToken");
-};
+import { API_BASE_URL, getAuthToken } from "../utils/apiHelpers";
 
 const api = axios.create({
     baseURL: API_BASE_URL,
@@ -20,7 +13,7 @@ const api = axios.create({
 // Add request interceptor to log API calls in development
 api.interceptors.request.use(
     (config) => {
-        const token = getStoredToken();
+        const token = getAuthToken();
         if (token) {
             config.headers = config.headers || {};
             config.headers.Authorization = `Bearer ${token}`;

@@ -4,21 +4,7 @@ import { projectGroupsApi, projectsApi } from "../services/api";
 import { ProjectGroupWithProjects } from "../types";
 import SystemArchitectureMap from "../components/SystemArchitectureMap";
 import ProjectFileTray from "../components/ProjectDetails/ProjectFileTray";
-
-type DateInput = string | number | Date;
-
-const formatDisplayDate = (value: DateInput): string => {
-  const date = value instanceof Date ? value : new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return "";
-  }
-  return new Intl.DateTimeFormat("en-US", {
-    timeZone: "America/Los_Angeles",
-    year: "numeric",
-    month: "short",
-    day: "numeric",
-  }).format(date);
-};
+import { formatDisplayDate } from "../utils/dateFormatters";
 
 const ProjectGroupDetail: React.FC = () => {
   const navigate = useNavigate();
