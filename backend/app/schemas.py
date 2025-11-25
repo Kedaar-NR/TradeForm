@@ -17,6 +17,7 @@ class ProjectStatus(str, Enum):
 class ComponentAvailability(str, Enum):
     IN_STOCK = "in_stock"
     LIMITED = "limited"
+    LEAD_TIME = "lead_time"
     OBSOLETE = "obsolete"
 
 class ComponentSource(str, Enum):
@@ -160,7 +161,7 @@ class Component(ComponentBase):
 
 # Score Schemas
 class ScoreBase(BaseModel):
-    raw_value: Optional[float] = None
+    raw_value: Optional[str] = None  # Raw value with units (e.g., "1000 Hz", "5-10 m CEP")
     score: int = Field(ge=1, le=10)
     rationale: Optional[str] = None
     extraction_confidence: Optional[float] = Field(default=None, ge=0, le=1)
