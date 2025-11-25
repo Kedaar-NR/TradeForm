@@ -275,24 +275,6 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const getIconEmoji = (iconName: string) => {
-    const icons: Record<string, string> = {
-      folder: "📁",
-      chip: "🔌",
-      lightning: "⚡",
-      gear: "⚙️",
-      rocket: "🚀",
-      star: "⭐",
-      fire: "🔥",
-      battery: "🔋",
-      bulb: "💡",
-      tools: "🔧",
-      circuit: "🔬",
-      monitor: "🖥️",
-    };
-    return icons[iconName] || "📁";
-  };
-
   return (
     <div className="space-y-8 animate-fade-in">
       {/* Page Header */}

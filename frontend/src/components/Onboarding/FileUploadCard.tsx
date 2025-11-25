@@ -1,7 +1,46 @@
 import React, { useState, useCallback } from 'react';
-import { Upload, X, FileText, CheckCircle, AlertCircle, Loader } from 'lucide-react';
 import { onboardingApi } from '../../services/api';
 import { UserDocument, UserDocumentType } from '../../types';
+
+// Lightweight inline icons to avoid external dependency
+const IconUpload = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5-5 5 5M12 5v11" />
+  </svg>
+);
+
+const IconX = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+  </svg>
+);
+
+const IconFileText = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6M9 16h6M9 8h2m4-6H7a2 2 0 00-2 2v16l4-4h8a2 2 0 002-2V6a2 2 0 00-2-2z" />
+  </svg>
+);
+
+const IconCheckCircle = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4" />
+    <circle cx="12" cy="12" r="9" strokeWidth={2} />
+  </svg>
+);
+
+const IconAlertCircle = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <circle cx="12" cy="12" r="9" strokeWidth={2} />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01" />
+  </svg>
+);
+
+const IconLoader = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <circle className="opacity-25" cx="12" cy="12" r="10" strokeWidth="4" />
+    <path className="opacity-75" strokeWidth="4" d="M4 12a8 8 0 018-8" />
+  </svg>
+);
 
 interface FileUploadCardProps {
   docType: UserDocumentType;
@@ -111,13 +150,13 @@ const FileUploadCard: React.FC<FileUploadCardProps> = ({
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'ready':
-        return <CheckCircle className="w-4 h-4 text-green-600" />;
+        return <IconCheckCircle className="w-4 h-4 text-green-600" />;
       case 'processing':
-        return <Loader className="w-4 h-4 text-blue-600 animate-spin" />;
+        return <IconLoader className="w-4 h-4 text-blue-600 animate-spin" />;
       case 'failed':
-        return <AlertCircle className="w-4 h-4 text-red-600" />;
+        return <IconAlertCircle className="w-4 h-4 text-red-600" />;
       default:
-        return <FileText className="w-4 h-4 text-gray-400" />;
+        return <IconFileText className="w-4 h-4 text-gray-400" />;
     }
   };
 
@@ -162,7 +201,7 @@ const FileUploadCard: React.FC<FileUploadCardProps> = ({
           disabled={uploading}
         />
         
-        <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+        <IconUpload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
         <p className="text-sm font-medium text-gray-700">
           Click or drag files to upload
         </p>
@@ -182,7 +221,7 @@ const FileUploadCard: React.FC<FileUploadCardProps> = ({
       {uploading && (
         <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <p className="text-sm text-blue-800 flex items-center">
-            <Loader className="w-4 h-4 mr-2 animate-spin" />
+            <IconLoader className="w-4 h-4 mr-2 animate-spin" />
             Uploading...
           </p>
         </div>
@@ -224,7 +263,7 @@ const FileUploadCard: React.FC<FileUploadCardProps> = ({
                 className="flex-shrink-0 ml-2 p-1 text-gray-400 hover:text-red-600 transition-colors"
                 title="Remove file"
               >
-                <X className="w-4 h-4" />
+                <IconX className="w-4 h-4" />
               </button>
             </div>
           ))}
@@ -235,4 +274,3 @@ const FileUploadCard: React.FC<FileUploadCardProps> = ({
 };
 
 export default FileUploadCard;
-
