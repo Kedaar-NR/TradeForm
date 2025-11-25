@@ -161,7 +161,7 @@ const Landing: React.FC = () => {
               <button
                 onClick={() =>
                   window.open(
-                    "https://calendly.com/mishra-aryan/30min?share_attribution=send_from_calendly_et_card",
+                    "https://calendly.com/team-trade-form/30min",
                     "_blank"
                   )
                 }
@@ -247,7 +247,7 @@ const Landing: React.FC = () => {
               <button
                 onClick={() =>
                   window.open(
-                    "https://calendly.com/mishra-aryan/30min?share_attribution=send_from_calendly_et_card",
+                    "https://calendly.com/team-trade-form/30min",
                     "_blank"
                   )
                 }
