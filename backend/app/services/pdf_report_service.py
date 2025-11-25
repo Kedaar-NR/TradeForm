@@ -46,6 +46,9 @@ class ProfessionalPDFService:
         self.styles = self._create_styles()
         self.page_info = {'page_count': 0, 'current_page': 1}
         self.toc_entries: List[Tuple[int, str, int]] = []
+        # Citation tracking for references section
+        self.citations: List[Dict[str, Any]] = []
+        self.citation_counter: int = 0
     
     @classmethod
     def _init_colors(cls) -> None:
@@ -93,11 +96,12 @@ class ProfessionalPDFService:
                 name='SectionHeading',
                 parent=base_styles['Heading1'],
                 fontName='Helvetica-Bold',
-                fontSize=18,
-                leading=24,
-                textColor=self.COLORS['header'],
-                spaceBefore=24,
-                spaceAfter=12,
+                fontSize=16,
+                leading=22,
+                textColor=self.COLORS['white'],
+                alignment=TA_CENTER,
+                spaceBefore=20,
+                spaceAfter=0,
                 borderWidth=0,
                 borderPadding=0,
             ),
@@ -105,11 +109,15 @@ class ProfessionalPDFService:
                 name='SubsectionHeading',
                 parent=base_styles['Heading2'],
                 fontName='Helvetica-Bold',
-                fontSize=14,
-                leading=18,
+                fontSize=12,
+                leading=16,
                 textColor=self.COLORS['header'],
                 spaceBefore=16,
                 spaceAfter=8,
+                leftIndent=0,
+                borderColor=self.COLORS['accent'],
+                borderWidth=0,
+                borderPadding=0,
             ),
             'body': ParagraphStyle(
                 name='Body',
@@ -246,6 +254,74 @@ class ProfessionalPDFService:
         
         return sections
 
+    def _create_section_header(self, title: str, level: int = 1) -> List:
+        """Create a professionally styled section header with border and background.
+        
+        Args:
+            title: Section title text (e.g., "1. Executive Summary")
+            level: 1 for main sections, 2 for subsections
+        """
+        elements = []
+        
+        if level == 1:
+            # Main section header with background bar
+            header_table = Table(
+                [[Paragraph(title, self.styles['section_heading'])]],
+                colWidths=[6.5 * inch],
+                rowHeights=[36],
+            )
+            header_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), self.COLORS['header']),
+                ('ALIGN', (0, 0), (-1, -1), 'CENTER'),
+                ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                ('LEFTPADDING', (0, 0), (-1, -1), 15),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 15),
+                ('TOPPADDING', (0, 0), (-1, -1), 10),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+            ]))
+            elements.append(header_table)
+            elements.append(Spacer(1, 0.15 * inch))
+        else:
+            # Subsection header with left border accent
+            subsection_style = ParagraphStyle(
+                name=f'SubsectionStyled_{title[:10]}',
+                parent=self.styles['subsection_heading'],
+                borderColor=self.COLORS['accent'],
+                borderWidth=3,
+                borderPadding=8,
+                leftIndent=12,
+            )
+            elements.append(Paragraph(title, subsection_style))
+        
+        return elements
+
+    def _add_citation(
+        self,
+        component_name: str,
+        criterion_name: str,
+        rationale: str,
+        score: int,
+        raw_value: Any = None,
+        unit: str = '',
+    ) -> int:
+        """Add a citation and return its reference number."""
+        self.citation_counter += 1
+        self.citations.append({
+            'number': self.citation_counter,
+            'component': component_name,
+            'criterion': criterion_name,
+            'rationale': rationale,
+            'score': score,
+            'raw_value': raw_value,
+            'unit': unit,
+        })
+        return self.citation_counter
+
+    def _reset_citations(self) -> None:
+        """Reset citation tracking for a new report."""
+        self.citations = []
+        self.citation_counter = 0
+
     def generate_report(
         self,
         project_name: str,
@@ -280,6 +356,9 @@ class ProfessionalPDFService:
             bottomMargin=1 * inch,
         )
         
+        # Reset citation tracking for this report
+        self._reset_citations()
+        
         # Parse AI-generated report into sections for integration
         ai_sections = self._parse_ai_report_sections(report_text)
         
@@ -305,6 +384,10 @@ class ProfessionalPDFService:
         story.append(PageBreak())
         
         story.extend(self._build_conclusion(components_data, project_name))
+        story.append(PageBreak())
+        
+        # References section with citations
+        story.extend(self._build_references_section(components_data))
         story.append(PageBreak())
         
         story.extend(self._build_appendix(components_data, criteria, project_name))
@@ -423,17 +506,21 @@ class ProfessionalPDFService:
             ("1. Executive Summary", 3),
             ("2. Methodology", 4),
             ("    2.1 Evaluation Criteria", 4),
-            ("    2.2 Scoring Methodology", 4),
-            ("3. Component Analysis", 5),
-            ("    3.1 Summary Comparison", 5),
-            ("    3.2 Detailed Evaluations", 5),
-            ("4. Visual Analysis", 6),
-            ("    4.1 Score Comparison Chart", 6),
-            ("    4.2 Criteria Radar Chart", 6),
-            ("5. Conclusion & Recommendation", 7),
-            ("6. Appendix", 8),
-            ("    6.1 Raw Scoring Matrix", 8),
-            ("    6.2 Project Metadata", 8),
+            ("    2.2 Criteria Weights Visualization", 4),
+            ("    2.3 Scoring Methodology", 5),
+            ("3. Component Analysis", 6),
+            ("    3.1 Weighted Scoring Matrix", 6),
+            ("    3.2 Trade-Off Comparison", 6),
+            ("    3.3 Rankings Summary", 7),
+            ("    3.4 Detailed Evaluations", 7),
+            ("4. Visual Analysis", 8),
+            ("    4.1 Score Comparison Chart", 8),
+            ("    4.2 Criteria Radar Chart", 8),
+            ("5. Conclusion & Recommendation", 9),
+            ("6. References & Notes", 10),
+            ("7. Appendix", 11),
+            ("    7.1 Raw Data Matrix", 11),
+            ("    7.2 Project Metadata", 11),
         ]
         
         for entry, page in toc_entries:
@@ -466,13 +553,8 @@ class ProfessionalPDFService:
         """Build executive summary section with AI-generated narrative."""
         elements = []
         
-        elements.append(Paragraph("1. Executive Summary", self.styles['section_heading']))
-        elements.append(HRFlowable(
-            width="100%",
-            thickness=1,
-            color=self.COLORS['border'],
-            spaceAfter=15,
-        ))
+        # Styled section header
+        elements.extend(self._create_section_header("1. Executive Summary"))
         
         # Sort by rank to get top performer
         sorted_components = sorted(components_data, key=lambda x: x.get('rank', 999))
@@ -573,13 +655,8 @@ class ProfessionalPDFService:
         """Build methodology section with criteria and scoring explanation."""
         elements = []
         
-        elements.append(Paragraph("2. Methodology", self.styles['section_heading']))
-        elements.append(HRFlowable(
-            width="100%",
-            thickness=1,
-            color=self.COLORS['border'],
-            spaceAfter=15,
-        ))
+        # Styled section header
+        elements.extend(self._create_section_header("2. Methodology"))
         
         # Add AI methodology narrative if available
         ai_methodology = (ai_sections or {}).get('methodology', '')
@@ -603,10 +680,13 @@ class ProfessionalPDFService:
         elements.append(Paragraph("2.1 Evaluation Criteria", self.styles['subsection_heading']))
         
         if criteria:
-            # Criteria table
+            # Criteria table with enhanced formatting
             table_data = [['Criterion', 'Weight', 'Unit', 'Description']]
             
-            for c in criteria:
+            # Sort criteria by weight for better presentation
+            sorted_criteria = sorted(criteria, key=lambda x: x.get('weight', 0), reverse=True)
+            
+            for c in sorted_criteria:
                 table_data.append([
                     c.get('name', 'N/A'),
                     f"{c.get('weight', 0):.1f}%",
@@ -644,8 +724,14 @@ class ProfessionalPDFService:
         
         elements.append(Spacer(1, 0.3 * inch))
         
+        # Criteria weights visualization
+        elements.append(Paragraph("2.2 Criteria Weights Visualization", self.styles['subsection_heading']))
+        elements.extend(self._build_criteria_weights_visual(criteria))
+        
+        elements.append(Spacer(1, 0.3 * inch))
+        
         # Scoring methodology
-        elements.append(Paragraph("2.2 Scoring Methodology", self.styles['subsection_heading']))
+        elements.append(Paragraph("2.3 Scoring Methodology", self.styles['subsection_heading']))
         
         elements.append(Paragraph(
             "Components are evaluated on a 1-10 scale for each criterion:",
@@ -701,13 +787,8 @@ class ProfessionalPDFService:
         """Build component analysis section with summary table and details."""
         elements = []
         
-        elements.append(Paragraph("3. Component Analysis", self.styles['section_heading']))
-        elements.append(HRFlowable(
-            width="100%",
-            thickness=1,
-            color=self.COLORS['border'],
-            spaceAfter=15,
-        ))
+        # Styled section header
+        elements.extend(self._create_section_header("3. Component Analysis"))
         
         # Add AI analysis narrative if available
         ai_analysis = (ai_sections or {}).get('analysis', '')
@@ -718,8 +799,17 @@ class ProfessionalPDFService:
                 elements.append(Paragraph(intro_para.strip()[:400], self.styles['body']))
                 elements.append(Spacer(1, 0.15 * inch))
         
+        # Comprehensive scoring matrix table
+        elements.append(Paragraph("3.1 Weighted Scoring Matrix", self.styles['subsection_heading']))
+        elements.extend(self._build_scoring_matrix_table(components_data, criteria))
+        elements.append(Spacer(1, 0.3 * inch))
+        
+        # Trade-off comparison table
+        elements.extend(self._build_tradeoff_table(components_data, criteria))
+        elements.append(Spacer(1, 0.3 * inch))
+        
         # Summary comparison table
-        elements.append(Paragraph("3.1 Summary Comparison", self.styles['subsection_heading']))
+        elements.append(Paragraph("3.3 Rankings Summary", self.styles['subsection_heading']))
         
         if components_data:
             sorted_components = sorted(components_data, key=lambda x: x.get('rank', 999))
@@ -770,86 +860,262 @@ class ProfessionalPDFService:
         elements.append(Spacer(1, 0.4 * inch))
         
         # Detailed evaluations
-        elements.append(Paragraph("3.2 Detailed Evaluations", self.styles['subsection_heading']))
+        elements.append(Paragraph("3.4 Detailed Evaluations", self.styles['subsection_heading']))
         
         for comp in sorted(components_data, key=lambda x: x.get('rank', 999)):
-            # Component header
-            comp_name = f"{comp.get('manufacturer', 'N/A')} {comp.get('part_number', '')}"
-            rank = comp.get('rank', '-')
-            score = comp.get('total_score', 0)
-            
-            elements.append(Spacer(1, 0.15 * inch))
-            
-            comp_header = Table(
-                [[
-                    Paragraph(f"<b>#{rank}</b> {comp_name}", self.styles['body_bold']),
-                    Paragraph(f"<b>{score:.2f}</b>", ParagraphStyle(
-                        name='CompScore',
+            elements.extend(self._build_component_card(comp, criteria))
+        
+        return elements
+
+    def _build_component_card(
+        self,
+        comp: Dict[str, Any],
+        criteria: List[Dict[str, Any]],
+    ) -> List:
+        """Build an enhanced component evaluation card with structured layout."""
+        elements = []
+        
+        comp_name = f"{comp.get('manufacturer', 'N/A')} {comp.get('part_number', '')}"
+        rank = comp.get('rank', '-')
+        total_score = comp.get('total_score', 0)
+        
+        elements.append(Spacer(1, 0.2 * inch))
+        
+        # Determine header color based on rank
+        if rank == 1:
+            header_bg = colors.HexColor('#065F46')  # Dark green for winner
+            header_text = self.COLORS['white']
+            rank_badge = "(1st - RECOMMENDED)"
+        elif rank == 2:
+            header_bg = colors.HexColor('#1E40AF')  # Dark blue for runner-up
+            header_text = self.COLORS['white']
+            rank_badge = "(2nd)"
+        elif rank == 3:
+            header_bg = colors.HexColor('#92400E')  # Dark amber for 3rd
+            header_text = self.COLORS['white']
+            rank_badge = "(3rd)"
+        else:
+            header_bg = self.COLORS['header']
+            header_text = self.COLORS['white']
+            rank_badge = f"(#{rank})"
+        
+        # Component header with rank badge and score
+        comp_header = Table(
+            [[
+                Paragraph(
+                    f"<b>{comp_name}</b> <font size='9'>{rank_badge}</font>",
+                    ParagraphStyle(
+                        name=f'CompHeader_{rank}',
+                        parent=self.styles['body_bold'],
+                        textColor=header_text,
+                        fontSize=12,
+                    )
+                ),
+                Paragraph(
+                    f"<b>Score: {total_score:.2f}/10</b>",
+                    ParagraphStyle(
+                        name=f'CompScore_{rank}',
                         parent=self.styles['body_bold'],
                         alignment=TA_RIGHT,
-                        textColor=self.COLORS['success'] if rank == 1 else self.COLORS['body'],
-                    )),
-                ]],
-                colWidths=[5 * inch, 1.1 * inch],
-            )
-            comp_header.setStyle(TableStyle([
-                ('BACKGROUND', (0, 0), (-1, -1), self.COLORS['light_gray']),
-                ('LEFTPADDING', (0, 0), (-1, -1), 10),
-                ('RIGHTPADDING', (0, 0), (-1, -1), 10),
-                ('TOPPADDING', (0, 0), (-1, -1), 8),
-                ('BOTTOMPADDING', (0, 0), (-1, -1), 8),
-                ('BOX', (0, 0), (-1, -1), 1, self.COLORS['border']),
-            ]))
-            elements.append(comp_header)
-            
-            # Description
-            if comp.get('description'):
-                elements.append(Paragraph(
-                    comp['description'][:200] + ('...' if len(comp.get('description', '')) > 200 else ''),
+                        textColor=header_text,
+                        fontSize=12,
+                    )
+                ),
+            ]],
+            colWidths=[4.5 * inch, 2 * inch],
+        )
+        comp_header.setStyle(TableStyle([
+            ('BACKGROUND', (0, 0), (-1, -1), header_bg),
+            ('LEFTPADDING', (0, 0), (-1, -1), 12),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+            ('TOPPADDING', (0, 0), (-1, -1), 10),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 10),
+        ]))
+        elements.append(comp_header)
+        
+        # Component body with description and scores
+        body_content = []
+        
+        # Description
+        if comp.get('description'):
+            desc_text = comp['description'][:300] + ('...' if len(comp.get('description', '')) > 300 else '')
+            body_content.append([
+                Paragraph(
+                    f"<b>Description:</b> {desc_text}",
                     ParagraphStyle(
-                        name='CompDesc',
+                        name='CompDescBody',
                         parent=self.styles['body'],
                         fontSize=9,
-                        leftIndent=10,
-                        spaceBefore=4,
+                        textColor=self.COLORS['body'],
                     )
-                ))
+                )
+            ])
+        
+        # Build scores mini-table
+        scores = comp.get('scores', [])
+        if scores:
+            strengths = []  # List of (display_string, original_score) tuples
+            weaknesses = []  # List of (display_string, original_score) tuples
+            moderate = []
             
-            # Scores breakdown
-            scores = comp.get('scores', [])
-            if scores:
-                strengths = []
-                weaknesses = []
+            # Sort scores by value for display
+            sorted_scores = sorted(scores, key=lambda x: x.get('score', 0), reverse=True)
+            
+            for s in sorted_scores:
+                score_val = s.get('score', 0)
+                crit_name = s.get('criterion_name', 'Unknown')[:20]
+                raw_val = s.get('raw_value')
+                unit = s.get('criterion_unit', '')
                 
-                for s in scores:
-                    score_val = s.get('score', 0)
-                    crit_name = s.get('criterion_name', 'Unknown')
-                    if score_val >= 7:
-                        strengths.append(f"{crit_name} ({score_val}/10)")
-                    elif score_val <= 4:
-                        weaknesses.append(f"{crit_name} ({score_val}/10)")
+                # Format entry with raw value if available
+                if raw_val is not None:
+                    if isinstance(raw_val, float):
+                        entry = f"{crit_name}: {score_val}/10 ({raw_val:.2g} {unit})"
+                    else:
+                        entry = f"{crit_name}: {score_val}/10 ({raw_val} {unit})"
+                else:
+                    entry = f"{crit_name}: {score_val}/10"
                 
-                if strengths:
-                    elements.append(Paragraph(
-                        f"<font color='#10B981'>[+] Strengths:</font> {', '.join(strengths)}",
-                        ParagraphStyle(
-                            name='Strengths',
-                            parent=self.styles['body'],
-                            fontSize=9,
-                            leftIndent=10,
+                if score_val >= 7:
+                    strengths.append((entry, s))  # Store tuple of (display_string, original_score)
+                elif score_val <= 4:
+                    weaknesses.append((entry, s))  # Store tuple of (display_string, original_score)
+                else:
+                    moderate.append(entry)
+            
+            # Strengths section with citation references
+            # Track citation numbers only for items with rationales (matching references section)
+            strength_cit_offset = 0
+            if strengths:
+                body_content.append([
+                    Paragraph(
+                        f"<font color='#059669'><b>Strengths:</b></font>",
+                        ParagraphStyle(name='StrengthsHead', parent=self.styles['body'], fontSize=9, spaceBefore=6)
+                    )
+                ])
+                for s_entry, original_score in strengths[:4]:  # Limit to top 4
+                    # Use the stored original score directly (no parsing needed)
+                    has_rationale = original_score and original_score.get('rationale') and len(original_score.get('rationale', '')) > 10
+                    
+                    if has_rationale:
+                        cit_ref = f"<super><font size='6' color='#6B7280'>[{self.citation_counter + strength_cit_offset + 1}]</font></super>"
+                        strength_cit_offset += 1
+                    else:
+                        cit_ref = ""
+                    
+                    body_content.append([
+                        Paragraph(
+                            f"  <font color='#059669'>+</font> {s_entry} {cit_ref}",
+                            ParagraphStyle(name='StrengthItem', parent=self.styles['body'], fontSize=8, leftIndent=10)
                         )
-                    ))
-                
-                if weaknesses:
-                    elements.append(Paragraph(
-                        f"<font color='#EF4444'>[-] Weaknesses:</font> {', '.join(weaknesses)}",
-                        ParagraphStyle(
-                            name='Weaknesses',
-                            parent=self.styles['body'],
-                            fontSize=9,
-                            leftIndent=10,
+                    ])
+            
+            # Weaknesses section with citation references
+            if weaknesses:
+                body_content.append([
+                    Paragraph(
+                        f"<font color='#DC2626'><b>Weaknesses:</b></font>",
+                        ParagraphStyle(name='WeaknessHead', parent=self.styles['body'], fontSize=9, spaceBefore=6)
+                    )
+                ])
+                weakness_cit_offset = 0
+                for w_entry, original_score in weaknesses[:4]:  # Limit to top 4
+                    # Use the stored original score directly (no parsing needed)
+                    has_rationale = original_score and original_score.get('rationale') and len(original_score.get('rationale', '')) > 10
+                    
+                    if has_rationale:
+                        cit_ref = f"<super><font size='6' color='#6B7280'>[{self.citation_counter + strength_cit_offset + weakness_cit_offset + 1}]</font></super>"
+                        weakness_cit_offset += 1
+                    else:
+                        cit_ref = ""
+                    
+                    body_content.append([
+                        Paragraph(
+                            f"  <font color='#DC2626'>-</font> {w_entry} {cit_ref}",
+                            ParagraphStyle(name='WeaknessItem', parent=self.styles['body'], fontSize=8, leftIndent=10)
                         )
-                    ))
+                    ])
+            
+            # Scores breakdown table
+            scores_table_data = [['Criterion', 'Score', 'Raw Value']]
+            for s in sorted_scores[:6]:  # Top 6 criteria
+                crit_name = s.get('criterion_name', 'N/A')[:18]
+                score_val = s.get('score', '-')
+                raw_val = s.get('raw_value')
+                unit = s.get('criterion_unit', '')
+                
+                if raw_val is not None:
+                    if isinstance(raw_val, float):
+                        raw_display = f"{raw_val:.2g} {unit}"
+                    else:
+                        raw_display = f"{raw_val} {unit}"
+                else:
+                    raw_display = '-'
+                
+                scores_table_data.append([crit_name, f"{score_val}/10", raw_display])
+            
+            if len(scores_table_data) > 1:
+                scores_mini_table = Table(
+                    scores_table_data,
+                    colWidths=[2.2 * inch, 0.8 * inch, 1.5 * inch],
+                )
+                
+                # Build style commands for the mini table
+                mini_style_commands = [
+                    ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#E5E7EB')),
+                    ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+                    ('FONTSIZE', (0, 0), (-1, -1), 8),
+                    ('ALIGN', (1, 0), (-1, -1), 'CENTER'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('TOPPADDING', (0, 0), (-1, -1), 3),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
+                    ('INNERGRID', (0, 0), (-1, -1), 0.5, self.COLORS['border']),
+                    ('BOX', (0, 0), (-1, -1), 0.5, self.COLORS['border']),
+                ]
+                
+                # Add color coding for score cells
+                for row_idx in range(1, len(scores_table_data)):
+                    score_text = scores_table_data[row_idx][1]
+                    try:
+                        score_num = int(score_text.split('/')[0])
+                        cell_color = self._get_score_color(score_num)
+                        mini_style_commands.append(('BACKGROUND', (1, row_idx), (1, row_idx), cell_color))
+                    except (ValueError, IndexError):
+                        pass
+                
+                scores_mini_table.setStyle(TableStyle(mini_style_commands))
+                
+                body_content.append([Spacer(1, 0.1 * inch)])
+                body_content.append([
+                    Paragraph("<b>Score Breakdown:</b>", ParagraphStyle(name='ScoreBreak', parent=self.styles['body'], fontSize=9))
+                ])
+                body_content.append([scores_mini_table])
+        
+        # Create body table
+        if body_content:
+            body_table = Table(
+                body_content,
+                colWidths=[6.5 * inch],
+            )
+            body_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), self.COLORS['white']),
+                ('LEFTPADDING', (0, 0), (-1, -1), 12),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 12),
+                ('TOPPADDING', (0, 0), (-1, -1), 4),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                ('BOX', (0, 0), (-1, -1), 1, self.COLORS['border']),
+            ]))
+            elements.append(body_table)
+        
+        # Update citation counter to match the references section ordering
+        # Only count displayed items: strengths[:4] + weaknesses[:4] that have rationales
+        if scores:
+            # Use the already-categorized tuples (entry, score_dict)
+            displayed_strengths = strengths[:4]
+            displayed_weaknesses = weaknesses[:4]
+            strengths_with_rationales = [s for _, s in displayed_strengths if s.get('rationale') and len(s.get('rationale', '')) > 10]
+            weaknesses_with_rationales = [s for _, s in displayed_weaknesses if s.get('rationale') and len(s.get('rationale', '')) > 10]
+            self.citation_counter += len(strengths_with_rationales) + len(weaknesses_with_rationales)
         
         return elements
 
@@ -863,13 +1129,8 @@ class ProfessionalPDFService:
         
         elements = []
         
-        elements.append(Paragraph("4. Visual Analysis", self.styles['section_heading']))
-        elements.append(HRFlowable(
-            width="100%",
-            thickness=1,
-            color=self.COLORS['border'],
-            spaceAfter=15,
-        ))
+        # Styled section header
+        elements.extend(self._create_section_header("4. Visual Analysis"))
         
         # Bar chart with error handling
         elements.append(Paragraph("4.1 Score Comparison Chart", self.styles['subsection_heading']))
@@ -913,7 +1174,7 @@ class ProfessionalPDFService:
         
         return elements
 
-    def _create_bar_chart(self, components_data: List[Dict[str, Any]]) -> Optional[Drawing]:
+    def _create_bar_chart(self, components_data: List[Dict[str, Any]]) -> Optional["Drawing"]:
         """Create a bar chart comparing component scores."""
         if not components_data:
             return None
@@ -959,7 +1220,7 @@ class ProfessionalPDFService:
         self,
         components_data: List[Dict[str, Any]],
         criteria: List[Dict[str, Any]],
-    ) -> Optional[Drawing]:
+    ) -> Optional["Drawing"]:
         """Create a spider/radar chart comparing criteria scores."""
         if not components_data or not criteria:
             return None
@@ -1027,6 +1288,358 @@ class ProfessionalPDFService:
         
         return drawing
 
+    def _get_score_color(self, score: float) -> Any:
+        """Get color based on score value (1-10 scale)."""
+        if score >= 8:
+            return colors.HexColor('#DCFCE7')  # Green - excellent
+        elif score >= 6:
+            return colors.HexColor('#FEF9C3')  # Yellow - good
+        elif score >= 4:
+            return colors.HexColor('#FED7AA')  # Orange - fair
+        else:
+            return colors.HexColor('#FECACA')  # Red - poor
+
+    def _build_scoring_matrix_table(
+        self,
+        components_data: List[Dict[str, Any]],
+        criteria: List[Dict[str, Any]],
+    ) -> List:
+        """Build comprehensive weighted scoring matrix with color-coded cells."""
+        elements = []
+        
+        if not components_data or not criteria:
+            return elements
+        
+        sorted_components = sorted(components_data, key=lambda x: x.get('rank', 999))
+        
+        # Build header row with criteria names and weights
+        header_row_1 = ['Component']
+        header_row_2 = ['(Rank)']
+        for c in criteria:
+            header_row_1.append(c.get('name', 'N/A')[:12])
+            header_row_2.append(f"({c.get('weight', 0):.0f}%)")
+        header_row_1.append('Weighted')
+        header_row_2.append('Total')
+        
+        # Build data rows
+        table_data = []
+        for comp in sorted_components:
+            rank = comp.get('rank', '-')
+            comp_name = f"{comp.get('manufacturer', '')[:8]} {comp.get('part_number', '')[:8]}"
+            row = [f"{comp_name}\n(#{rank})"]
+            
+            scores_dict = {}
+            raw_values_dict = {}
+            for s in comp.get('scores', []):
+                scores_dict[s.get('criterion_name')] = s.get('score', '-')
+                raw_values_dict[s.get('criterion_name')] = s.get('raw_value')
+            
+            for crit in criteria:
+                crit_name = crit.get('name')
+                score = scores_dict.get(crit_name, '-')
+                raw_val = raw_values_dict.get(crit_name)
+                unit = crit.get('unit', '')
+                
+                if score != '-':
+                    cell_text = f"{score}/10"
+                    if raw_val is not None:
+                        # Format raw value with unit
+                        if isinstance(raw_val, float):
+                            cell_text += f"\n({raw_val:.2g} {unit})" if unit else f"\n({raw_val:.2g})"
+                        else:
+                            cell_text += f"\n({raw_val} {unit})" if unit else f"\n({raw_val})"
+                    row.append(cell_text)
+                else:
+                    row.append('-')
+            
+            row.append(f"{comp.get('total_score', 0):.2f}")
+            table_data.append(row)
+        
+        # Calculate column widths
+        num_criteria = len(criteria)
+        available_width = 6.5 * inch
+        first_col_width = 1.3 * inch
+        last_col_width = 0.7 * inch
+        middle_width = available_width - first_col_width - last_col_width
+        crit_col_width = middle_width / num_criteria if num_criteria > 0 else 0.8 * inch
+        
+        col_widths = [first_col_width] + [crit_col_width] * num_criteria + [last_col_width]
+        
+        # Combine headers
+        full_table_data = [header_row_1, header_row_2] + table_data
+        
+        matrix_table = Table(full_table_data, colWidths=col_widths)
+        
+        # Base styles
+        style_commands = [
+            # Header row 1 styling
+            ('BACKGROUND', (0, 0), (-1, 0), self.COLORS['header']),
+            ('TEXTCOLOR', (0, 0), (-1, 0), self.COLORS['white']),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 8),
+            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            
+            # Header row 2 styling (weights)
+            ('BACKGROUND', (0, 1), (-1, 1), colors.HexColor('#374151')),
+            ('TEXTCOLOR', (0, 1), (-1, 1), colors.HexColor('#D1D5DB')),
+            ('FONTNAME', (0, 1), (-1, 1), 'Helvetica-Oblique'),
+            ('FONTSIZE', (0, 1), (-1, 1), 7),
+            ('ALIGN', (0, 1), (-1, 1), 'CENTER'),
+            
+            # Body styling
+            ('FONTNAME', (0, 2), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 2), (-1, -1), 7),
+            ('TEXTCOLOR', (0, 2), (-1, -1), self.COLORS['body']),
+            ('ALIGN', (1, 2), (-1, -1), 'CENTER'),
+            ('ALIGN', (0, 2), (0, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            
+            # Padding
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('LEFTPADDING', (0, 0), (-1, -1), 4),
+            ('RIGHTPADDING', (0, 0), (-1, -1), 4),
+            
+            # Grid
+            ('BOX', (0, 0), (-1, -1), 1.5, self.COLORS['header']),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, self.COLORS['border']),
+            ('LINEBELOW', (0, 1), (-1, 1), 1, self.COLORS['header']),
+            
+            # Highlight winner row
+            ('FONTNAME', (0, 2), (-1, 2), 'Helvetica-Bold'),
+            
+            # Total column styling
+            ('BACKGROUND', (-1, 2), (-1, -1), colors.HexColor('#F0F9FF')),
+            ('FONTNAME', (-1, 2), (-1, -1), 'Helvetica-Bold'),
+        ]
+        
+        # Add color-coding for individual score cells
+        for row_idx, comp in enumerate(sorted_components):
+            scores_dict = {s.get('criterion_name'): s.get('score', 0) for s in comp.get('scores', [])}
+            for col_idx, crit in enumerate(criteria):
+                score = scores_dict.get(crit.get('name'), 0)
+                if isinstance(score, (int, float)) and score > 0:
+                    cell_color = self._get_score_color(score)
+                    # row_idx + 2 because of 2 header rows
+                    style_commands.append(('BACKGROUND', (col_idx + 1, row_idx + 2), (col_idx + 1, row_idx + 2), cell_color))
+        
+        matrix_table.setStyle(TableStyle(style_commands))
+        
+        elements.append(matrix_table)
+        elements.append(Paragraph(
+            "Table 1: Weighted Scoring Matrix - Scores shown as (Score/10) with raw values where available. "
+            "Cell colors: Green (8-10), Yellow (6-7), Orange (4-5), Red (1-3).",
+            self.styles['caption']
+        ))
+        
+        return elements
+
+    def _build_tradeoff_table(
+        self,
+        components_data: List[Dict[str, Any]],
+        criteria: List[Dict[str, Any]],
+    ) -> List:
+        """Build side-by-side trade-off comparison table for top components."""
+        elements = []
+        
+        if not components_data or len(components_data) < 2 or not criteria:
+            return elements
+        
+        # Take top 3 components for comparison
+        top_components = sorted(components_data, key=lambda x: x.get('rank', 999))[:3]
+        
+        elements.append(Paragraph("3.2 Trade-Off Comparison", self.styles['subsection_heading']))
+        
+        # Build comparison table
+        header = ['Criterion', 'Weight']
+        for comp in top_components:
+            header.append(f"{comp.get('manufacturer', '')[:10]}")
+        header.append('Best')
+        
+        table_data = [header]
+        
+        for crit in criteria:
+            crit_name = crit.get('name', 'N/A')
+            weight = crit.get('weight', 0)
+            row = [crit_name[:15], f"{weight:.0f}%"]
+            
+            # Find best score for this criterion
+            best_score = 0
+            best_comp_idx = -1
+            scores_for_crit = []
+            
+            for idx, comp in enumerate(top_components):
+                scores_dict = {s.get('criterion_name'): s.get('score', 0) for s in comp.get('scores', [])}
+                score = scores_dict.get(crit_name, 0)
+                scores_for_crit.append(score)
+                if score > best_score:
+                    best_score = score
+                    best_comp_idx = idx
+            
+            # Add scores with indicator for best
+            for idx, score in enumerate(scores_for_crit):
+                if idx == best_comp_idx and best_score > 0:
+                    row.append(f"{score}/10 *")
+                else:
+                    row.append(f"{score}/10" if score > 0 else '-')
+            
+            # Add best performer name
+            if best_comp_idx >= 0:
+                row.append(top_components[best_comp_idx].get('manufacturer', '')[:8])
+            else:
+                row.append('-')
+            
+            table_data.append(row)
+        
+        # Add totals row
+        totals_row = ['TOTAL SCORE', '-']
+        for comp in top_components:
+            totals_row.append(f"{comp.get('total_score', 0):.2f}")
+        totals_row.append(top_components[0].get('manufacturer', '')[:8] if top_components else '-')
+        table_data.append(totals_row)
+        
+        # Calculate column widths
+        num_comps = len(top_components)
+        available_width = 6.5 * inch
+        first_col = 1.5 * inch
+        weight_col = 0.6 * inch
+        best_col = 0.8 * inch
+        remaining = available_width - first_col - weight_col - best_col
+        comp_col = remaining / num_comps if num_comps > 0 else 1 * inch
+        
+        col_widths = [first_col, weight_col] + [comp_col] * num_comps + [best_col]
+        
+        tradeoff_table = Table(table_data, colWidths=col_widths)
+        
+        style_commands = [
+            # Header
+            ('BACKGROUND', (0, 0), (-1, 0), self.COLORS['accent']),
+            ('TEXTCOLOR', (0, 0), (-1, 0), self.COLORS['white']),
+            ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+            ('FONTSIZE', (0, 0), (-1, 0), 9),
+            ('ALIGN', (0, 0), (-1, 0), 'CENTER'),
+            
+            # Body
+            ('FONTNAME', (0, 1), (-1, -2), 'Helvetica'),
+            ('FONTSIZE', (0, 1), (-1, -1), 8),
+            ('TEXTCOLOR', (0, 1), (-1, -1), self.COLORS['body']),
+            ('ALIGN', (1, 1), (-1, -1), 'CENTER'),
+            ('ALIGN', (0, 1), (0, -1), 'LEFT'),
+            
+            # Totals row
+            ('BACKGROUND', (0, -1), (-1, -1), colors.HexColor('#EFF6FF')),
+            ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+            ('LINEABOVE', (0, -1), (-1, -1), 1.5, self.COLORS['accent']),
+            
+            # Best column
+            ('BACKGROUND', (-1, 1), (-1, -2), colors.HexColor('#ECFDF5')),
+            ('FONTNAME', (-1, 1), (-1, -1), 'Helvetica-Bold'),
+            ('TEXTCOLOR', (-1, 1), (-1, -1), self.COLORS['success']),
+            
+            # Grid and padding
+            ('BOX', (0, 0), (-1, -1), 1, self.COLORS['border']),
+            ('INNERGRID', (0, 0), (-1, -1), 0.5, self.COLORS['border']),
+            ('TOPPADDING', (0, 0), (-1, -1), 6),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            
+            # Alternating rows
+            ('ROWBACKGROUNDS', (0, 1), (-2, -2), [self.COLORS['white'], self.COLORS['light_gray']]),
+        ]
+        
+        tradeoff_table.setStyle(TableStyle(style_commands))
+        
+        elements.append(tradeoff_table)
+        elements.append(Paragraph(
+            "Table 2: Trade-Off Comparison - Asterisk (*) indicates best performer per criterion.",
+            self.styles['caption']
+        ))
+        
+        return elements
+
+    def _build_criteria_weights_visual(self, criteria: List[Dict[str, Any]]) -> List:
+        """Build visual representation of criteria weights using horizontal bars."""
+        elements = []
+        
+        if not criteria:
+            return elements
+        
+        # Sort criteria by weight descending
+        sorted_criteria = sorted(criteria, key=lambda x: x.get('weight', 0), reverse=True)
+        
+        # Calculate total weight for percentage calculations
+        total_weight = sum(c.get('weight', 0) for c in sorted_criteria)
+        if total_weight == 0:
+            total_weight = 100  # Avoid division by zero
+        
+        # Build visual table with bars
+        table_data = []
+        max_bar_width = 3.5 * inch
+        
+        for c in sorted_criteria:
+            name = c.get('name', 'N/A')[:20]
+            weight = c.get('weight', 0)
+            pct = (weight / total_weight) * 100 if total_weight > 0 else 0
+            
+            # Create visual bar using a nested table
+            bar_width = (weight / total_weight) * max_bar_width if total_weight > 0 else 0
+            bar_width = max(bar_width, 0.1 * inch)  # Minimum visible bar
+            
+            # Determine bar color based on weight (higher weight = more intense blue)
+            if weight >= 25:
+                bar_color = self.COLORS['accent']
+            elif weight >= 15:
+                bar_color = colors.HexColor('#60A5FA')
+            else:
+                bar_color = colors.HexColor('#93C5FD')
+            
+            # Create bar cell with visual representation
+            bar_table = Table(
+                [['']],
+                colWidths=[bar_width],
+                rowHeights=[14],
+            )
+            bar_table.setStyle(TableStyle([
+                ('BACKGROUND', (0, 0), (-1, -1), bar_color),
+                ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                ('TOPPADDING', (0, 0), (-1, -1), 0),
+                ('BOTTOMPADDING', (0, 0), (-1, -1), 0),
+            ]))
+            
+            table_data.append([
+                name,
+                f"{weight:.1f}%",
+                bar_table,
+                f"({pct:.0f}% of total)"
+            ])
+        
+        weights_table = Table(
+            table_data,
+            colWidths=[1.5 * inch, 0.7 * inch, 3.6 * inch, 1 * inch],
+        )
+        weights_table.setStyle(TableStyle([
+            ('FONTNAME', (0, 0), (0, -1), 'Helvetica-Bold'),
+            ('FONTNAME', (1, 0), (-1, -1), 'Helvetica'),
+            ('FONTSIZE', (0, 0), (-1, -1), 9),
+            ('TEXTCOLOR', (0, 0), (-1, -1), self.COLORS['body']),
+            ('TEXTCOLOR', (-1, 0), (-1, -1), self.COLORS['muted']),
+            ('ALIGN', (1, 0), (1, -1), 'RIGHT'),
+            ('ALIGN', (-1, 0), (-1, -1), 'LEFT'),
+            ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+            ('TOPPADDING', (0, 0), (-1, -1), 4),
+            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+            ('ROWBACKGROUNDS', (0, 0), (-1, -1), [self.COLORS['white'], self.COLORS['light_gray']]),
+        ]))
+        
+        elements.append(weights_table)
+        elements.append(Paragraph(
+            "Figure: Criteria Weight Distribution - Bar length proportional to weight percentage.",
+            self.styles['caption']
+        ))
+        
+        return elements
+
     def _build_conclusion(
         self,
         components_data: List[Dict[str, Any]],
@@ -1035,13 +1648,8 @@ class ProfessionalPDFService:
         """Build conclusion and recommendation section."""
         elements = []
         
-        elements.append(Paragraph("5. Conclusion & Recommendation", self.styles['section_heading']))
-        elements.append(HRFlowable(
-            width="100%",
-            thickness=1,
-            color=self.COLORS['border'],
-            spaceAfter=15,
-        ))
+        # Styled section header
+        elements.extend(self._create_section_header("5. Conclusion & Recommendation"))
         
         sorted_components = sorted(components_data, key=lambda x: x.get('rank', 999))
         
@@ -1103,6 +1711,161 @@ class ProfessionalPDFService:
         
         return elements
 
+    def _build_references_section(
+        self,
+        components_data: List[Dict[str, Any]],
+    ) -> List:
+        """Build references section with citations from score rationales.
+        
+        IMPORTANT: Citation ordering must match the component cards exactly:
+        - Components sorted by rank
+        - For each component: strengths (score >= 7) first, then weaknesses (score <= 4)
+        - Each category sorted by score descending, limited to first 4
+        """
+        elements = []
+        
+        # Styled section header
+        elements.extend(self._create_section_header("6. References & Notes"))
+        
+        elements.append(Paragraph(
+            "This section contains the technical justifications and rationales used to support "
+            "the scoring decisions in this trade study. Each reference corresponds to a specific "
+            "criterion evaluation for a component.",
+            self.styles['body']
+        ))
+        elements.append(Spacer(1, 0.2 * inch))
+        
+        # Collect citations in the SAME ORDER as they appear in component cards
+        # This ensures citation numbers match between cards and references
+        citation_num = 1
+        citations_data = []
+        
+        for comp in sorted(components_data, key=lambda x: x.get('rank', 999)):
+            comp_name = f"{comp.get('manufacturer', '')} {comp.get('part_number', '')}"
+            scores = comp.get('scores', [])
+            
+            # Sort scores by value descending (same as component cards)
+            sorted_scores = sorted(scores, key=lambda x: x.get('score', 0), reverse=True)
+            
+            # Extract strengths and weaknesses (same logic as component cards)
+            strengths = [s for s in sorted_scores if s.get('score', 0) >= 7]
+            weaknesses = [s for s in sorted_scores if s.get('score', 0) <= 4]
+            
+            # Add strengths citations (first 4 only, matching component cards)
+            for score_data in strengths[:4]:
+                rationale = score_data.get('rationale', '')
+                if rationale and len(rationale) > 10:
+                    citations_data.append({
+                        'number': citation_num,
+                        'component': comp_name,
+                        'criterion': score_data.get('criterion_name', 'N/A'),
+                        'score': score_data.get('score', 0),
+                        'raw_value': score_data.get('raw_value'),
+                        'unit': score_data.get('criterion_unit', ''),
+                        'rationale': rationale,
+                        'category': 'Strength',
+                    })
+                    citation_num += 1
+            
+            # Add weaknesses citations (first 4 only, matching component cards)
+            for score_data in weaknesses[:4]:
+                rationale = score_data.get('rationale', '')
+                if rationale and len(rationale) > 10:
+                    citations_data.append({
+                        'number': citation_num,
+                        'component': comp_name,
+                        'criterion': score_data.get('criterion_name', 'N/A'),
+                        'score': score_data.get('score', 0),
+                        'raw_value': score_data.get('raw_value'),
+                        'unit': score_data.get('criterion_unit', ''),
+                        'rationale': rationale,
+                        'category': 'Weakness',
+                    })
+                    citation_num += 1
+        
+        if citations_data:
+            elements.append(Paragraph("Score Justifications:", self.styles['subsection_heading']))
+            
+            # Group citations by component
+            current_component = None
+            for cit in citations_data:
+                if cit['component'] != current_component:
+                    current_component = cit['component']
+                    elements.append(Spacer(1, 0.1 * inch))
+                    elements.append(Paragraph(
+                        f"<b>{current_component}</b>",
+                        ParagraphStyle(
+                            name='CitCompHeader',
+                            parent=self.styles['body'],
+                            fontSize=10,
+                            textColor=self.COLORS['header'],
+                            spaceBefore=8,
+                        )
+                    ))
+                
+                # Format raw value if available
+                raw_text = ""
+                if cit['raw_value'] is not None:
+                    if isinstance(cit['raw_value'], float):
+                        raw_text = f" (Raw: {cit['raw_value']:.2g} {cit['unit']})"
+                    else:
+                        raw_text = f" (Raw: {cit['raw_value']} {cit['unit']})"
+                
+                # Citation entry
+                cit_text = (
+                    f"<font size='8' color='#6B7280'>[{cit['number']}]</font> "
+                    f"<b>{cit['criterion']}</b> - Score: {cit['score']}/10{raw_text}<br/>"
+                    f"<font color='#4B5563'><i>{cit['rationale'][:200]}{'...' if len(cit['rationale']) > 200 else ''}</i></font>"
+                )
+                
+                elements.append(Paragraph(
+                    cit_text,
+                    ParagraphStyle(
+                        name=f'Citation_{cit["number"]}',
+                        parent=self.styles['body'],
+                        fontSize=9,
+                        leftIndent=15,
+                        spaceBefore=4,
+                        spaceAfter=4,
+                    )
+                ))
+        else:
+            elements.append(Paragraph(
+                "No detailed scoring rationales were provided for this trade study.",
+                self.styles['body']
+            ))
+        
+        elements.append(Spacer(1, 0.3 * inch))
+        
+        # Data Sources subsection
+        elements.append(Paragraph("Data Sources:", self.styles['subsection_heading']))
+        
+        source_items = []
+        for comp in components_data:
+            comp_name = f"{comp.get('manufacturer', '')} {comp.get('part_number', '')}"
+            desc = comp.get('description', '')
+            if desc:
+                source_items.append(f"<b>{comp_name}:</b> {desc[:100]}{'...' if len(desc) > 100 else ''}")
+        
+        if source_items:
+            for item in source_items:
+                elements.append(Paragraph(
+                    f"• {item}",
+                    ParagraphStyle(
+                        name='SourceItem',
+                        parent=self.styles['body'],
+                        fontSize=9,
+                        leftIndent=10,
+                    )
+                ))
+        else:
+            elements.append(Paragraph(
+                "Component data sourced from manufacturer datasheets and technical specifications.",
+                self.styles['body']
+            ))
+        
+        return elements
+
     def _build_appendix(
         self,
         components_data: List[Dict[str, Any]],
@@ -1112,16 +1875,11 @@ class ProfessionalPDFService:
         """Build appendix with raw data and metadata."""
         elements = []
         
-        elements.append(Paragraph("6. Appendix", self.styles['section_heading']))
-        elements.append(HRFlowable(
-            width="100%",
-            thickness=1,
-            color=self.COLORS['border'],
-            spaceAfter=15,
-        ))
+        # Styled section header
+        elements.extend(self._create_section_header("7. Appendix"))
         
         # Raw scoring matrix
-        elements.append(Paragraph("6.1 Raw Scoring Matrix", self.styles['subsection_heading']))
+        elements.append(Paragraph("7.1 Raw Data Matrix", self.styles['subsection_heading']))
         
         if components_data and criteria:
             # Build matrix header
@@ -1167,7 +1925,7 @@ class ProfessionalPDFService:
         elements.append(Spacer(1, 0.3 * inch))
         
         # Project metadata
-        elements.append(Paragraph("6.2 Project Metadata", self.styles['subsection_heading']))
+        elements.append(Paragraph("7.2 Project Metadata", self.styles['subsection_heading']))
         
         metadata = [
             ['Project Name', project_name],

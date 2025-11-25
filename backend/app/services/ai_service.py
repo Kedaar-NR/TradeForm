@@ -416,65 +416,82 @@ Return ONLY valid JSON, no markdown formatting, no explanations."""
         
         desc_text = f"\nProject Description: {project_description}" if project_description else ""
         
-        base_prompt = f"""You are an expert systems engineer writing a comprehensive, publication-ready trade study report.
+        base_prompt = f"""You are an expert systems engineer writing a comprehensive, publication-ready trade study report for a technical design review.
 
 Project Information:
 - Project Name: {project_name}
 - Component Type: {component_type}{desc_text}
 
-Evaluation Criteria:
+Evaluation Criteria (sorted by importance):
 {criteria_text}
 
 Component Evaluation Results:
 {components_text}
 
-Task: Write a professional engineering trade study report that includes:
+Task: Write a professional engineering trade study report following aerospace/defense documentation standards. The report must be detailed, quantitative, and cite specific data points.
 
-1. **Executive Summary** (1 paragraph)
-   - Brief overview of the trade study objectives
-   - Summary of the evaluation methodology
-   - Key finding: which component is recommended and why
+1. **Executive Summary** (2-3 paragraphs)
+   - State the trade study objectives and scope
+   - Summarize the weighted scoring methodology with specific criteria weights (e.g., "Gain (25%), Noise Figure (25%), Power Consumption (20%)")
+   - Clearly state the recommended component with its weighted score
+   - Highlight the key performance advantages (cite specific values like "18.5 dB gain", "2.7 dB noise figure")
+   - Note the score differential between top candidates
 
-2. **Methodology** (1 paragraph)
-   - Explain the evaluation criteria and their relative importance (weights)
-   - Describe the scoring system (1-10 scale with weighted totals)
+2. **Methodology** (2-3 paragraphs)
+   - Explain the weighted multi-criteria decision analysis (MCDA) approach
+   - List each criterion with its assigned weight percentage and justify why that weight was chosen
+   - Describe the 1-10 scoring scale with specific thresholds:
+     * 9-10: Significantly exceeds requirements
+     * 7-8: Exceeds requirements  
+     * 5-6: Adequately meets requirements
+     * 3-4: Marginally meets requirements
+     * 1-2: Does not meet requirements
+   - Explain how raw values (when available) were used to justify scores
 
-3. **Component Analysis** (detailed section for each component)
-   - For each component, provide:
-     * Overview of the component
-     * Strengths and weaknesses based on the scores and rationales
-     * Performance across key criteria
-     * Notable characteristics or trade-offs
+3. **Component Analysis** (detailed subsection for EACH component)
+   For each component, write 2-3 paragraphs covering:
+   - Technical overview: What is this component designed for? What are its key specifications?
+   - Strengths: List specific high-scoring criteria with actual values (e.g., "achieves 8/10 on Gain with a measured 18.5 dB")
+   - Weaknesses: List specific low-scoring criteria with rationale
+   - Trade-offs: What compromises does this component represent?
+   - Suitability assessment: How well does it fit the project requirements?
 
 4. **Comparative Analysis** (2-3 paragraphs)
-   - Compare the top 2-3 components
-   - Highlight key differentiators
-   - Discuss trade-offs between components
+   - Create a direct comparison of the top 2-3 candidates
+   - Use specific numbers: "Component A achieves X while Component B achieves Y"
+   - Identify which criteria each component excels at
+   - Discuss the technical trade-offs between candidates
+   - Calculate and cite score differentials
 
-5. **Recommendation** (1-2 paragraphs)
-   - Clearly state which component is the most ideal choice
-   - Provide detailed justification based on:
-     * Weighted total scores
-     * Performance across the most important criteria (highest weights)
-     * Rationales provided for each score
-     * Overall fit for the project objectives
-   - Explain why this component best meets the evaluation criteria
-   - Address any potential concerns or limitations
+5. **Recommendation** (2-3 paragraphs)
+   - Clearly state: "[Component Name] is recommended as the optimal solution"
+   - Justify with weighted total score (e.g., "achieving the highest weighted score of 6.80/10")
+   - Explain performance on the highest-weighted criteria specifically
+   - Reference the scoring rationales as supporting evidence
+   - Address any limitations of the recommended component and mitigation strategies
+   - State confidence level in the recommendation
 
 6. **Risk, Schedule, and Supply Considerations** (1-2 paragraphs)
-   - Discuss availability, vendor reliability, supply chain risks, and integration considerations for the recommended component
-   - Note any certification, qualification, or schedule impacts
+   - Availability and lead time considerations
+   - Vendor reliability and heritage
+   - Supply chain risks (single source, geographic, etc.)
+   - Integration complexity and schedule impacts
+   - Any certification or qualification requirements
 
 7. **Conclusion & Next Steps** (1 paragraph)
-   - Summarize key findings
-   - Reinforce the recommendation
-   - Suggest follow-on actions (e.g., prototype build, vendor negotiation, additional testing)
+   - Summarize the key finding with specific score
+   - Reinforce why this recommendation best serves the project
+   - Propose concrete next steps (prototype procurement, detailed analysis, vendor engagement)
 
-Formatting requirements:
-- Use Markdown headings and subheadings exactly as requested above.
-- Include bullet lists where appropriate.
-- Reference actual numbers (scores, weights, raw values) wherever they strengthen the argument.
-- Target ~1500-2000 words with clear, highly detailed prose that would satisfy a technical design review."""
+Writing Style Requirements:
+- Write in third person, formal technical prose
+- Use precise engineering language
+- Include specific numerical values throughout (scores, weights, raw measurements)
+- Format scores consistently as "X/10" 
+- Use paragraphs, not just bullet lists - this should read like a professional report
+- Reference the rationales provided as technical justification
+- Target 2000-2500 words for thoroughness
+- Every claim should be backed by data from the evaluation results"""
 
         # Augment with user report templates if available
         prompt = base_prompt
@@ -492,7 +509,7 @@ Formatting requirements:
         try:
             message = self.client.messages.create(
                 model=self.model,
-                max_tokens=4000,
+                max_tokens=6000,  # Increased for more detailed reports
                 messages=[{"role": "user", "content": prompt}]
             )
 
