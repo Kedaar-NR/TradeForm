@@ -1,9 +1,35 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { CheckSquare, Table, FileText, ArrowRight } from 'lucide-react';
 import FileUploadCard from '../../components/Onboarding/FileUploadCard';
 import { onboardingApi } from '../../services/api';
 import { updateLocalStorageOnboardingStatus } from '../../utils/onboardingHelpers';
+
+// Simple inline icons to avoid external dependencies
+const IconCheckSquare = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <rect x="4" y="4" width="16" height="16" rx="2" ry="2" strokeWidth={2} />
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4" />
+  </svg>
+);
+
+const IconTable = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <rect x="3" y="4" width="18" height="16" rx="2" ry="2" strokeWidth={2} />
+    <path strokeLinecap="round" strokeWidth={2} d="M3 9h18M9 4v16M15 4v16" />
+  </svg>
+);
+
+const IconFileText = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6M9 16h6M9 8h2m4-6H7a2 2 0 00-2 2v16l4-4h8a2 2 0 002-2V6a2 2 0 00-2-2z" />
+  </svg>
+);
+
+const IconArrowRight = ({ className }: { className?: string }) => (
+  <svg className={className} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+  </svg>
+);
 
 const OnboardingUpload: React.FC = () => {
   const navigate = useNavigate();
@@ -63,7 +89,7 @@ const OnboardingUpload: React.FC = () => {
           docType="criteria"
           title="Criteria"
           description="Upload any files that describe how you choose and weight criteria for trade studies. Examples: criteria lists, weighting spreadsheets, requirement specs."
-          icon={<CheckSquare className="w-6 h-6" />}
+          icon={<IconCheckSquare className="w-6 h-6" />}
           acceptedTypes=".pdf, .doc, .docx, .xls, .xlsx, .csv"
         />
 
@@ -72,7 +98,7 @@ const OnboardingUpload: React.FC = () => {
           docType="rating_doc"
           title="Component Ratings & Documentation"
           description="Upload past trade study spreadsheets or docs where you rated different components, as well as technical documentation used for evaluation."
-          icon={<Table className="w-6 h-6" />}
+          icon={<IconTable className="w-6 h-6" />}
           acceptedTypes=".pdf, .doc, .docx, .xls, .xlsx, .csv"
         />
 
@@ -81,7 +107,7 @@ const OnboardingUpload: React.FC = () => {
           docType="report_template"
           title="Reports"
           description="Upload final trade study reports so TradeForm can match your preferred format and structure in exports."
-          icon={<FileText className="w-6 h-6" />}
+          icon={<IconFileText className="w-6 h-6" />}
           acceptedTypes=".pdf, .doc, .docx"
         />
       </div>
@@ -123,7 +149,7 @@ const OnboardingUpload: React.FC = () => {
           className="btn-primary px-8 py-3 text-base disabled:opacity-50 flex items-center space-x-2"
         >
           <span>{loading ? 'Saving...' : 'Continue to Dashboard'}</span>
-          {!loading && <ArrowRight className="w-5 h-5" />}
+          {!loading && <IconArrowRight className="w-5 h-5" />}
         </button>
       </div>
     </div>
@@ -131,4 +157,3 @@ const OnboardingUpload: React.FC = () => {
 };
 
 export default OnboardingUpload;
-
