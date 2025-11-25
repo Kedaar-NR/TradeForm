@@ -234,7 +234,7 @@ const FileUploadCard: React.FC<FileUploadCardProps> = ({
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6 flex flex-col h-full">
       {/* Header - fixed height area */}
-      <div className="flex items-start space-x-3 mb-4 min-h-[100px]">
+      <div className="flex items-start space-x-3 mb-4 min-h-[140px]">
         <div className="flex-shrink-0 text-gray-700">{icon}</div>
         <div className="flex-1 min-w-0">
           <h3 className="text-lg font-semibold text-gray-900">{title}</h3>
