@@ -319,8 +319,8 @@ const Results: React.FC = () => {
               AI-scored components ranked by weighted criteria
             </p>
           </div>
-          <div className="flex flex-col gap-2 items-end">
-            {/* View mode buttons */}
+          <div className="flex flex-col gap-2 items-center">
+            {/* View mode buttons - centered */}
             <div className="flex gap-2">
               {(["table", "heatmap", "charts"] as ViewMode[]).map((mode) => (
                 <button
@@ -334,11 +334,11 @@ const Results: React.FC = () => {
                 </button>
               ))}
             </div>
-            {/* Export buttons */}
+            {/* Export buttons - white background */}
             <div className="flex gap-2">
               <button
                 onClick={handleExportFullExcel}
-                className="btn-primary flex items-center gap-2"
+                className="btn-secondary flex items-center gap-2"
               >
                 <svg
                   className="w-4 h-4"
@@ -357,7 +357,7 @@ const Results: React.FC = () => {
               </button>
               <button
                 onClick={handleExportWord}
-                className="btn-primary flex items-center gap-2"
+                className="btn-secondary flex items-center gap-2"
               >
                 <svg
                   className="w-4 h-4"
@@ -374,7 +374,23 @@ const Results: React.FC = () => {
                 </svg>
                 Export Report (Word)
               </button>
-              <button onClick={handleExportCSV} className="btn-primary">
+              <button
+                onClick={handleExportCSV}
+                className="btn-secondary flex items-center gap-2"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
                 Export CSV
               </button>
             </div>
