@@ -2,8 +2,8 @@ import { useNavigate, useLocation } from "react-router-dom";
 import { useState, type ReactNode } from "react";
 import Logo from "./Logo";
 import FloatingAIAssistant from "./FloatingAIAssistant";
+import GlobalSearch from "./GlobalSearch";
 import { projectGroupsApi } from "../services/api";
-import { useStore } from "../store/useStore";
 
 interface LayoutProps {
   children: ReactNode;
@@ -12,16 +12,13 @@ interface LayoutProps {
 const Layout = ({ children }: LayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { searchTerm, setSearchTerm } = useStore();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [showCreateProjectModal, setShowCreateProjectModal] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [projectName, setProjectName] = useState("");
   const [projectDescription, setProjectDescription] = useState("");
   const [selectedColor, setSelectedColor] = useState("#6B7280");
   const [isCreating, setIsCreating] = useState(false);
-
-  // Check if we're on the dashboard page
-  const isDashboardPage = location.pathname === "/dashboard";
 
   const COLORS = [
     { name: "gray", value: "#6B7280" },
@@ -83,25 +80,6 @@ const Layout = ({ children }: LayoutProps) => {
         </svg>
       ),
     },
-    {
-      name: "Upload Documents",
-      path: "/onboarding/upload",
-      icon: (
-        <svg
-          className="w-5 h-5"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-          />
-        </svg>
-      ),
-    },
   ];
 
   const handleLogout = () => {
@@ -136,7 +114,11 @@ const Layout = ({ children }: LayoutProps) => {
       setSelectedColor("#6B7280");
     } catch (error: any) {
       console.error("Failed to create project:", error);
-      alert(`Failed to create project: ${error.response?.data?.detail || error.message}`);
+      alert(
+        `Failed to create project: ${
+          error.response?.data?.detail || error.message
+        }`
+      );
     } finally {
       setIsCreating(false);
     }
@@ -145,57 +127,55 @@ const Layout = ({ children }: LayoutProps) => {
   return (
     <div className="min-h-screen flex bg-gray-50">
       {/* Sidebar */}
-            <aside
-                className={`${
-                    isCollapsed ? "w-20" : "w-48"
-                } bg-white border-r border-gray-200 flex-shrink-0 fixed h-screen flex flex-col transition-all duration-300 ease-in-out`}
-            >
+      <aside
+        className={`${
+          isCollapsed ? "w-20" : "w-48"
+        } bg-white border-r border-gray-200 flex-shrink-0 fixed h-screen flex flex-col transition-all duration-300 ease-in-out`}
+      >
         <div className="h-full flex flex-col">
-                    {/* Logo and Toggle */}
-                    <div className="px-4 py-3 border-b border-gray-200 flex-shrink-0 flex items-center justify-between">
+          {/* Logo and Toggle */}
+          <div className="px-4 py-3 border-b border-gray-200 flex-shrink-0 flex items-center justify-between">
             <div
               onClick={() => navigate("/dashboard")}
               className="cursor-pointer"
             >
-                            <Logo showText={!isCollapsed} />
-                        </div>
-                        <button
-                            onClick={() => setIsCollapsed(!isCollapsed)}
-                            className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors flex-shrink-0"
-                            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
-                        >
-                            <svg
-                                className="w-5 h-5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d={isCollapsed ? "M9 5l7 7-7 7" : "M15 19l-7-7 7-7"}
-                                />
-                            </svg>
-                        </button>
+              <Logo showText={!isCollapsed} />
             </div>
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="p-1.5 rounded-md text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors flex-shrink-0"
+              aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            >
+              <svg
+                className="w-5 h-5"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d={isCollapsed ? "M9 5l7 7-7 7" : "M15 19l-7-7 7-7"}
+                />
+              </svg>
+            </button>
+          </div>
 
           {/* Navigation - Scrollable if needed */}
-                    <nav className="flex-1 px-2 py-3 space-y-1 overflow-y-auto min-h-0 flex flex-col">
+          <nav className="flex-1 px-2 py-3 space-y-1 overflow-y-auto min-h-0 flex flex-col">
             {navigation.map((item) => (
               <button
                 key={item.path}
                 onClick={() => navigate(item.path)}
                 className={`sidebar-link ${
-                                    isActive(item.path)
-                                        ? "sidebar-link-active"
-                                        : ""
-                                } ${isCollapsed ? "justify-center" : ""}`}
-                                title={isCollapsed ? item.name : undefined}
+                  isActive(item.path) ? "sidebar-link-active" : ""
+                } ${isCollapsed ? "justify-center" : ""}`}
+                title={isCollapsed ? item.name : undefined}
               >
                 {item.icon}
-                                {!isCollapsed && <span>{item.name}</span>}
-                                {!isCollapsed && item.badge && (
+                {!isCollapsed && <span>{item.name}</span>}
+                {!isCollapsed && item.badge && (
                   <span className="ml-auto inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
                     {item.badge}
                   </span>
@@ -208,91 +188,137 @@ const Layout = ({ children }: LayoutProps) => {
           <div className="px-2 py-2 border-t border-gray-200 space-y-2 flex-shrink-0">
             <button
               onClick={() => setShowCreateProjectModal(true)}
-                            className={`w-full btn-primary ${
-                                isCollapsed ? "px-2" : ""
-                            }`}
-                            title={isCollapsed ? "Start New Project" : undefined}
-                        >
-                            {isCollapsed ? (
-                                <svg
-                                    className="w-5 h-5 mx-auto"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
+              className={`w-full btn-primary ${isCollapsed ? "px-2" : ""}`}
+              title={isCollapsed ? "Start New Project" : undefined}
             >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M12 4v16m8-8H4"
-                                    />
-                                </svg>
-                            ) : (
-                                "Start New Project"
-                            )}
+              {isCollapsed ? (
+                <svg
+                  className="w-5 h-5 mx-auto"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M12 4v16m8-8H4"
+                  />
+                </svg>
+              ) : (
+                "Start New Project"
+              )}
             </button>
             <button
               onClick={handleLogout}
-                            className={`w-full text-sm text-gray-600 hover:text-gray-900 py-2 ${
-                                isCollapsed ? "px-2" : ""
-                            }`}
-                            title={isCollapsed ? "Log out" : undefined}
-                        >
-                            {isCollapsed ? (
-                                <svg
-                                    className="w-5 h-5 mx-auto"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
-                                    <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                                    />
-                                </svg>
-                            ) : (
-                                "Log out"
-                            )}
+              className={`w-full text-sm text-gray-600 hover:text-gray-900 py-2 ${
+                isCollapsed ? "px-2" : ""
+              }`}
+              title={isCollapsed ? "Log out" : undefined}
+            >
+              {isCollapsed ? (
+                <svg
+                  className="w-5 h-5 mx-auto"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
+                  />
+                </svg>
+              ) : (
+                "Log out"
+              )}
             </button>
           </div>
         </div>
       </aside>
 
       {/* Main content area */}
-            <div
-                className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out ${
-                    isCollapsed ? "ml-20" : "ml-48"
-                }`}
-            >
+      <div
+        className={`flex-1 flex flex-col min-w-0 transition-all duration-300 ease-in-out ${
+          isCollapsed ? "ml-20" : "ml-48"
+        }`}
+      >
         {/* Top header */}
         <header className="bg-white border-b border-gray-200 px-6 py-3 flex-shrink-0">
           <div className="flex items-center justify-between gap-4">
-            {isDashboardPage && (
-              <input
-                type="text"
-                placeholder="Search projects..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="input-field max-w-sm"
-              />
-            )}
-            {!isDashboardPage && <div />}
-            <button
-              onClick={() => navigate("/documentation")}
-              className="text-sm text-gray-600 hover:text-gray-900 whitespace-nowrap"
-            >
-              Documentation
-            </button>
+            {/* Global Search - always visible */}
+            <GlobalSearch />
+            <div className="flex items-center gap-4">
+              <button
+                onClick={() => navigate("/documentation")}
+                className="text-sm text-gray-600 hover:text-gray-900 whitespace-nowrap"
+              >
+                Documentation
+              </button>
+              {/* Profile Menu */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowProfileMenu(!showProfileMenu)}
+                  className="w-9 h-9 rounded-full bg-gray-900 flex items-center justify-center text-white font-semibold text-sm hover:bg-gray-800 transition-all shadow-sm"
+                >
+                  {(() => {
+                    const user = localStorage.getItem("currentUser");
+                    if (user) {
+                      try {
+                        const parsed = JSON.parse(user);
+                        return (
+                          parsed.name?.[0] ||
+                          parsed.email?.[0] ||
+                          "U"
+                        ).toUpperCase();
+                      } catch {
+                        return "U";
+                      }
+                    }
+                    return "U";
+                  })()}
+                </button>
+                {showProfileMenu && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setShowProfileMenu(false)}
+                    />
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50">
+                      <button
+                        onClick={() => {
+                          navigate("/onboarding/upload");
+                          setShowProfileMenu(false);
+                        }}
+                        className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100 flex items-center gap-2"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                          />
+                        </svg>
+                        View Profile
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         </header>
 
         {/* Page content */}
         <main className="flex-1 overflow-auto">
-                    <div className="max-w-6xl mx-auto pl-8 pr-6 py-6">
-                        {children}
-                    </div>
+          <div className="max-w-6xl mx-auto pl-8 pr-6 py-6">{children}</div>
         </main>
       </div>
 
@@ -303,11 +329,15 @@ const Layout = ({ children }: LayoutProps) => {
       {showCreateProjectModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <h2 className="text-xl font-bold text-gray-900 mb-4">Create New Project</h2>
+            <h2 className="text-xl font-bold text-gray-900 mb-4">
+              Create New Project
+            </h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Project Name</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Project Name
+                </label>
                 <input
                   type="text"
                   value={projectName}
@@ -319,7 +349,9 @@ const Layout = ({ children }: LayoutProps) => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Description (Optional)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description (Optional)
+                </label>
                 <textarea
                   value={projectDescription}
                   onChange={(e) => setProjectDescription(e.target.value)}
@@ -329,7 +361,9 @@ const Layout = ({ children }: LayoutProps) => {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Choose Color</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Choose Color
+                </label>
                 <div className="grid grid-cols-4 gap-2">
                   {COLORS.map((color) => (
                     <button
@@ -337,7 +371,9 @@ const Layout = ({ children }: LayoutProps) => {
                       onClick={() => setSelectedColor(color.value)}
                       type="button"
                       className={`h-10 rounded-lg border-2 transition-all ${
-                        selectedColor === color.value ? "border-black" : "border-gray-200"
+                        selectedColor === color.value
+                          ? "border-black"
+                          : "border-gray-200"
                       }`}
                       style={{ backgroundColor: color.value }}
                       title={color.name}

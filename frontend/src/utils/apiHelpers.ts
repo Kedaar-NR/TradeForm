@@ -1,10 +1,20 @@
-const envUrl = import.meta.env.REACT_APP_API_URL?.trim();
+const envUrl =
+  import.meta.env.VITE_API_URL?.trim() ||
+  import.meta.env.REACT_APP_API_URL?.trim();
 const resolvedUrl = envUrl || "http://localhost:8000";
 
 if (!envUrl && typeof window !== "undefined") {
   console.warn(
-    "REACT_APP_API_URL is not set. Falling back to http://localhost:8000. " +
-      "Set REACT_APP_API_URL in your environment for production deployments."
+    "API URL not set. Falling back to http://localhost:8000. " +
+      "Set VITE_API_URL in your environment for production deployments."
+  );
+} else if (
+  !import.meta.env.VITE_API_URL &&
+  import.meta.env.REACT_APP_API_URL &&
+  typeof window !== "undefined"
+) {
+  console.warn(
+    "Using legacy REACT_APP_API_URL. Please rename it to VITE_API_URL to avoid build issues."
   );
 }
 

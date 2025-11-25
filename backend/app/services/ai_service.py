@@ -392,6 +392,81 @@ class AIService:
             "rationale": result.get("rationale", ""),
             "confidence": confidence
         }
+    
+    def score_component_batch(
+        self,
+        component: Dict[str, Any],
+        criteria: List[Dict[str, Any]],
+        user_id: Optional[UUID] = None
+    ) -> List[Dict[str, Any]]:
+        """
+        Score a single component against ALL criteria in one AI call.
+        Much faster than individual calls.
+        
+        Args:
+            component: Component dict with manufacturer, part_number, description
+            criteria: List of criterion dicts
+            
+        Returns:
+            List of score dicts, one per criterion
+        """
+        criteria_text = "\n".join([
+            f"- {c['name']}: {c.get('description', '')} (Unit: {c.get('unit', 'N/A')}, {'Higher is better' if c.get('higher_is_better', True) else 'Lower is better'})"
+            for c in criteria
+        ])
+        
+        prompt = f"""Score this component against ALL criteria below.
+
+COMPONENT:
+- Manufacturer: {component.get('manufacturer', 'Unknown')}
+- Part Number: {component.get('part_number', 'Unknown')}
+- Description: {component.get('description', 'No description')}
+
+CRITERIA TO EVALUATE:
+{criteria_text}
+
+Return a JSON array with one score object per criterion:
+[
+  {{
+    "criterion_name": "exact criterion name",
+    "score": <1-10>,
+    "raw_value": "<value with units>",
+    "rationale": "brief explanation",
+    "confidence": <0-1>
+  }}
+]
+
+IMPORTANT: Include ALL {len(criteria)} criteria. Return ONLY valid JSON."""
+
+        response = self._call_claude(
+            system="You are an aerospace engineer. Score components quickly and accurately. Return only valid JSON array.",
+            user=prompt,
+            max_tokens=4096
+        )
+        
+        results = self._parse_json_array(response)
+        
+        # Validate and normalize results
+        validated = []
+        for r in results:
+            try:
+                score = max(1, min(10, int(r.get("score", 5))))
+            except (ValueError, TypeError):
+                score = 5
+            try:
+                confidence = max(0.0, min(1.0, float(r.get("confidence", 0.5))))
+            except (ValueError, TypeError):
+                confidence = 0.5
+                
+            validated.append({
+                "criterion_name": r.get("criterion_name", ""),
+                "score": score,
+                "raw_value": r.get("raw_value"),
+                "rationale": r.get("rationale", "")[:500],  # Limit rationale length
+                "confidence": confidence
+            })
+        
+        return validated
 
 
 # Singleton instance

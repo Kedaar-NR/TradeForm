@@ -34,7 +34,8 @@ from app.routers import (
     results,
     collaboration,
     ai,
-    onboarding
+    onboarding,
+    search
 )
 
 # Create all database tables
@@ -47,17 +48,23 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# CORS configuration
-cors_origins = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:3001").split(",")
+# CORS configuration - must be added BEFORE routes for OPTIONS to work
+cors_origins_str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:3001,http://localhost:5173")
+cors_origins = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
+
+# For development, allow all origins if explicitly set
 if os.getenv("ALLOW_ALL_ORIGINS", "false").lower() == "true":
     cors_origins = ["*"]
 
+# Add CORS middleware - this must handle OPTIONS preflight requests
 app.add_middleware(
     CORSMiddleware,
     allow_origins=cors_origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
+    expose_headers=["*"],
+    max_age=600,  # Cache preflight requests for 10 minutes
 )
 
 # Include routers
@@ -72,6 +79,7 @@ app.include_router(results.router)
 app.include_router(collaboration.router)
 app.include_router(ai.router)
 app.include_router(onboarding.router)
+app.include_router(search.router)
 
 
 @app.on_event("startup")

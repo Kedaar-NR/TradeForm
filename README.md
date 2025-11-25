@@ -177,7 +177,7 @@ We've built TradeForm with modern, production-ready technologies:
 
 2. **Set your API URL** (optional, defaults to http://localhost:8000)
    ```bash
-   export REACT_APP_API_URL="http://localhost:8000"
+   export VITE_API_URL="http://localhost:8000"
    ```
 
 3. **Start the dev server**
@@ -368,7 +368,7 @@ We welcome contributions! Please:
 ### Vercel (Frontend)
 The frontend is optimized for Vercel deployment:
 1. Connect your GitHub repository
-2. Set `REACT_APP_API_URL` environment variable to your backend URL
+2. Set `VITE_API_URL` environment variable to your backend URL
 3. Deploy - Vercel handles the build automatically
 
 ### Backend Deployment
@@ -394,7 +394,7 @@ SECRET_KEY=your_secret_key_for_jwt
 
 **Frontend:**
 ```
-REACT_APP_API_URL=https://your-backend-domain.com
+VITE_API_URL=https://your-backend-domain.com
 ```
 
 ### Production Checklist

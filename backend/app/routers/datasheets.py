@@ -41,12 +41,14 @@ async def _download_pdf_from_url(url: str) -> Tuple[bytes, str]:
     Returns the file bytes and the resolved URL used for the PDF download.
     """
     common_headers = {
-        "User-Agent": "Mozilla/5.0 (compatible; TradeFormBot/1.0; +https://tradeform.app)",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
         "Accept": "application/pdf,application/octet-stream,*/*;q=0.8",
         "Accept-Language": "en-US,en;q=0.9",
     }
 
-    async with httpx.AsyncClient(timeout=60.0, headers=common_headers) as client:
+    # Faster timeout: 15 seconds for connection, 30 seconds total
+    timeout = httpx.Timeout(15.0, connect=10.0)
+    async with httpx.AsyncClient(timeout=timeout, headers=common_headers, follow_redirects=True) as client:
         response = await client.get(url, follow_redirects=True)
         file_bytes = response.content
         content_type = response.headers.get("content-type", "").lower()

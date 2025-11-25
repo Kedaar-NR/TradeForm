@@ -66,10 +66,10 @@ Configure these in your Vercel project settings:
 
 ```bash
 # Backend API URL (from Step 1)
-REACT_APP_API_URL=https://your-backend-url.railway.app
+VITE_API_URL=https://your-backend-url.railway.app
 
 # Frontend Gemini API Key (for client-side features)
-REACT_APP_GEMINI_API_KEY=your_gemini_api_key_here
+VITE_GEMINI_API_KEY=your_gemini_api_key_here
 ```
 
 ### Setting Environment Variables in Vercel
@@ -99,7 +99,7 @@ REACT_APP_GEMINI_API_KEY=your_gemini_api_key_here
 ### Frontend Build Errors (Vercel)
 
 - Check the build logs in Vercel dashboard
-- Ensure `REACT_APP_API_URL` is set correctly
+- Ensure `VITE_API_URL` is set correctly
 - Verify all dependencies in `frontend/package.json` are installable
 
 ### Backend Deployment Issues

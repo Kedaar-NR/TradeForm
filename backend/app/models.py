@@ -14,6 +14,7 @@ class ProjectStatus(str, enum.Enum):
 class ComponentAvailability(str, enum.Enum):
     IN_STOCK = "in_stock"
     LIMITED = "limited"
+    LEAD_TIME = "lead_time"
     OBSOLETE = "obsolete"
 
 class ComponentSource(str, enum.Enum):
@@ -180,7 +181,7 @@ class Score(Base):
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     component_id = Column(UUID(as_uuid=True), ForeignKey("components.id"), nullable=False)
     criterion_id = Column(UUID(as_uuid=True), ForeignKey("criteria.id"), nullable=False)
-    raw_value = Column(Float)
+    raw_value = Column(String)  # Stores raw value with units as string (e.g., "5-10 m CEP")
     score = Column(Integer, nullable=False)  # 1-10
     rationale = Column(Text)
     extraction_confidence = Column(Float)  # 0-1
