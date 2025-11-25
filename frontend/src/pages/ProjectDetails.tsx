@@ -13,11 +13,17 @@ import { ComponentsSection } from "../components/ProjectDetails/ComponentsSectio
 import { CriteriaSection } from "../components/ProjectDetails/CriteriaSection";
 import CollaboratorsSection from "../components/ProjectDetails/CollaboratorsSection";
 import ProjectFileTray from "../components/ProjectDetails/ProjectFileTray";
+import { VersionHistoryTab } from "../components/ProjectDetails/VersionHistoryTab";
 import { TradeStudyReportDialog } from "../components/TradeStudyReportDialog";
+import { PageLoader, BackButton, ButtonSpinner } from "../components/ui";
 import { formatEnumValue } from "../utils/datasheetHelpers";
 import { getApiUrl, getAuthHeaders } from "../utils/apiHelpers";
-import { formatDisplayTimestamp, formatDateForFilename } from "../utils/dateFormatters";
+import { formatDateForFilename } from "../utils/dateFormatters";
+import { downloadBlob, fetchAndDownloadBlob } from "../utils/fileDownloadHelpers";
+import { extractErrorMessage } from "../utils/errorHelpers";
+import { transformProjectChanges } from "../utils/apiTransformers";
 import type { ProjectChange } from "../types";
+import type { ApiProjectChange } from "../types/api";
 
 type TabType = "overview" | "versions" | "collaboration";
 
@@ -33,61 +39,14 @@ const ProjectDetails: React.FC = () => {
     const [changes, setChanges] = useState<ProjectChange[]>([]);
     const [isLoadingChanges, setIsLoadingChanges] = useState(false);
 
-    // Use custom hook for data management
-    const {
-        project,
-        components,
-        criteria,
-        isLoading,
-        setProject,
-        loadProject,
-    } = useProjectData(projectId);
-    const formatChangeType = (value: string) =>
-        value
-            .split("_")
-            .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-            .join(" ");
-
-    const parseStructuredValue = (value?: string | null) => {
-        if (!value) return null;
-        try {
-            return JSON.parse(value);
-        } catch {
-            return value;
-        }
-    };
-
-    const formatStructuredValue = (value: any) => {
-        if (value === null || value === undefined) {
-            return "";
-        }
-        if (typeof value === "string") {
-            return value;
-        }
-        return JSON.stringify(value, null, 2);
-    };
+    const { project, components, criteria, isLoading, setProject, loadProject } = useProjectData(projectId);
 
     const loadChanges = useCallback(async () => {
         if (!projectId) return;
         try {
             setIsLoadingChanges(true);
             const response = await changesApi.getByProject(projectId);
-            const mapped: ProjectChange[] = response.data.map(
-                (change: any) => ({
-                    id: change.id,
-                    projectId: change.project_id,
-                    userId: change.user_id,
-                    userName: change.user_name,
-                    changeType: change.change_type,
-                    changeDescription: change.change_description,
-                    entityType: change.entity_type || undefined,
-                    entityId: change.entity_id || undefined,
-                    oldValue: change.old_value || undefined,
-                    newValue: change.new_value || undefined,
-                    createdAt: change.created_at,
-                })
-            );
-            setChanges(mapped);
+            setChanges(transformProjectChanges(response.data as ApiProjectChange[]));
         } catch (error) {
             console.error("Failed to load project changes:", error);
         } finally {
@@ -95,28 +54,18 @@ const ProjectDetails: React.FC = () => {
         }
     }, [projectId]);
 
+    // Listen for report status broadcasts
     useEffect(() => {
-        if (!projectId || typeof window === "undefined") {
-            return;
-        }
+        if (!projectId || typeof window === "undefined") return;
 
         const handler = (event: Event) => {
-            const customEvent = event as CustomEvent<{
-                projectId: string;
-                status: string;
-            }>;
-            if (customEvent.detail.projectId !== projectId) {
-                return;
-            }
+            const customEvent = event as CustomEvent<{ projectId: string; status: string }>;
+            if (customEvent.detail.projectId !== projectId) return;
+
             if (customEvent.detail.status === "generating") {
                 setIsDownloadingReport(true);
-                setProject((prev: typeof project) =>
-                    prev
-                        ? {
-                              ...prev,
-                              tradeStudyReport: prev.tradeStudyReport || "",
-                          }
-                        : prev
+                setProject((prev) =>
+                    prev ? { ...prev, tradeStudyReport: prev.tradeStudyReport || "" } : prev
                 );
             } else if (customEvent.detail.status === "ready") {
                 setIsDownloadingReport(false);
@@ -127,78 +76,42 @@ const ProjectDetails: React.FC = () => {
         };
 
         window.addEventListener("tradeform-report-status", handler);
-        return () => {
-            window.removeEventListener("tradeform-report-status", handler);
-        };
+        return () => window.removeEventListener("tradeform-report-status", handler);
     }, [projectId, loadProject, setProject]);
 
     useEffect(() => {
         loadChanges();
     }, [loadChanges]);
 
-    /**
-     * Handle export to Excel
-     */
     const handleExportExcel = async () => {
         if (!projectId) return;
         try {
-            const response = await fetch(
-                getApiUrl(`/api/projects/${projectId}/export/full`),
-                {
-                    headers: {
-                        ...getAuthHeaders(),
-                    },
-                }
-            );
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(errorText || "Failed to export Excel");
-            }
-
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
             const dateSlug = formatDateForFilename(new Date());
-            a.href = url;
-            a.download = `trade_study_${
-                project?.name || projectId
-            }_${dateSlug}.xlsx`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-        } catch (error: any) {
-            console.error("Failed to export Excel:", error);
-            alert(
-                `Failed to export Excel: ${
-                    error.response?.data?.detail || error.message
-                }`
+            await fetchAndDownloadBlob(
+                getApiUrl(`/api/projects/${projectId}/export/full`),
+                `trade_study_${project?.name || projectId}_${dateSlug}.xlsx`,
+                getAuthHeaders()
             );
+        } catch (error) {
+            console.error("Failed to export Excel:", error);
+            alert(`Failed to export Excel: ${extractErrorMessage(error)}`);
         }
     };
 
     const handleGenerateReport = async () => {
         if (!projectId) return;
-
         setIsGeneratingReport(true);
         try {
             const response = await aiApi.generateTradeStudyReport(projectId);
-
             if (response.data.status === "success") {
-                // Reload project data to get the updated report
                 await loadProject();
                 alert("Report generated successfully!");
             } else {
                 throw new Error("Report generation failed");
             }
-        } catch (error: any) {
+        } catch (error) {
             console.error("Failed to generate report:", error);
-            const message =
-                error?.response?.data?.detail ||
-                error?.message ||
-                "Failed to generate report";
-            alert(`Report generation failed: ${message}`);
+            alert(`Report generation failed: ${extractErrorMessage(error)}`);
         } finally {
             setIsGeneratingReport(false);
         }
@@ -206,47 +119,26 @@ const ProjectDetails: React.FC = () => {
 
     const fetchPdfBlob = useCallback(async (): Promise<Blob> => {
         if (!projectId) throw new Error("No project ID");
-        
-        const response = await fetch(
-            getApiUrl(`/api/projects/${projectId}/report/pdf`),
-            {
-                headers: {
-                    ...getAuthHeaders(),
-                },
-            }
-        );
-
+        const response = await fetch(getApiUrl(`/api/projects/${projectId}/report/pdf`), {
+            headers: getAuthHeaders(),
+        });
         if (!response.ok) {
             const errorText = await response.text();
             throw new Error(errorText || "Failed to fetch PDF");
         }
-
         return response.blob();
     }, [projectId]);
 
     const handleDownloadReportPdf = async () => {
         if (!projectId) return;
-
         setIsDownloadingReport(true);
         try {
             const blob = await fetchPdfBlob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            const safeName =
-                project?.name?.toLowerCase().replace(/\s+/g, "_") || projectId;
-            a.href = url;
-            a.download = `trade_study_report_${safeName}.pdf`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-        } catch (error: any) {
+            const safeName = project?.name?.toLowerCase().replace(/\s+/g, "_") || projectId;
+            downloadBlob(blob, `trade_study_report_${safeName}.pdf`);
+        } catch (error) {
             console.error("Failed to download report PDF:", error);
-            const message =
-                error?.response?.data?.detail ||
-                error?.message ||
-                "Failed to download report";
-            alert(`Download failed: ${message}`);
+            alert(`Download failed: ${extractErrorMessage(error)}`);
         } finally {
             setIsDownloadingReport(false);
         }
@@ -254,75 +146,40 @@ const ProjectDetails: React.FC = () => {
 
     const handleDownloadReportWord = async () => {
         if (!projectId) return;
-
         setIsDownloadingReport(true);
         try {
-            const response = await fetch(
-                getApiUrl(`/api/projects/${projectId}/report/docx`),
-                {
-                    headers: {
-                        ...getAuthHeaders(),
-                    },
-                }
-            );
-
+            const response = await fetch(getApiUrl(`/api/projects/${projectId}/report/docx`), {
+                headers: getAuthHeaders(),
+            });
             if (!response.ok) {
                 const errorText = await response.text();
                 throw new Error(errorText || "Failed to download report");
             }
-
             const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            const safeName =
-                project?.name?.toLowerCase().replace(/\s+/g, "_") || projectId;
-            a.href = url;
-            a.download = `trade_study_report_${safeName}.docx`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            window.URL.revokeObjectURL(url);
-        } catch (error: any) {
+            const safeName = project?.name?.toLowerCase().replace(/\s+/g, "_") || projectId;
+            downloadBlob(blob, `trade_study_report_${safeName}.docx`);
+        } catch (error) {
             console.error("Failed to download report Word:", error);
-            const message =
-                error?.response?.data?.detail ||
-                error?.message ||
-                "Failed to download report";
-            alert(`Download failed: ${message}`);
+            alert(`Download failed: ${extractErrorMessage(error)}`);
         } finally {
             setIsDownloadingReport(false);
         }
     };
 
+    const backDestination = fromProjectGroupId ? `/project-group/${fromProjectGroupId}` : "/dashboard";
+    const backLabel = fromProjectGroupId ? "Back to Project" : "Back to Dashboard";
+
     if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-                    <p className="mt-4 text-gray-600">Loading project...</p>
-                </div>
-            </div>
-        );
+        return <PageLoader text="Loading project..." />;
     }
 
     if (!project) {
         return (
             <div className="min-h-screen flex items-center justify-center">
                 <div className="text-center">
-                    <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                        Project Not Found
-                    </h2>
-                    <button
-                        onClick={() => {
-                            if (fromProjectGroupId) {
-                                navigate(`/project-group/${fromProjectGroupId}`);
-                            } else {
-                                navigate("/dashboard");
-                            }
-                        }}
-                        className="btn-primary"
-                    >
-                        {fromProjectGroupId ? "Back to Project" : "Back to Dashboard"}
+                    <h2 className="text-2xl font-bold text-gray-900 mb-2">Project Not Found</h2>
+                    <button onClick={() => navigate(backDestination)} className="btn-primary">
+                        {backLabel}
                     </button>
                 </div>
             </div>
@@ -334,41 +191,13 @@ const ProjectDetails: React.FC = () => {
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="mb-8">
-                    <button
-                        onClick={() => {
-                            if (fromProjectGroupId) {
-                                navigate(`/project-group/${fromProjectGroupId}`);
-                            } else {
-                                navigate("/dashboard");
-                            }
-                        }}
-                        className="text-gray-700 hover:text-gray-900 mb-4 flex items-center gap-2 text-sm font-medium"
-                    >
-                        <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M15 19l-7-7 7-7"
-                            />
-                        </svg>
-                        {fromProjectGroupId ? "Back to Project" : "Back to Dashboard"}
-                    </button>
+                    <BackButton to={backDestination} label={backLabel} />
 
                     <div className="flex items-start justify-between mb-6">
                         <div className="flex-1">
-                            <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                                {project.name}
-                            </h1>
+                            <h1 className="text-4xl font-bold text-gray-900 mb-2">{project.name}</h1>
                             <div className="flex items-center gap-3 mb-3">
-                                <span className="text-sm text-gray-600">
-                                    {project.componentType}
-                                </span>
+                                <span className="text-sm text-gray-600">{project.componentType}</span>
                                 <span className="text-gray-400">•</span>
                                 <span
                                     className={`px-3 py-1 rounded-full text-xs font-medium ${
@@ -383,9 +212,7 @@ const ProjectDetails: React.FC = () => {
                                 </span>
                             </div>
                             {project.description && (
-                                <p className="text-gray-600 max-w-3xl">
-                                    {project.description}
-                                </p>
+                                <p className="text-gray-600 max-w-3xl">{project.description}</p>
                             )}
                         </div>
                     </div>
@@ -395,68 +222,30 @@ const ProjectDetails: React.FC = () => {
                     {/* Action Buttons */}
                     <div className="flex flex-wrap gap-3">
                         <button
-                            onClick={() =>
-                                navigate(`/project/${projectId}/discovery`)
-                            }
+                            onClick={() => navigate(`/project/${projectId}/discovery`)}
                             className="btn-primary flex items-center gap-2"
                         >
-                            <svg
-                                className="w-5 h-5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z"
-                                />
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 3v2m6-2v2M9 19v2m6-2v2M5 9H3m2 6H3m18-6h-2m2 6h-2M7 19h10a2 2 0 002-2V7a2 2 0 00-2-2H7a2 2 0 00-2 2v10a2 2 0 002 2zM9 9h6v6H9V9z" />
                             </svg>
                             Manage Components
                         </button>
                         <button
-                            onClick={() =>
-                                navigate(`/project/${projectId}/criteria`)
-                            }
+                            onClick={() => navigate(`/project/${projectId}/criteria`)}
                             className="btn-secondary flex items-center gap-2"
                         >
-                            <svg
-                                className="w-5 h-5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
-                                />
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                             </svg>
                             Edit Criteria
                         </button>
                         <button
-                            onClick={() =>
-                                navigate(`/project/${projectId}/results`)
-                            }
+                            onClick={() => navigate(`/project/${projectId}/results`)}
                             className="btn-secondary flex items-center gap-2"
-                            disabled={
-                                components.length === 0 || criteria.length === 0
-                            }
+                            disabled={components.length === 0 || criteria.length === 0}
                         >
-                            <svg
-                                className="w-5 h-5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"
-                                />
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                             </svg>
                             View Results
                         </button>
@@ -465,113 +254,40 @@ const ProjectDetails: React.FC = () => {
                             className="btn-secondary flex items-center gap-2"
                             disabled={components.length === 0}
                         >
-                            <svg
-                                className="w-5 h-5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                />
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                             </svg>
                             Export Excel
                         </button>
                         <button
-                            onClick={
-                                project.tradeStudyReport
-                                    ? () => setShowReportDialog(true)
-                                    : handleGenerateReport
-                            }
+                            onClick={project.tradeStudyReport ? () => setShowReportDialog(true) : handleGenerateReport}
                             className="btn-secondary flex items-center gap-2"
-                            disabled={
-                                isGeneratingReport ||
-                                isDownloadingReport ||
-                                components.length === 0 ||
-                                criteria.length === 0
-                            }
+                            disabled={isGeneratingReport || isDownloadingReport || components.length === 0 || criteria.length === 0}
                         >
                             {isGeneratingReport ? (
                                 <>
-                                    <svg
-                                        className="animate-spin h-5 w-5"
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <circle
-                                            className="opacity-25"
-                                            cx="12"
-                                            cy="12"
-                                            r="10"
-                                            stroke="currentColor"
-                                            strokeWidth="4"
-                                        />
-                                        <path
-                                            className="opacity-75"
-                                            fill="currentColor"
-                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                        />
-                                    </svg>
+                                    <ButtonSpinner />
                                     Generating Report...
                                 </>
                             ) : isDownloadingReport ? (
                                 <>
-                                    <svg
-                                        className="w-5 h-5"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"
-                                        />
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
                                     </svg>
                                     Preparing PDF...
                                 </>
                             ) : project.tradeStudyReport ? (
                                 <>
-                                    <svg
-                                        className="w-5 h-5"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                                        />
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                                        />
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
                                     </svg>
                                     View Report
                                 </>
                             ) : (
                                 <>
-                                    <svg
-                                        className="w-5 h-5"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                                        />
+                                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                                     </svg>
                                     Generate Report
                                 </>
@@ -583,36 +299,19 @@ const ProjectDetails: React.FC = () => {
                 {/* Tabs */}
                 <div className="border-b border-gray-300 mb-6">
                     <nav className="flex gap-8">
-                        <button
-                            onClick={() => setActiveTab("overview")}
-                            className={`pb-3 px-1 text-sm font-medium transition-colors border-b-2 ${
-                                activeTab === "overview"
-                                    ? "border-black text-gray-900"
-                                    : "border-transparent text-gray-600 hover:text-gray-900"
-                            }`}
-                        >
-                            Overview
-                        </button>
-                        <button
-                            onClick={() => setActiveTab("versions")}
-                            className={`pb-3 px-1 text-sm font-medium transition-colors border-b-2 ${
-                                activeTab === "versions"
-                                    ? "border-black text-gray-900"
-                                    : "border-transparent text-gray-600 hover:text-gray-900"
-                            }`}
-                        >
-                            Version History
-                        </button>
-                        <button
-                            onClick={() => setActiveTab("collaboration")}
-                            className={`pb-3 px-1 text-sm font-medium transition-colors border-b-2 ${
-                                activeTab === "collaboration"
-                                    ? "border-black text-gray-900"
-                                    : "border-transparent text-gray-600 hover:text-gray-900"
-                            }`}
-                        >
-                            Collaboration
-                        </button>
+                        {(["overview", "versions", "collaboration"] as TabType[]).map((tab) => (
+                            <button
+                                key={tab}
+                                onClick={() => setActiveTab(tab)}
+                                className={`pb-3 px-1 text-sm font-medium transition-colors border-b-2 ${
+                                    activeTab === tab
+                                        ? "border-black text-gray-900"
+                                        : "border-transparent text-gray-600 hover:text-gray-900"
+                                }`}
+                            >
+                                {tab === "versions" ? "Version History" : tab.charAt(0).toUpperCase() + tab.slice(1)}
+                            </button>
+                        ))}
                     </nav>
                 </div>
 
@@ -621,136 +320,24 @@ const ProjectDetails: React.FC = () => {
                     <div className="space-y-8">
                         <ComponentsSection
                             components={components}
-                            onNavigateToDiscovery={() =>
-                                navigate(`/project/${projectId}/discovery`)
-                            }
+                            onNavigateToDiscovery={() => navigate(`/project/${projectId}/discovery`)}
                         />
                         <CriteriaSection
                             criteria={criteria}
-                            onNavigateToCriteria={() =>
-                                navigate(`/project/${projectId}/criteria`)
-                            }
+                            onNavigateToCriteria={() => navigate(`/project/${projectId}/criteria`)}
                         />
                     </div>
                 )}
 
                 {activeTab === "versions" && (
-                    <div className="space-y-4">
-                        <div className="flex items-center justify-between flex-wrap gap-3">
-                            <div>
-                                <h3 className="text-lg font-semibold text-gray-900">
-                                    Version History
-                                </h3>
-                                <p className="text-sm text-gray-600">
-                                    Recent changes to this project
-                                </p>
-                            </div>
-                            <button
-                                onClick={loadChanges}
-                                className="btn-secondary text-sm"
-                            >
-                                Refresh History
-                            </button>
-                        </div>
-                        {isLoadingChanges ? (
-                            <div className="card p-8 text-center">
-                                <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-                                <p className="mt-4 text-sm text-gray-600">
-                                    Loading history...
-                                </p>
-                            </div>
-                        ) : changes.length === 0 ? (
-                            <div className="card p-8 text-center">
-                                <p className="text-sm text-gray-600">
-                                    No change history recorded yet. Start
-                                    editing components or criteria to see
-                                    updates here.
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {changes.map((change) => {
-                                    const oldValue = parseStructuredValue(
-                                        change.oldValue
-                                    );
-                                    const newValue = parseStructuredValue(
-                                        change.newValue
-                                    );
-                                    return (
-                                        <div
-                                            key={change.id}
-                                            className="card p-5 border border-gray-200 rounded-xl"
-                                        >
-                                            <div className="flex flex-wrap items-center justify-between gap-3">
-                                                <div>
-                                                    <p className="text-xs text-gray-500">
-                                                        {formatDisplayTimestamp(
-                                                            change.createdAt
-                                                        )}
-                                                    </p>
-                                                    <p className="text-base font-semibold text-gray-900">
-                                                        {
-                                                            change.changeDescription
-                                                        }
-                                                    </p>
-                                                    <p className="text-xs text-gray-500">
-                                                        {change.userName ||
-                                                            "System"}
-                                                    </p>
-                                                </div>
-                                                <span className="px-3 py-1 text-xs font-semibold rounded-full bg-gray-100 text-gray-800 capitalize">
-                                                    {formatChangeType(
-                                                        change.changeType
-                                                    )}
-                                                </span>
-                                            </div>
-                                            {change.entityType && (
-                                                <p className="text-xs text-gray-500 mt-2">
-                                                    Entity:{" "}
-                                                    {formatChangeType(
-                                                        change.entityType
-                                                    )}
-                                                </p>
-                                            )}
-                                            {(oldValue || newValue) && (
-                                                <div className="mt-4 grid gap-4 md:grid-cols-2">
-                                                    {oldValue && (
-                                                        <div>
-                                                            <p className="text-xs font-semibold text-gray-500 uppercase mb-1">
-                                                                Before
-                                                            </p>
-                                                            <pre className="bg-gray-50 border border-gray-200 rounded-lg text-xs p-3 overflow-x-auto">
-                                                                {formatStructuredValue(
-                                                                    oldValue
-                                                                )}
-                                                            </pre>
-                                                        </div>
-                                                    )}
-                                                    {newValue && (
-                                                        <div>
-                                                            <p className="text-xs font-semibold text-gray-500 uppercase mb-1">
-                                                                After
-                                                            </p>
-                                                            <pre className="bg-gray-50 border border-gray-200 rounded-lg text-xs p-3 overflow-x-auto">
-                                                                {formatStructuredValue(
-                                                                    newValue
-                                                                )}
-                                                            </pre>
-                                                        </div>
-                                                    )}
-                                                </div>
-                                            )}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
+                    <VersionHistoryTab
+                        changes={changes}
+                        isLoading={isLoadingChanges}
+                        onRefresh={loadChanges}
+                    />
                 )}
 
-                {activeTab === "collaboration" && (
-                    <CollaboratorsSection projectId={projectId} />
-                )}
+                {activeTab === "collaboration" && <CollaboratorsSection projectId={projectId} />}
             </div>
 
             {/* Trade Study Report Dialog */}

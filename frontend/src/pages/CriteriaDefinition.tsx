@@ -1,529 +1,430 @@
 /**
  * Criteria Definition page.
  *
- * Allows users to define and manage evaluation criteria for a trade study project.
+ * Allows users to define and manage evaluation criteria for a trade study.
  * Includes auto-save functionality and common criteria suggestions.
  */
 
-import React, { useState, useRef } from "react";
+import React, { useCallback, useEffect, useState, useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import {
-    useCriteriaManagement,
-    CriterionForm,
-} from "../hooks/useCriteriaManagement";
+import * as XLSX from "xlsx";
 import { CriterionCard } from "../components/CriteriaDefinition/CriterionCard";
 import { WeightSummary } from "../components/CriteriaDefinition/WeightSummary";
-import { COMMON_CRITERIA, isWeightBalanced } from "../utils/criteriaHelpers";
-import { criteriaApi } from "../services/api";
+import { useCriteriaManagement, type CriterionForm } from "../hooks/useCriteriaManagement";
+import { PageLoader, BackButton, ProgressStepper, TRADE_STUDY_STEPS } from "../components/ui";
+import { downloadBlob, MIME_TYPES } from "../utils/fileDownloadHelpers";
+import { formatDateForFilename } from "../utils/dateFormatters";
+import { isWeightBalanced, calculateTotalWeight } from "../utils/criteriaHelpers";
+
+interface ParsedCriterionRow {
+    Name: string;
+    Description?: string;
+    Weight: number | string;
+    Unit?: string;
+    HigherIsBetter?: boolean | string;
+    MinimumRequirement?: number | string;
+    MaximumRequirement?: number | string;
+}
+
+const COMMON_CRITERIA: CriterionForm[] = [
+    { name: "Cost", description: "Total cost including materials and manufacturing", weight: 5, unit: "USD", higherIsBetter: false },
+    { name: "Performance", description: "Key performance metrics and capabilities", weight: 5, unit: "", higherIsBetter: true },
+    { name: "Reliability", description: "Expected reliability and failure rates", weight: 5, unit: "MTBF hours", higherIsBetter: true },
+    { name: "Weight", description: "Total mass of the component", weight: 5, unit: "kg", higherIsBetter: false },
+    { name: "Size", description: "Physical dimensions and form factor", weight: 5, unit: "mm", higherIsBetter: false },
+    { name: "Power Consumption", description: "Electrical power requirements", weight: 5, unit: "W", higherIsBetter: false },
+    { name: "Lead Time", description: "Time from order to delivery", weight: 5, unit: "weeks", higherIsBetter: false },
+    { name: "TRL", description: "Technology Readiness Level", weight: 5, unit: "1-9", higherIsBetter: true },
+];
 
 const CriteriaDefinition: React.FC = () => {
     const navigate = useNavigate();
     const { projectId } = useParams<{ projectId: string }>();
+    const [showAddForm, setShowAddForm] = useState(false);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [isImportingExcel, setIsImportingExcel] = useState(false);
-    const criteriaListRef = useRef<HTMLDivElement>(null);
-    const lastCriterionRef = useRef<HTMLDivElement>(null);
 
-    // Use custom hook for criteria management
-    const {
-        criteria,
-        isLoading,
-        isSaving,
-        isDirty,
-        updateCriteria,
-        addCriterion,
-        removeCriterion,
-        saveCriteria,
-    } = useCriteriaManagement(projectId);
+    // New criterion form state
+    const [newCriterion, setNewCriterion] = useState<CriterionForm>({
+        name: "",
+        description: "",
+        weight: 5,
+        unit: "",
+        higherIsBetter: true,
+    });
 
-    /**
-     * Update a criterion field
-     */
-    const handleUpdateCriterion = (
-        index: number,
-        field: keyof CriterionForm,
-        value: any
-    ) => {
-        const updated = [...criteria];
-        updated[index] = { ...updated[index], [field]: value };
-        updateCriteria(updated);
-    };
+    const { criteria, isLoading, isSaving, isDirty, updateCriteria, addCriterion, removeCriterionById, saveCriteria } =
+        useCriteriaManagement(projectId);
 
-    /**
-     * Add a new criterion
-     */
-    const handleAddCriterion = (name?: string) => {
-        const newCriterion: CriterionForm = {
-            name: name || "",
-            description: "",
-            weight: 10,
-            unit: "",
-            higherIsBetter: true,
-            minimumRequirement: undefined,
-            maximumRequirement: undefined,
-        };
-        addCriterion(newCriterion);
-        setShowSuggestions(false);
+    // Calculate total weight and check if balanced (uses shared tolerance from criteriaHelpers)
+    const totalWeight = useMemo(() => calculateTotalWeight(criteria), [criteria]);
+    const isBalanced = useMemo(() => isWeightBalanced(criteria), [criteria]);
 
-        // Scroll to the bottom after the new criterion is added
-        setTimeout(() => {
-            if (lastCriterionRef.current) {
-                lastCriterionRef.current.scrollIntoView({
-                    behavior: "smooth",
-                    block: "nearest",
-                });
-            } else if (criteriaListRef.current) {
-                criteriaListRef.current.scrollIntoView({
-                    behavior: "smooth",
-                    block: "end",
-                });
-            }
-        }, 100);
-    };
+    // Check if there are no criteria
+    const hasCriteria = criteria.length > 0;
+    const hasValidNames = criteria.every((c) => c.name.trim());
+    const canContinue = hasCriteria && hasValidNames && isBalanced;
 
-    /**
-     * Handle deleting all criteria
-     */
-    const handleDeleteAllCriteria = async () => {
-        if (criteria.length === 0) return;
-
-        const confirmed = window.confirm(
-            `Are you sure you want to delete all ${criteria.length} criteria? This action cannot be undone.`
-        );
-
-        if (!confirmed) return;
-
-        try {
-            // Delete all criteria from backend
-            for (const criterion of criteria) {
-                if (criterion.id) {
-                    try {
-                        await criteriaApi.delete(criterion.id);
-                    } catch (error: any) {
-                        console.error(
-                            `Failed to delete criterion ${criterion.id}:`,
-                            error
-                        );
-                    }
-                }
-            }
-
-            // Clear local state
-            updateCriteria([]);
-            await saveCriteria([]);
-        } catch (error: any) {
-            console.error("Failed to delete all criteria:", error);
-            alert("Failed to delete all criteria. Please try again.");
-        }
-    };
-
-    /**
-     * Handle Excel import
-     */
-    const handleImportExcel = async (
-        event: React.ChangeEvent<HTMLInputElement>
-    ) => {
-        const file = event.target.files?.[0];
-        if (!file || !projectId) return;
-
-        setIsImportingExcel(true);
-        try {
-            const response = await criteriaApi.uploadExcel(projectId, file);
-            const result = response.data;
-            alert(`Successfully imported ${result.count} criteria`);
-            window.location.reload();
-        } catch (error: any) {
-            console.error("Failed to import Excel:", error);
-            alert(
-                `Failed to import: ${
-                    error?.response?.data?.detail ||
-                    error?.message ||
-                    "Unknown error"
-                }`
+    // Update a single criterion field
+    const handleUpdateCriterion = useCallback(
+        (index: number, field: keyof CriterionForm, value: string | number | boolean) => {
+            const updated = criteria.map((c, i) =>
+                i === index ? { ...c, [field]: value } : c
             );
-        } finally {
-            setIsImportingExcel(false);
-            event.target.value = "";
-        }
-    };
+            updateCriteria(updated);
+        },
+        [criteria, updateCriteria]
+    );
 
-    const handleExportExcel = async () => {
-        if (!projectId) return;
-        try {
-            const response = await criteriaApi.exportExcel(projectId);
-            const blob = new Blob([response.data], {
-                type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    // Add a new criterion
+    const handleAddCriterion = useCallback(
+        (criterion: CriterionForm) => {
+            addCriterion(criterion);
+            setShowAddForm(false);
+            setNewCriterion({
+                name: "",
+                description: "",
+                weight: 5,
+                unit: "",
+                higherIsBetter: true,
             });
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = `criteria_${projectId}.xlsx`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-        } catch (error: any) {
-            console.error("Failed to export criteria:", error);
-            alert(
-                `Failed to export criteria: ${
-                    error?.response?.data?.detail ||
-                    error?.message ||
-                    "Unknown error"
-                }`
-            );
+        },
+        [addCriterion]
+    );
+
+    // Delete all criteria - collect IDs first to avoid stale closure issues during async deletions
+    const handleDeleteAllCriteria = useCallback(async () => {
+        if (!window.confirm("Are you sure you want to delete all criteria? This cannot be undone.")) return;
+
+        // Capture the current criteria IDs before any deletions
+        const idsToDelete = criteria.map((c) => c.id).filter((id): id is string => !!id);
+        
+        // Delete each criterion by ID - uses functional state update to avoid stale closure
+        for (const id of idsToDelete) {
+            await removeCriterionById(id);
         }
-    };
+    }, [criteria, removeCriterionById]);
+
+    // Import from Excel
+    const handleImportExcel = useCallback(
+        async (event: React.ChangeEvent<HTMLInputElement>) => {
+            const file = event.target.files?.[0];
+            if (!file) return;
+
+            setIsImportingExcel(true);
+            try {
+                const data = await file.arrayBuffer();
+                const workbook = XLSX.read(data);
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
+                const rows = XLSX.utils.sheet_to_json<ParsedCriterionRow>(sheet);
+
+                const importedCriteria: CriterionForm[] = rows.map((row) => ({
+                    name: row.Name || "",
+                    description: row.Description || "",
+                    weight: typeof row.Weight === "number" ? row.Weight : parseInt(String(row.Weight), 10) || 5,
+                    unit: row.Unit || "",
+                    higherIsBetter: row.HigherIsBetter === true || row.HigherIsBetter === "true",
+                    minimumRequirement: row.MinimumRequirement
+                        ? typeof row.MinimumRequirement === "number"
+                            ? row.MinimumRequirement
+                            : parseFloat(String(row.MinimumRequirement))
+                        : undefined,
+                    maximumRequirement: row.MaximumRequirement
+                        ? typeof row.MaximumRequirement === "number"
+                            ? row.MaximumRequirement
+                            : parseFloat(String(row.MaximumRequirement))
+                        : undefined,
+                }));
+
+                // Replace or append
+                const shouldReplace =
+                    criteria.length > 0 &&
+                    window.confirm(
+                        "Replace existing criteria? Click OK to replace, Cancel to append."
+                    );
+
+                if (shouldReplace) {
+                    updateCriteria(importedCriteria);
+                } else {
+                    updateCriteria([...criteria, ...importedCriteria]);
+                }
+
+                alert(`Successfully imported ${importedCriteria.length} criteria`);
+            } catch (error) {
+                console.error("Failed to import Excel:", error);
+                alert(`Failed to import: ${error instanceof Error ? error.message : "Unknown error"}`);
+            } finally {
+                setIsImportingExcel(false);
+                event.target.value = "";
+            }
+        },
+        [criteria, updateCriteria]
+    );
+
+    // Export to Excel
+    const handleExportExcel = useCallback(() => {
+        if (criteria.length === 0) {
+            alert("No criteria to export");
+            return;
+        }
+
+        const exportData = criteria.map((c) => ({
+            Name: c.name,
+            Description: c.description || "",
+            Weight: c.weight,
+            Unit: c.unit || "",
+            HigherIsBetter: c.higherIsBetter,
+            MinimumRequirement: c.minimumRequirement || "",
+            MaximumRequirement: c.maximumRequirement || "",
+        }));
+
+        const ws = XLSX.utils.json_to_sheet(exportData);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Criteria");
+
+        const excelBuffer = XLSX.write(wb, { bookType: "xlsx", type: "array" });
+        const dateSlug = formatDateForFilename(new Date());
+        downloadBlob(new Blob([excelBuffer], { type: MIME_TYPES.XLSX }), `criteria_${dateSlug}.xlsx`);
+    }, [criteria]);
+
+    // Auto-balance weights
+    const handleBalanceWeights = useCallback(() => {
+        if (criteria.length === 0) return;
+        const balancedWeight = Math.round(100 / criteria.length);
+        const updated = criteria.map((c) => ({ ...c, weight: balancedWeight }));
+        updateCriteria(updated);
+    }, [criteria, updateCriteria]);
+
+
+    // Save before navigating
+    useEffect(() => {
+        const handleBeforeUnload = () => {
+            if (isDirty && criteria.length > 0) {
+                saveCriteria(criteria);
+            }
+        };
+
+        window.addEventListener("beforeunload", handleBeforeUnload);
+        return () => window.removeEventListener("beforeunload", handleBeforeUnload);
+    }, [isDirty, criteria, saveCriteria]);
 
     if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-                    <p className="mt-4 text-gray-600">Loading criteria...</p>
-                </div>
-            </div>
-        );
+        return <PageLoader text="Loading criteria..." />;
     }
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 py-8 px-4">
-            <div className="max-w-5xl mx-auto">
+            <div className="max-w-4xl mx-auto">
                 {/* Header */}
                 <div className="mb-8">
-                    <button
-                        onClick={() => navigate(`/project/${projectId}`)}
-                        className="text-gray-700 hover:text-gray-900 mb-4 flex items-center gap-2 text-sm font-medium"
-                    >
-                        <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
+                    <BackButton to={`/project/${projectId}`} label="Back to Project" />
+                    <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4 mb-6">
+                        <div>
+                            <h1 className="text-4xl font-bold text-gray-900 mb-2">Criteria Definition</h1>
+                            <p className="text-gray-600">
+                                Define the evaluation criteria for your trade study. These criteria will be used to
+                                score and compare components.
+                            </p>
+                        </div>
+                        <div className="flex items-center gap-3">
+                            {isSaving && <span className="text-sm text-gray-500">Saving...</span>}
+                            {isDirty && !isSaving && <span className="text-sm text-yellow-600">Unsaved changes</span>}
+                        </div>
+                    </div>
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-wrap gap-3">
+                        <button onClick={() => setShowAddForm(true)} className="btn-primary">
+                            + Add Criterion
+                        </button>
+                        <button
+                            onClick={() => setShowSuggestions(!showSuggestions)}
+                            className="btn-secondary"
                         >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M15 19l-7-7 7-7"
+                            {showSuggestions ? "Hide" : "Show"} Suggestions
+                        </button>
+                        <label className="btn-secondary cursor-pointer">
+                            {isImportingExcel ? "Importing..." : "Import Excel"}
+                            <input
+                                type="file"
+                                accept=".xlsx,.xls"
+                                onChange={handleImportExcel}
+                                className="hidden"
+                                disabled={isImportingExcel}
                             />
-                        </svg>
-                        Back to Project
-                    </button>
-                    <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                        Define Evaluation Criteria
-                    </h1>
-                    <p className="text-gray-600">
-                        Set up the criteria that will be used to evaluate and
-                        score components in your trade study.
-                    </p>
+                        </label>
+                        <button onClick={handleExportExcel} className="btn-secondary" disabled={criteria.length === 0}>
+                            Export Excel
+                        </button>
+                        {criteria.length > 0 && !isBalanced && (
+                            <button onClick={handleBalanceWeights} className="btn-secondary">
+                                Auto-Balance Weights
+                            </button>
+                        )}
+                        {criteria.length > 0 && (
+                            <button
+                                onClick={handleDeleteAllCriteria}
+                                className="btn-secondary text-red-600 hover:text-red-700"
+                            >
+                                Delete All
+                            </button>
+                        )}
+                    </div>
                 </div>
 
-                {/* Save Status */}
-                {isDirty && (
-                    <div className="card p-4 mb-6 bg-yellow-50 border-yellow-200">
-                        <div className="flex items-center gap-2 text-sm text-yellow-700">
-                            {isSaving ? (
-                                <>
-                                    <svg
-                                        className="w-4 h-4 animate-spin"
-                                        fill="none"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <circle
-                                            className="opacity-25"
-                                            cx="12"
-                                            cy="12"
-                                            r="10"
-                                            stroke="currentColor"
-                                            strokeWidth="4"
-                                        />
-                                        <path
-                                            className="opacity-75"
-                                            fill="currentColor"
-                                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                                        />
-                                    </svg>
-                                    Saving...
-                                </>
-                            ) : (
-                                <>
-                                    <svg
-                                        className="w-4 h-4"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                                        />
-                                    </svg>
-                                    Changes will be auto-saved
-                                </>
+                {/* Common Criteria Suggestions */}
+                {showSuggestions && (
+                    <div className="card p-6 mb-6">
+                        <h3 className="text-lg font-semibold text-gray-900 mb-4">Common Criteria</h3>
+                        <p className="text-sm text-gray-600 mb-4">
+                            Click to add common criteria to your trade study
+                        </p>
+                        <div className="flex flex-wrap gap-2">
+                            {COMMON_CRITERIA.filter(
+                                (common) => !criteria.some((c) => c.name.toLowerCase() === common.name.toLowerCase())
+                            ).map((suggestion) => (
+                                <button
+                                    key={suggestion.name}
+                                    onClick={() => handleAddCriterion(suggestion)}
+                                    className="px-4 py-2 text-sm bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                                >
+                                    + {suggestion.name}
+                                </button>
+                            ))}
+                            {COMMON_CRITERIA.filter(
+                                (common) => !criteria.some((c) => c.name.toLowerCase() === common.name.toLowerCase())
+                            ).length === 0 && (
+                                <span className="text-sm text-gray-500">All common criteria have been added</span>
                             )}
                         </div>
                     </div>
                 )}
 
                 {/* Weight Summary */}
-                {criteria.length > 0 && (
-                    <div className="mb-6">
-                        <WeightSummary criteria={criteria} />
-                    </div>
-                )}
+                {criteria.length > 0 && <div className="mb-6"><WeightSummary criteria={criteria} /></div>}
 
-                {/* Action Buttons */}
-                <div className="flex flex-wrap gap-3 mb-6">
-                    <button
-                        onClick={() => handleAddCriterion()}
-                        className="btn-primary flex items-center gap-2"
-                    >
-                        <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M12 6v6m0 0v6m0-6h6m-6 0H6"
-                            />
-                        </svg>
-                        Add Criterion
-                    </button>
-                    {criteria.length > 0 && (
-                        <button
-                            onClick={handleDeleteAllCriteria}
-                            className="btn-secondary flex items-center gap-2 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-300"
-                            disabled={isSaving}
-                        >
-                            <svg
-                                className="w-5 h-5"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
-                                />
-                            </svg>
-                            Delete All Criteria
-                        </button>
-                    )}
-                    <button
-                        onClick={() => setShowSuggestions(!showSuggestions)}
-                        className="btn-secondary flex items-center gap-2"
-                    >
-                        <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                            />
-                        </svg>
-                        {showSuggestions ? "Hide" : "Show"} Suggestions
-                    </button>
-                    <label
-                        className={`btn-secondary flex items-center gap-2 cursor-pointer ${
-                            isImportingExcel
-                                ? "opacity-70 cursor-not-allowed"
-                                : ""
-                        }`}
-                    >
-                        <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                            />
-                        </svg>
-                        {isImportingExcel
-                            ? "Importing..."
-                            : "Import from Excel"}
-                        <input
-                            type="file"
-                            accept=".xlsx,.xls"
-                            onChange={handleImportExcel}
-                            className="hidden"
-                            disabled={isImportingExcel}
-                        />
-                    </label>
-                    <button
-                        onClick={handleExportExcel}
-                        className="btn-secondary flex items-center gap-2"
-                    >
-                        <svg
-                            className="w-5 h-5"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M7 10l5 5 5-5m-5 5V4m8 9v5a2 2 0 01-2 2H7a2 2 0 01-2-2v-5"
-                            />
-                        </svg>
-                        Export Criteria
-                    </button>
-                </div>
-
-                {/* Common Criteria Suggestions */}
-                {showSuggestions && (
+                {/* Add Criterion Form */}
+                {showAddForm && (
                     <div className="card p-5 mb-6">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-3">
-                            Common Criteria
-                        </h3>
-                        <div className="flex flex-wrap gap-2">
-                            {COMMON_CRITERIA.map((name) => (
-                                <button
-                                    key={name}
-                                    onClick={() => handleAddCriterion(name)}
-                                    className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-md text-sm font-medium transition-colors"
+                        <h4 className="text-lg font-semibold text-gray-900 mb-4">Add New Criterion</h4>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+                                <input
+                                    type="text"
+                                    value={newCriterion.name}
+                                    onChange={(e) => setNewCriterion({ ...newCriterion, name: e.target.value })}
+                                    placeholder="e.g., Cost, Gain, Size"
+                                    className="input-field"
+                                    autoFocus
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Weight *</label>
+                                <div className="relative">
+                                    <input
+                                        type="number"
+                                        value={newCriterion.weight}
+                                        onChange={(e) => setNewCriterion({ ...newCriterion, weight: parseFloat(e.target.value) || 0 })}
+                                        min="0"
+                                        step="1"
+                                        className="input-field pr-8"
+                                    />
+                                    <span className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">%</span>
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Unit</label>
+                                <input
+                                    type="text"
+                                    value={newCriterion.unit || ""}
+                                    onChange={(e) => setNewCriterion({ ...newCriterion, unit: e.target.value })}
+                                    placeholder="e.g., $, dB, mm"
+                                    className="input-field"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Direction</label>
+                                <select
+                                    value={newCriterion.higherIsBetter ? "higher" : "lower"}
+                                    onChange={(e) => setNewCriterion({ ...newCriterion, higherIsBetter: e.target.value === "higher" })}
+                                    className="input-field"
                                 >
-                                    + {name}
-                                </button>
-                            ))}
+                                    <option value="higher">Higher is better</option>
+                                    <option value="lower">Lower is better</option>
+                                </select>
+                            </div>
+                            <div className="md:col-span-2">
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                                <textarea
+                                    value={newCriterion.description || ""}
+                                    onChange={(e) => setNewCriterion({ ...newCriterion, description: e.target.value })}
+                                    placeholder="What does this criterion evaluate?"
+                                    rows={2}
+                                    className="input-field"
+                                />
+                            </div>
+                        </div>
+                        <div className="flex justify-end gap-3 mt-4">
+                            <button onClick={() => setShowAddForm(false)} className="btn-secondary">Cancel</button>
+                            <button
+                                onClick={() => handleAddCriterion(newCriterion)}
+                                className="btn-primary"
+                                disabled={!newCriterion.name.trim()}
+                            >
+                                Add Criterion
+                            </button>
                         </div>
                     </div>
                 )}
 
                 {/* Criteria List */}
-                {criteria.length === 0 ? (
+                {!hasCriteria ? (
                     <div className="card p-12 text-center">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                            No criteria defined yet
-                        </h3>
+                        <h3 className="text-lg font-semibold text-gray-900 mb-2">No criteria defined</h3>
                         <p className="text-sm text-gray-600 mb-6 max-w-sm mx-auto">
-                            Add evaluation criteria to score and compare
-                            components in your trade study.
+                            Start by adding criteria that will be used to evaluate and compare components.
                         </p>
-                        <button
-                            onClick={() => handleAddCriterion()}
-                            className="btn-primary"
-                        >
-                            Add First Criterion
+                        <button onClick={() => setShowAddForm(true)} className="btn-primary">
+                            Add Your First Criterion
                         </button>
                     </div>
                 ) : (
-                    <div ref={criteriaListRef} className="space-y-4">
+                    <div className="space-y-4">
                         {criteria.map((criterion, index) => (
-                            <div
-                                key={index}
-                                ref={
-                                    index === criteria.length - 1
-                                        ? lastCriterionRef
-                                        : null
-                                }
-                            >
-                                <CriterionCard
-                                    criterion={criterion}
-                                    index={index}
-                                    onUpdate={handleUpdateCriterion}
-                                    onRemove={removeCriterion}
-                                />
-                            </div>
+                            <CriterionCard
+                                key={criterion.id || `new-${index}`}
+                                criterion={criterion}
+                                index={index}
+                                onUpdate={handleUpdateCriterion}
+                                onRemove={() => {
+                                    if (criterion.id) {
+                                        removeCriterionById(criterion.id);
+                                    }
+                                }}
+                            />
                         ))}
                     </div>
                 )}
 
-                {/* Continue Button Section */}
-                {criteria.length > 0 && (
-                    <div className="mt-8">
-                        {/* Progress Indicator */}
-                        <div className="mb-6 flex items-center justify-center gap-2 text-sm">
-                            <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-full bg-gray-900 text-white flex items-center justify-center font-semibold">
-                                    ✓
-                                </div>
-                                <span className="font-medium text-gray-700">
-                                    Criteria Definition
-                                </span>
-                            </div>
-                            <svg
-                                className="w-5 h-5 text-gray-400"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M9 5l7 7-7 7"
-                                />
-                            </svg>
-                            <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-full bg-gray-300 text-white flex items-center justify-center font-semibold">
-                                    2
-                                </div>
-                                <span className="font-medium text-gray-500">
-                                    Component Discovery
-                                </span>
-                            </div>
-                            <svg
-                                className="w-5 h-5 text-gray-400"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
-                                <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M9 5l7 7-7 7"
-                                />
-                            </svg>
-                            <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-full bg-gray-300 text-white flex items-center justify-center font-semibold">
-                                    3
-                                </div>
-                                <span className="font-medium text-gray-500">
-                                    Results
-                                </span>
-                            </div>
-                        </div>
-
-                        {/* Continue Button */}
-                        <div className="flex justify-center">
+                {/* Progress Footer */}
+                <div className="mt-12">
+                    <div className="mb-6">
+                        <ProgressStepper steps={TRADE_STUDY_STEPS.criteriaComplete} />
+                    </div>
+                    <div className="flex flex-col items-center gap-3">
+                        <div className="relative inline-flex group">
                             <button
-                                onClick={() =>
-                                    navigate(`/project/${projectId}/discovery`)
-                                }
-                                disabled={!isWeightBalanced(criteria)}
+                                onClick={() => navigate(`/project/${projectId}/discovery`)}
+                                disabled={!canContinue}
                                 className={`px-8 py-3 rounded-lg font-semibold text-white transition-all flex items-center gap-2 whitespace-nowrap ${
-                                    isWeightBalanced(criteria)
+                                    canContinue
                                         ? "bg-gray-900 hover:bg-black shadow-md hover:shadow-lg"
                                         : "bg-gray-400 cursor-not-allowed opacity-60"
                                 }`}
                             >
                                 Continue to Component Discovery
-                                <svg
-                                    className="w-5 h-5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path
                                         strokeLinecap="round"
                                         strokeLinejoin="round"
@@ -532,16 +433,35 @@ const CriteriaDefinition: React.FC = () => {
                                     />
                                 </svg>
                             </button>
+                            {!canContinue && (
+                                <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-4 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
+                                    {!hasCriteria
+                                        ? "Add at least one criterion before continuing"
+                                        : !hasValidNames
+                                          ? "All criteria must have a name"
+                                          : `Weights must sum to ~100% (currently ${totalWeight}%)`}
+                                    <div className="absolute top-full left-1/2 transform -translate-x-1/2">
+                                        <div className="border-4 border-transparent border-t-gray-900"></div>
+                                    </div>
+                                </div>
+                            )}
                         </div>
-
-                        {/* Helper Text */}
-                        {!isWeightBalanced(criteria) && (
-                            <p className="text-center text-sm text-gray-600 mt-3">
-                                Weights must total 100 to continue
-                            </p>
-                        )}
+                        <button
+                            onClick={() => navigate(`/project/${projectId}`)}
+                            className="text-gray-600 hover:text-gray-900 flex items-center gap-2 text-sm font-medium whitespace-nowrap"
+                        >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M15 19l-7-7 7-7"
+                                />
+                            </svg>
+                            Back to Project
+                        </button>
                     </div>
-                )}
+                </div>
             </div>
         </div>
     );

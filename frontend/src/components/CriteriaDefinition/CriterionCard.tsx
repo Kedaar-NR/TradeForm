@@ -8,7 +8,7 @@ interface CriterionCardProps {
     criterion: CriterionForm;
     index: number;
     onUpdate: (index: number, field: keyof CriterionForm, value: any) => void;
-    onRemove: (index: number) => void;
+    onRemove: () => void;
 }
 
 export const CriterionCard = ({
@@ -24,7 +24,7 @@ export const CriterionCard = ({
                     Criterion #{index + 1}
                 </h4>
                 <button
-                    onClick={() => onRemove(index)}
+                    onClick={onRemove}
                     className="text-gray-400 hover:text-red-600 transition-colors"
                     title="Remove criterion"
                 >

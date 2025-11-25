@@ -10,7 +10,6 @@ from app import models, schemas
 from app.database import get_db
 from app.services.excel_service import get_excel_service
 from app.services.change_logger import log_project_change
-from app.services.change_logger import log_project_change
 
 router = APIRouter(tags=["criteria"])
 

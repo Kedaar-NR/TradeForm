@@ -5,22 +5,10 @@
  * Includes AI-powered discovery, manual addition, and datasheet management.
  */
 
-import React, {
-    useState,
-    useCallback,
-    useEffect,
-    useMemo,
-    useRef,
-} from "react";
+import React, { useState, useCallback, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Component } from "../types";
-import {
-    projectsApi,
-    aiApi,
-    scoresApi,
-    reportsApi,
-    componentsApi,
-} from "../services/api";
+import { projectsApi, aiApi, scoresApi, componentsApi } from "../services/api";
 import ComponentDetailDrawer from "../components/ComponentDetailDrawer";
 import { ComponentForm } from "../components/ComponentDiscovery/ComponentForm";
 import { ComponentList } from "../components/ComponentDiscovery/ComponentList";
@@ -28,22 +16,10 @@ import { DiscoveryActions } from "../components/ComponentDiscovery/DiscoveryActi
 import { TradeStudyReportDialog } from "../components/TradeStudyReportDialog";
 import { useComponentManagement } from "../hooks/useComponentManagement";
 import { useDatasheetUpload } from "../hooks/useDatasheetUpload";
-import { getApiUrl, getAuthHeaders } from "../utils/apiHelpers";
-
-const createComponentsSignature = (list: Component[]) =>
-    list
-        .map((component) =>
-            [
-                component.id,
-                component.manufacturer,
-                component.partNumber,
-                component.availability,
-                component.datasheetUrl || "",
-                component.description || "",
-            ].join("|")
-        )
-        .sort()
-        .join("||");
+import { useTradeStudyReport } from "../hooks/useTradeStudyReport";
+import { PageLoader, BackButton, ProgressStepper, TRADE_STUDY_STEPS } from "../components/ui";
+import { downloadBlob, MIME_TYPES } from "../utils/fileDownloadHelpers";
+import { extractErrorMessage } from "../utils/errorHelpers";
 
 const ComponentDiscovery: React.FC = () => {
     const navigate = useNavigate();
@@ -53,22 +29,12 @@ const ComponentDiscovery: React.FC = () => {
     const [showAddForm, setShowAddForm] = useState(false);
     const [isDiscovering, setIsDiscovering] = useState(false);
     const [isScoring, setIsScoring] = useState(false);
-    const [selectedComponent, setSelectedComponent] =
-        useState<Component | null>(null);
+    const [selectedComponent, setSelectedComponent] = useState<Component | null>(null);
     const [scoresRefreshKey, setScoresRefreshKey] = useState(0);
     const [hasScores, setHasScores] = useState(false);
-    const [isGeneratingReport, setIsGeneratingReport] = useState(false);
-    const [showReportDialog, setShowReportDialog] = useState(false);
-    const [reportRecord, setReportRecord] = useState<{
-        report: string;
-        generatedAt?: string | null;
-    } | null>(null);
-    const [lastReportSignature, setLastReportSignature] = useState<
-        string | null
-    >(null);
-    const [isReportStale, setIsReportStale] = useState(false);
-    const [isDownloadingReport, setIsDownloadingReport] = useState(false);
-    // Use custom hooks for business logic
+    const [isImportingExcel, setIsImportingExcel] = useState(false);
+
+    // Use custom hooks
     const {
         components,
         datasheetStatuses,
@@ -79,60 +45,25 @@ const ComponentDiscovery: React.FC = () => {
         removeComponent,
     } = useComponentManagement(projectId);
 
-    const componentsSignature = useMemo(
-        () => createComponentsSignature(components),
-        [components]
-    );
+    const { isUploading: isDatasheetUploading, uploadMultipleDatasheets } = useDatasheetUpload();
 
-    const { isUploading: isDatasheetUploading, uploadMultipleDatasheets } =
-        useDatasheetUpload();
-    const [isImportingExcel, setIsImportingExcel] = useState(false);
+    const {
+        isGeneratingReport,
+        showReportDialog,
+        setShowReportDialog,
+        reportRecord,
+        isReportStale,
+        isDownloadingReport,
+        handleGenerateTradeStudyReport,
+        handleDownloadReport,
+        handleDownloadReportWord,
+        handleViewReport,
+        fetchPdfBlob,
+        hasReport,
+    } = useTradeStudyReport({ projectId, components });
+
     const autoUploadAttemptedRef = useRef<Set<string>>(new Set());
     const canContinueToResults = components.length > 0 && hasScores;
-
-    const handleExportComponentsExcel = async () => {
-        if (!projectId) return;
-        try {
-            const response = await componentsApi.exportExcel(projectId);
-            const blob = new Blob([response.data], {
-                type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            });
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = `components_${projectId}.xlsx`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-        } catch (error: any) {
-            console.error("Failed to export components:", error);
-            alert(
-                `Failed to export components: ${
-                    error?.response?.data?.detail ||
-                    error?.message ||
-                    "Unknown error"
-                }`
-            );
-        }
-    };
-
-    const loadTradeStudyReport = useCallback(async () => {
-        if (!projectId) return;
-        try {
-            const response = await reportsApi.getCurrent(projectId);
-            setReportRecord({
-                report: response.data.report,
-                generatedAt: response.data.generated_at,
-            });
-        } catch (error: any) {
-            if (error?.response?.status === 404) {
-                setReportRecord(null);
-            } else {
-                console.error("Failed to load trade study report:", error);
-            }
-        }
-    }, [projectId]);
 
     // Check if components have scores
     const checkForScores = useCallback(async () => {
@@ -143,10 +74,9 @@ const ComponentDiscovery: React.FC = () => {
 
         try {
             const response = await scoresApi.getByProject(projectId);
-            const scores = response.data;
-            // Check if there are any scores for any of our components
+            const scores = response.data as unknown as Array<{ component_id: string }>;
             const componentIds = new Set(components.map((c) => c.id));
-            const hasAnyScores = scores.some((score: any) =>
+            const hasAnyScores = scores.some((score) =>
                 componentIds.has(score.component_id)
             );
             setHasScores(hasAnyScores);
@@ -156,117 +86,50 @@ const ComponentDiscovery: React.FC = () => {
         }
     }, [projectId, components]);
 
-    // Check for scores when components change or when scoring completes
     useEffect(() => {
         checkForScores();
     }, [checkForScores, scoresRefreshKey]);
 
-    useEffect(() => {
-        loadTradeStudyReport();
-    }, [loadTradeStudyReport]);
-
-    useEffect(() => {
-        if (!reportRecord) {
-            if (lastReportSignature !== null) {
-                setLastReportSignature(null);
-            }
-            if (isReportStale) {
-                setIsReportStale(false);
-            }
-            return;
-        }
-
-        if (lastReportSignature === null) {
-            setLastReportSignature(componentsSignature);
-            if (isReportStale) {
-                setIsReportStale(false);
-            }
-            return;
-        }
-
-        const stale = componentsSignature !== lastReportSignature;
-        if (stale !== isReportStale) {
-            setIsReportStale(stale);
-        }
-    }, [reportRecord, componentsSignature, lastReportSignature, isReportStale]);
-
-    // Auto-update project status to in_progress when components are modified
+    // Auto-update project status
     const saveProjectStatus = useCallback(
-        async (
-            status: "draft" | "in_progress" | "completed" = "in_progress"
-        ) => {
+        async (status: "draft" | "in_progress" | "completed" = "in_progress") => {
             if (!projectId) return;
             try {
                 await projectsApi.update(projectId, { status });
-            } catch (error: any) {
+            } catch (error) {
                 console.error("Failed to update project status:", error);
             }
         },
         [projectId]
     );
 
-    /**
-     * Handle AI component discovery
-     */
-    const handleDiscover = async (
-        locationPreference?: string,
-        numberOfComponents?: number
-    ) => {
+    // Handle AI component discovery
+    const handleDiscover = async (locationPreference?: string, numberOfComponents?: number) => {
         if (!projectId) return;
 
         setIsDiscovering(true);
         let discoveryRequestCompleted = false;
         try {
-            const response = await aiApi.discoverComponents(
-                projectId,
-                locationPreference,
-                numberOfComponents
-            );
+            const response = await aiApi.discoverComponents(projectId, locationPreference, numberOfComponents);
             const data = response.data;
             discoveryRequestCompleted = true;
             setIsDiscovering(false);
 
             if (data.discovered_count > 0) {
-                // Reload to get the new components
                 await loadComponents();
 
-                // Get components with PDF URLs
                 const newComponents = data.components || [];
+                const normalizedComponents = newComponents.map((comp: { id: string; datasheet_url?: string }) => ({
+                    id: comp.id,
+                    datasheetUrl: comp.datasheet_url,
+                }));
 
-                // Log datasheet URLs for debugging
-                console.log(
-                    "Components with datasheet URLs:",
-                    newComponents.map((c: any) => ({
-                        name: c.name,
-                        url: c.datasheetUrl || c.datasheet_url || "NONE",
-                    }))
-                );
-
-                const normalizedComponents = (newComponents || []).map(
-                    (comp: any) => ({
-                        id: comp.id,
-                        datasheetUrl:
-                            comp.datasheetUrl ||
-                            comp.datasheet_url ||
-                            comp.datasheetURL ||
-                            comp.datasheet,
-                    })
-                );
-
-                const hasDatasheetUrls = normalizedComponents.some((comp) =>
-                    Boolean(comp.datasheetUrl)
-                );
+                const hasDatasheetUrls = normalizedComponents.some((comp) => Boolean(comp.datasheetUrl));
 
                 if (hasDatasheetUrls) {
                     try {
-                        const {
-                            successCount,
-                            totalAttempted,
-                            skippedCount,
-                            failedDetails,
-                        } = await uploadMultipleDatasheets(
-                            normalizedComponents
-                        );
+                        const { successCount, totalAttempted, skippedCount, failedDetails } =
+                            await uploadMultipleDatasheets(normalizedComponents);
                         await loadComponents();
 
                         const failedCount = totalAttempted - successCount;
@@ -275,53 +138,35 @@ const ComponentDiscovery: React.FC = () => {
                         if (failedCount > 0 && failedDetails?.length) {
                             const detailPreview = failedDetails
                                 .slice(0, 3)
-                                .map(
-                                    (detail) =>
-                                        `• ${detail.componentId.slice(
-                                            0,
-                                            8
-                                        )}…: ${detail.message}`
-                                )
+                                .map((detail) => `• ${detail.componentId.slice(0, 8)}…: ${detail.message}`)
                                 .join("\n");
                             message += `\n\nRecent errors:\n${detailPreview}`;
                             if (failedDetails.length > 3) {
-                                message += `\n...and ${
-                                    failedDetails.length - 3
-                                } more`;
+                                message += `\n...and ${failedDetails.length - 3} more`;
                             }
                             message += `\n\nYou can retry import from the component drawer or upload manually.`;
                         }
 
                         alert(message);
                     } catch (err) {
-                        console.error(
-                            "Automatic datasheet uploads failed:",
-                            err
-                        );
+                        console.error("Automatic datasheet uploads failed:", err);
                         alert(
                             `Successfully discovered ${data.discovered_count} components!\n\nNote: Datasheets could not be auto-imported. You can manually upload them from the component detail view.`
                         );
                     }
                 } else {
-                    console.warn("No datasheets found or URLs were not valid");
                     alert(
                         `Successfully discovered ${data.discovered_count} components!\n\nNote: No datasheet URLs were found. You can manually upload datasheets from the component detail view.`
                     );
                 }
             } else {
-                alert(
-                    "No new components discovered. Try refining your project description or criteria."
-                );
+                alert("No new components discovered. Try refining your project description or criteria.");
             }
 
             await saveProjectStatus("in_progress");
-        } catch (error: any) {
+        } catch (error) {
             console.error("AI discovery failed:", error);
-            const message =
-                error?.response?.data?.detail ||
-                error?.message ||
-                "AI discovery failed";
-            alert(`Discovery failed: ${message}`);
+            alert(`Discovery failed: ${extractErrorMessage(error)}`);
         } finally {
             if (!discoveryRequestCompleted) {
                 setIsDiscovering(false);
@@ -329,9 +174,7 @@ const ComponentDiscovery: React.FC = () => {
         }
     };
 
-    /**
-     * Handle AI scoring for all components
-     */
+    // Handle AI scoring
     const handleScoreAll = async () => {
         if (!projectId) return;
 
@@ -345,160 +188,34 @@ const ComponentDiscovery: React.FC = () => {
         try {
             const response = await aiApi.scoreComponents(projectId);
             const data = response.data;
-
             await saveProjectStatus("in_progress");
-
-            // Trigger refresh of scores in any open drawer
             setScoresRefreshKey((prev) => prev + 1);
             setIsScoring(false);
-
-            // Show single notification after everything is complete
             alert(
                 `Scoring complete!\n\n${data.total_scores} total scores\n${data.scores_created} new scores\n${data.scores_updated} updated scores`
             );
-        } catch (error: any) {
+        } catch (error) {
             console.error("Failed to score components:", error);
-            const message =
-                error?.response?.data?.detail ||
-                error?.message ||
-                "Scoring failed";
-            alert(`Scoring failed: ${message}`);
+            alert(`Scoring failed: ${extractErrorMessage(error)}`);
         } finally {
             setIsScoring(false);
         }
     };
 
-    /**
-     * Handle generating a trade study report
-     */
-    const broadcastReportStatus = (
-        status: "idle" | "generating" | "ready" | "failed"
-    ) => {
-        if (!projectId || typeof window === "undefined") {
-            return;
-        }
-        window.dispatchEvent(
-            new CustomEvent("tradeform-report-status", {
-                detail: { projectId, status },
-            })
-        );
-    };
-
-    const handleGenerateTradeStudyReport = async () => {
+    // Handle Excel export
+    const handleExportComponentsExcel = async () => {
         if (!projectId) return;
-
-        const confirmed = window.confirm(
-            `This will generate a trade study report using AI. This may take a few minutes. Continue?`
-        );
-
-        if (!confirmed) return;
-
-        setIsGeneratingReport(true);
-        broadcastReportStatus("generating");
         try {
-            const response = await aiApi.generateTradeStudyReport(projectId);
-            const data = response.data;
-            setReportRecord({
-                report: data.report,
-                generatedAt: data.generated_at,
-            });
-            setLastReportSignature(componentsSignature);
-            setIsReportStale(false);
-            setIsGeneratingReport(false);
-            setShowReportDialog(true);
-            broadcastReportStatus("ready");
-
-            // Show single notification after everything is complete
-            alert("Trade study report generated successfully!");
-        } catch (error: any) {
-            console.error("Failed to generate trade study report:", error);
-            const message =
-                error?.response?.data?.detail ||
-                error?.message ||
-                "Report generation failed";
-            alert(`Failed to generate report: ${message}`);
-            broadcastReportStatus("failed");
-        } finally {
-            setIsGeneratingReport(false);
+            const response = await componentsApi.exportExcel(projectId);
+            downloadBlob(new Blob([response.data], { type: MIME_TYPES.XLSX }), `components_${projectId}.xlsx`);
+        } catch (error) {
+            console.error("Failed to export components:", error);
+            alert(`Failed to export components: ${extractErrorMessage(error)}`);
         }
     };
 
-    const fetchPdfBlob = useCallback(async (): Promise<Blob> => {
-        if (!projectId) throw new Error("No project ID");
-        const response = await reportsApi.downloadPdf(projectId);
-        return new Blob([response.data], { type: "application/pdf" });
-    }, [projectId]);
-
-    const handleDownloadReport = useCallback(async () => {
-        if (!projectId) return;
-        setIsDownloadingReport(true);
-        try {
-            const blob = await fetchPdfBlob();
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = `trade_study_report_${projectId}.pdf`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-        } catch (error: any) {
-            console.error("Failed to download trade study report:", error);
-            const message =
-                error?.response?.data?.detail ||
-                error?.message ||
-                "Failed to download report";
-            alert(`Download failed: ${message}`);
-        } finally {
-            setIsDownloadingReport(false);
-        }
-    }, [projectId, fetchPdfBlob]);
-
-    const handleDownloadReportWord = useCallback(async () => {
-        if (!projectId) return;
-        setIsDownloadingReport(true);
-        try {
-            const response = await fetch(
-                getApiUrl(`/api/projects/${projectId}/report/docx`),
-                {
-                    headers: {
-                        ...getAuthHeaders(),
-                    },
-                }
-            );
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(errorText || "Failed to download report");
-            }
-
-            const blob = await response.blob();
-            const url = window.URL.createObjectURL(blob);
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = `trade_study_report_${projectId}.docx`;
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            window.URL.revokeObjectURL(url);
-        } catch (error: any) {
-            console.error("Failed to download report Word:", error);
-            const message =
-                error?.response?.data?.detail ||
-                error?.message ||
-                "Failed to download report";
-            alert(`Download failed: ${message}`);
-        } finally {
-            setIsDownloadingReport(false);
-        }
-    }, [projectId]);
-
-    /**
-     * Handle Excel import
-     */
-    const handleImportExcel = async (
-        event: React.ChangeEvent<HTMLInputElement>
-    ) => {
+    // Handle Excel import
+    const handleImportExcel = async (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
         if (!file || !projectId) return;
 
@@ -509,47 +226,32 @@ const ComponentDiscovery: React.FC = () => {
             alert(`Successfully imported ${result.count} components`);
             await loadComponents();
             await saveProjectStatus("in_progress");
-        } catch (error: any) {
+        } catch (error) {
             console.error("Failed to import Excel:", error);
-            alert(
-                `Failed to import: ${
-                    error?.response?.data?.detail ||
-                    error?.message ||
-                    "Unknown error"
-                }`
-            );
+            alert(`Failed to import: ${extractErrorMessage(error)}`);
         } finally {
             setIsImportingExcel(false);
             event.target.value = "";
         }
     };
 
+    // Auto-upload datasheets effect
     useEffect(() => {
-        if (!components.length || isDatasheetUploading) {
-            return;
-        }
+        if (!components.length || isDatasheetUploading) return;
 
         const pendingComponents = components.filter((component) => {
             if (!component.datasheetUrl) return false;
             if (autoUploadAttemptedRef.current.has(component.id)) return false;
-
             const status = datasheetStatuses[component.id];
             const alreadyHasDatasheet = Boolean(
-                component.datasheetFilePath ||
-                    status?.hasDatasheet ||
-                    status?.parsed
+                component.datasheetFilePath || status?.hasDatasheet || status?.parsed
             );
-
             return !alreadyHasDatasheet;
         });
 
-        if (!pendingComponents.length) {
-            return;
-        }
+        if (!pendingComponents.length) return;
 
-        pendingComponents.forEach((component) =>
-            autoUploadAttemptedRef.current.add(component.id)
-        );
+        pendingComponents.forEach((component) => autoUploadAttemptedRef.current.add(component.id));
 
         uploadMultipleDatasheets(
             pendingComponents.map((component) => ({
@@ -568,17 +270,9 @@ const ComponentDiscovery: React.FC = () => {
                     autoUploadAttemptedRef.current.delete(component.id)
                 );
             });
-    }, [
-        components,
-        datasheetStatuses,
-        uploadMultipleDatasheets,
-        isDatasheetUploading,
-        loadComponents,
-    ]);
+    }, [components, datasheetStatuses, uploadMultipleDatasheets, isDatasheetUploading, loadComponents]);
 
-    /**
-     * Handle adding a component
-     */
+    // Handle adding a component
     const handleAdd = async (componentData: {
         manufacturer: string;
         partNumber: string;
@@ -593,9 +287,7 @@ const ComponentDiscovery: React.FC = () => {
         return result;
     };
 
-    /**
-     * Handle removing a component
-     */
+    // Handle removing a component
     const handleRemove = async (componentId: string): Promise<boolean> => {
         const result = await removeComponent(componentId);
         if (result) {
@@ -604,22 +296,8 @@ const ComponentDiscovery: React.FC = () => {
         return result;
     };
 
-    /**
-     * Open datasheet assistant for a component
-     */
-    const handleOpenAssistant = (component: Component) => {
-        setSelectedComponent(component);
-    };
-
     if (isLoading) {
-        return (
-            <div className="min-h-screen flex items-center justify-center">
-                <div className="text-center">
-                    <div className="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
-                    <p className="mt-4 text-gray-600">Loading components...</p>
-                </div>
-            </div>
-        );
+        return <PageLoader text="Loading components..." />;
     }
 
     return (
@@ -627,36 +305,15 @@ const ComponentDiscovery: React.FC = () => {
             <div className="max-w-7xl mx-auto">
                 {/* Header */}
                 <div className="mb-8">
-                    <button
-                        onClick={() => navigate(`/project/${projectId}`)}
-                        className="text-gray-700 hover:text-gray-900 mb-4 flex items-center gap-2 text-sm font-medium"
-                    >
-                        <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                        >
-                            <path
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                                strokeWidth={2}
-                                d="M15 19l-7-7 7-7"
-                            />
-                        </svg>
-                        Back to Project
-                    </button>
-                    <h1 className="text-4xl font-bold text-gray-900 mb-2">
-                        Component Discovery
-                    </h1>
+                    <BackButton to={`/project/${projectId}`} label="Back to Project" />
+                    <h1 className="text-4xl font-bold text-gray-900 mb-2">Component Discovery</h1>
                     <p className="text-gray-600">
-                        Add and manage components for your trade study. Use AI
-                        to discover relevant options or add them manually.
+                        Add and manage components for your trade study. Use AI to discover relevant options or add them
+                        manually.
                     </p>
                     <div className="mt-4 flex items-center gap-2">
                         <span className="text-sm font-medium text-gray-700">
-                            {components.length} component
-                            {components.length !== 1 ? "s" : ""} added
+                            {components.length} component{components.length !== 1 ? "s" : ""} added
                         </span>
                     </div>
                 </div>
@@ -671,7 +328,7 @@ const ComponentDiscovery: React.FC = () => {
                     isDatasheetUploading={isDatasheetUploading}
                     hasScores={hasScores}
                     isGeneratingReport={isGeneratingReport}
-                    hasReport={Boolean(reportRecord?.report)}
+                    hasReport={hasReport}
                     isReportStale={isReportStale}
                     isDownloadingReport={isDownloadingReport}
                     onDiscover={handleDiscover}
@@ -679,21 +336,13 @@ const ComponentDiscovery: React.FC = () => {
                     onImportExcel={handleImportExcel}
                     onExportExcel={handleExportComponentsExcel}
                     onGenerateTradeStudyReport={handleGenerateTradeStudyReport}
-                    onViewReport={async () => {
-                        // Reload report to ensure we have the latest version
-                        await loadTradeStudyReport();
-                        setShowReportDialog(true);
-                    }}
+                    onViewReport={handleViewReport}
                     onAddComponent={() => setShowAddForm(true)}
                 />
 
                 {/* Add Component Form */}
                 {showAddForm && (
-                    <ComponentForm
-                        onAdd={handleAdd}
-                        onCancel={() => setShowAddForm(false)}
-                        isSaving={isSaving}
-                    />
+                    <ComponentForm onAdd={handleAdd} onCancel={() => setShowAddForm(false)} isSaving={isSaving} />
                 )}
 
                 {/* Component List */}
@@ -701,7 +350,7 @@ const ComponentDiscovery: React.FC = () => {
                     components={components}
                     datasheetStatuses={datasheetStatuses}
                     onRemove={handleRemove}
-                    onOpenAssistant={handleOpenAssistant}
+                    onOpenAssistant={(component) => setSelectedComponent(component)}
                 />
 
                 {/* Datasheet Assistant Drawer */}
@@ -720,80 +369,23 @@ const ComponentDiscovery: React.FC = () => {
                     isOpen={showReportDialog}
                     report={reportRecord?.report || null}
                     onClose={() => setShowReportDialog(false)}
-                    onDownloadPdf={
-                        reportRecord?.report ? handleDownloadReport : undefined
-                    }
+                    onDownloadPdf={reportRecord?.report ? handleDownloadReport : undefined}
                     canDownloadPdf={Boolean(reportRecord?.report)}
                     isDownloadingPdf={isDownloadingReport}
-                    onDownloadWord={
-                        reportRecord?.report
-                            ? handleDownloadReportWord
-                            : undefined
-                    }
+                    onDownloadWord={reportRecord?.report ? handleDownloadReportWord : undefined}
                     isDownloadingWord={isDownloadingReport}
                     onGetPdfBlob={reportRecord?.report ? fetchPdfBlob : undefined}
                 />
 
+                {/* Progress Footer */}
                 <div className="mt-12">
-                    <div className="mb-6 flex items-center justify-center gap-2 text-sm">
-                        {[
-                            {
-                                label: "Criteria Definition",
-                                status: "complete",
-                            },
-                            {
-                                label: "Component Discovery",
-                                status: "complete",
-                            },
-                            { label: "Results", status: "upcoming" },
-                        ].map((step, index) => (
-                            <React.Fragment key={step.label}>
-                                <div className="flex items-center gap-2">
-                                    <div
-                                        className={`w-8 h-8 rounded-full flex items-center justify-center font-semibold ${
-                                            step.status === "complete"
-                                                ? "bg-gray-900 text-white"
-                                                : "bg-gray-300 text-white"
-                                        }`}
-                                    >
-                                        {step.status === "complete"
-                                            ? "✓"
-                                            : index + 1}
-                                    </div>
-                                    <span
-                                        className={`font-medium ${
-                                            step.status === "complete"
-                                                ? "text-gray-700"
-                                                : "text-gray-500"
-                                        }`}
-                                    >
-                                        {step.label}
-                                    </span>
-                                </div>
-                                {index < 2 && (
-                                    <svg
-                                        className="w-5 h-5 text-gray-400"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        viewBox="0 0 24 24"
-                                    >
-                                        <path
-                                            strokeLinecap="round"
-                                            strokeLinejoin="round"
-                                            strokeWidth={2}
-                                            d="M9 5l7 7-7 7"
-                                        />
-                                    </svg>
-                                )}
-                            </React.Fragment>
-                        ))}
+                    <div className="mb-6">
+                        <ProgressStepper steps={TRADE_STUDY_STEPS.discoveryComplete} />
                     </div>
                     <div className="flex flex-col items-center gap-3">
                         <div className="relative inline-flex group">
                             <button
-                                onClick={() =>
-                                    navigate(`/project/${projectId}/results`)
-                                }
+                                onClick={() => navigate(`/project/${projectId}/results`)}
                                 disabled={!canContinueToResults}
                                 className={`px-8 py-3 rounded-lg font-semibold text-white transition-all flex items-center gap-2 whitespace-nowrap ${
                                     canContinueToResults
@@ -802,12 +394,7 @@ const ComponentDiscovery: React.FC = () => {
                                 }`}
                             >
                                 Continue to Results Page
-                                <svg
-                                    className="w-5 h-5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path
                                         strokeLinecap="round"
                                         strokeLinejoin="round"
@@ -818,8 +405,7 @@ const ComponentDiscovery: React.FC = () => {
                             </button>
                             {!canContinueToResults && (
                                 <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-4 py-2 bg-gray-900 text-white text-sm rounded-lg shadow-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap">
-                                    Discover components and score them before
-                                    continuing
+                                    Discover components and score them before continuing
                                     <div className="absolute top-full left-1/2 transform -translate-x-1/2">
                                         <div className="border-4 border-transparent border-t-gray-900"></div>
                                     </div>
@@ -827,17 +413,10 @@ const ComponentDiscovery: React.FC = () => {
                             )}
                         </div>
                         <button
-                            onClick={() =>
-                                navigate(`/project/${projectId}/criteria`)
-                            }
+                            onClick={() => navigate(`/project/${projectId}/criteria`)}
                             className="text-gray-600 hover:text-gray-900 flex items-center gap-2 text-sm font-medium whitespace-nowrap"
                         >
-                            <svg
-                                className="w-4 h-4"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                            >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path
                                     strokeLinecap="round"
                                     strokeLinejoin="round"

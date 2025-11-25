@@ -15,11 +15,17 @@ export const calculateTotalWeight = (criteria: Weightable[]): number => {
 };
 
 /**
- * Validate that total weight equals 100
+ * Weight balance tolerance - weights within ±5% of 100 are considered balanced.
+ * This allows for reasonable flexibility when users set integer weights.
+ */
+export const WEIGHT_BALANCE_TOLERANCE = 5;
+
+/**
+ * Validate that total weight is within tolerance of 100
  */
 export const isWeightBalanced = (criteria: Weightable[]): boolean => {
     const total = calculateTotalWeight(criteria);
-    return Math.abs(total - 100) < 0.01; // Allow small floating point errors
+    return Math.abs(total - 100) <= WEIGHT_BALANCE_TOLERANCE;
 };
 
 /**
