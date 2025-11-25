@@ -248,26 +248,32 @@ const ProjectDetails: React.FC = () => {
         }
     };
 
+    const fetchPdfBlob = useCallback(async (): Promise<Blob> => {
+        if (!projectId) throw new Error("No project ID");
+        
+        const response = await fetch(
+            getApiUrl(`/api/projects/${projectId}/report/pdf`),
+            {
+                headers: {
+                    ...getAuthHeaders(),
+                },
+            }
+        );
+
+        if (!response.ok) {
+            const errorText = await response.text();
+            throw new Error(errorText || "Failed to fetch PDF");
+        }
+
+        return response.blob();
+    }, [projectId]);
+
     const handleDownloadReportPdf = async () => {
         if (!projectId) return;
 
         setIsDownloadingReport(true);
         try {
-            const response = await fetch(
-                getApiUrl(`/api/projects/${projectId}/report/pdf`),
-                {
-                    headers: {
-                        ...getAuthHeaders(),
-                    },
-                }
-            );
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                throw new Error(errorText || "Failed to download report");
-            }
-
-            const blob = await response.blob();
+            const blob = await fetchPdfBlob();
             const url = window.URL.createObjectURL(blob);
             const a = document.createElement("a");
             const safeName =
@@ -801,6 +807,8 @@ const ProjectDetails: React.FC = () => {
                 isDownloadingPdf={isDownloadingReport}
                 onDownloadWord={handleDownloadReportWord}
                 isDownloadingWord={isDownloadingReport}
+                onGetPdfBlob={fetchPdfBlob}
+                projectName={project?.name || "Trade Study Report"}
             />
         </div>
     );

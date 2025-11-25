@@ -90,24 +90,6 @@ const ProjectGroupDetail: React.FC = () => {
     }
   };
 
-  const getIconEmoji = (iconName: string) => {
-    const icons: Record<string, string> = {
-      folder: "📁",
-      chip: "🔌",
-      lightning: "⚡",
-      gear: "⚙️",
-      rocket: "🚀",
-      star: "⭐",
-      fire: "🔥",
-      battery: "🔋",
-      bulb: "💡",
-      tools: "🔧",
-      circuit: "🔬",
-      monitor: "🖥️",
-    };
-    return icons[iconName] || "📁";
-  };
-
   const getStatusBadge = (status: string) => {
     const statusConfig: Record<string, { label: string; color: string }> = {
       draft: { label: "Draft", color: "bg-gray-100 text-gray-700" },

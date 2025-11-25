@@ -423,14 +423,17 @@ const ComponentDiscovery: React.FC = () => {
         }
     };
 
+    const fetchPdfBlob = useCallback(async (): Promise<Blob> => {
+        if (!projectId) throw new Error("No project ID");
+        const response = await reportsApi.downloadPdf(projectId);
+        return new Blob([response.data], { type: "application/pdf" });
+    }, [projectId]);
+
     const handleDownloadReport = useCallback(async () => {
         if (!projectId) return;
         setIsDownloadingReport(true);
         try {
-            const response = await reportsApi.downloadPdf(projectId);
-            const blob = new Blob([response.data], {
-                type: "application/pdf",
-            });
+            const blob = await fetchPdfBlob();
             const url = window.URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.href = url;
@@ -449,7 +452,7 @@ const ComponentDiscovery: React.FC = () => {
         } finally {
             setIsDownloadingReport(false);
         }
-    }, [projectId]);
+    }, [projectId, fetchPdfBlob]);
 
     const handleDownloadReportWord = useCallback(async () => {
         if (!projectId) return;
@@ -728,6 +731,7 @@ const ComponentDiscovery: React.FC = () => {
                             : undefined
                     }
                     isDownloadingWord={isDownloadingReport}
+                    onGetPdfBlob={reportRecord?.report ? fetchPdfBlob : undefined}
                 />
 
                 <div className="mt-12">
