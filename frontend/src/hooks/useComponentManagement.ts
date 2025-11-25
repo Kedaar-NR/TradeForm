@@ -81,7 +81,11 @@ export const useComponentManagement = (projectId: string | undefined) => {
             loadDatasheetStatuses(transformedComponents);
         } catch (error) {
             console.error("Failed to load components:", error);
-            setComponents([]);
+            // Don't clear existing components on error - preserve what we have
+            // Only clear if this is initial load and we have nothing
+            if (components.length === 0) {
+                setComponents([]);
+            }
         } finally {
             setIsLoading(false);
         }
