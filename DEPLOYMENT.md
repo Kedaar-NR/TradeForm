@@ -67,6 +67,7 @@ Configure these in your Vercel project settings:
 ```bash
 # Backend API URL (from Step 1)
 VITE_API_URL=https://your-backend-url.railway.app
+BACKEND_API_URL=https://your-backend-url.railway.app   # used by the Vercel /api proxy
 
 # Frontend Gemini API Key (for client-side features)
 VITE_GEMINI_API_KEY=your_gemini_api_key_here
