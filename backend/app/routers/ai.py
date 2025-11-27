@@ -187,6 +187,11 @@ async def score_all_components(project_id: UUID, db: Session = Depends(get_db)):
         # Process in smaller batches to avoid API overload
         logger.info(f"Starting batch scoring for {len(components)} components with {len(criteria)} criteria")
         
+        scoring_tasks = [
+            _score_component_batch(ai_service, component, criteria)
+            for component in components
+        ]
+        
         # Run with low concurrency to avoid API rate limits (2 at a time)
         semaphore = asyncio.Semaphore(2)
         
