@@ -45,7 +45,7 @@ def discover_components(
             description=project.description,
             criteria_names=criteria_names,
             location_preference=request.location_preference,
-            number_of_components=request.number_of_components
+            number_of_components=request.number_of_components or 5
         )
         
         discovered_components = []
