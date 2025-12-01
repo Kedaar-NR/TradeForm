@@ -26,8 +26,6 @@ const Templates: React.FC = () => {
     try {
       setIsCreating(template.id);
 
-      console.log(`Creating project from template: ${template.name} with ${template.studies.length} trade studies`);
-
       // Create project group from template
       const projectGroupResponse = await projectGroupsApi.create({
         name: template.name,
@@ -37,13 +35,10 @@ const Templates: React.FC = () => {
       });
 
       const projectGroupId = projectGroupResponse.data.id;
-      console.log(`Created project group with ID: ${projectGroupId}`);
 
       // Create all trade studies within the project group
       let createdCount = 0;
       for (const study of template.studies) {
-        console.log(`Creating trade study ${createdCount + 1}/${template.studies.length}: ${study.name}`);
-
         const projectResponse = await projectsApi.create({
           name: study.name,
           componentType: study.componentType,
@@ -53,7 +48,6 @@ const Templates: React.FC = () => {
         });
 
         const projectId = projectResponse.data.id;
-        console.log(`Created trade study with ID: ${projectId}`);
 
         // Ensure it is linked to the project group even if backend defaults change
         if (projectGroupId) {
@@ -75,7 +69,6 @@ const Templates: React.FC = () => {
             })
           )
         );
-        console.log(`Added ${study.criteria.length} criteria to ${study.name}`);
 
         // Add components for this study
         if (study.components && study.components.length > 0) {
@@ -90,13 +83,10 @@ const Templates: React.FC = () => {
               })
             )
           );
-          console.log(`Added ${study.components.length} components to ${study.name}`);
         }
 
         createdCount++;
       }
-
-      console.log(`Successfully created ${createdCount} trade studies. Navigating to project group.`);
 
       // Show success message
       alert(`Success! Created ${createdCount} trade studies from the ${template.name} template.`);
@@ -107,7 +97,6 @@ const Templates: React.FC = () => {
       // Navigate to the new project group with a full page reload to ensure fresh data
       window.location.href = `/project-group/${projectGroupId}`;
     } catch (error: any) {
-      console.error("Failed to create project from template:", error);
       const errorMessage = error?.response?.data?.detail || error?.message || "Unknown error occurred";
       alert(`Failed to create project: ${errorMessage}\n\nCheck the console for more details.`);
     } finally {
@@ -164,8 +153,6 @@ const Templates: React.FC = () => {
       // Navigate to criteria page to review/edit
       navigate(`/project/${projectId}/criteria`);
     } catch (error: any) {
-      console.error("Failed to create project from template:", error);
-
       // Extract error message properly
       let errorMessage = "Unknown error occurred";
       if (

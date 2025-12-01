@@ -350,14 +350,18 @@ export const aiApi = {
             status: string;
             discovered_count: number;
             components: Component[];
-        }>(`/api/projects/${projectId}/discover`, {
-            ...(locationPreference
-                ? { location_preference: locationPreference }
-                : {}),
-            ...(numberOfComponents
-                ? { number_of_components: numberOfComponents }
-                : {}),
-        }),
+        }>(
+            `/api/projects/${projectId}/discover`,
+            {
+                ...(locationPreference
+                    ? { location_preference: locationPreference }
+                    : {}),
+                ...(numberOfComponents
+                    ? { number_of_components: numberOfComponents }
+                    : {}),
+            },
+            { timeout: 180000 } // 3 minutes timeout for component discovery (AI calls can take time)
+        ),
     scoreComponents: (projectId: string) =>
         api.post<{
             status: string;
@@ -415,3 +419,4 @@ export const onboardingApi = {
 };
 
 export default api;
+
