@@ -145,3 +145,4 @@ export interface OnboardingStatusData {
   ratingDocsCount: number;
   reportTemplatesCount: number;
 }
+
