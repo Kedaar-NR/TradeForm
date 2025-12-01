@@ -83,12 +83,37 @@ def discover_components(
             if existing:
                 continue
             
+            # Normalize availability value (AI might return uppercase like "LEAD_TIME" but enum expects "lead_time")
+            availability_str = comp_data.get("availability", "in_stock")
+            if isinstance(availability_str, str):
+                # Convert to lowercase and replace hyphens with underscores
+                availability_str = availability_str.lower().replace("-", "_")
+                # Map common variations to valid enum values
+                availability_map = {
+                    "leadtime": "lead_time",
+                    "instock": "in_stock",
+                    "in_stock": "in_stock",
+                    "limited": "limited",
+                    "lead_time": "lead_time",
+                    "obsolete": "obsolete",
+                }
+                availability_str = availability_map.get(availability_str, "in_stock")
+            else:
+                availability_str = "in_stock"
+            
+            # Validate and convert to enum, defaulting to IN_STOCK if invalid
+            try:
+                availability = models.ComponentAvailability(availability_str)
+            except (ValueError, KeyError) as e:
+                logger.warning(f"Invalid availability value '{comp_data.get('availability')}' -> '{availability_str}', defaulting to 'in_stock'. Error: {e}")
+                availability = models.ComponentAvailability.IN_STOCK
+            
             db_component = models.Component(
                 manufacturer=comp_data["manufacturer"],
                 part_number=comp_data["part_number"],
                 description=comp_data.get("description"),
                 datasheet_url=comp_data.get("datasheet_url"),
-                availability=models.ComponentAvailability(comp_data.get("availability", "in_stock")),
+                availability=availability,
                 project_id=project_id,
                 source=models.ComponentSource.AI_DISCOVERED
             )
@@ -555,18 +580,137 @@ def _sanitize_filename(name: str) -> str:
     return "".join(ch if ch.isalnum() or ch in ("_", "-") else "_" for ch in safe_name)
 
 
+def _generate_basic_report(project, components, criteria, all_scores):
+    """Generate a basic trade study report from project data if no AI-generated report exists."""
+    scores_dict = {(str(s.component_id), str(s.criterion_id)): s for s in all_scores}
+    scoring_service = get_scoring_service()
+    results = scoring_service.calculate_weighted_scores(components, criteria, scores_dict)
+    
+    # Sort by rank
+    sorted_results = sorted(results, key=lambda x: x.get("rank", 999))
+    
+    report_lines = [
+        f"# {project.name}",
+        "",
+        f"**Component Type:** {project.component_type}",
+        "",
+    ]
+    
+    if project.description:
+        report_lines.extend([
+            "## Project Description",
+            "",
+            project.description,
+            "",
+        ])
+    
+    report_lines.extend([
+        "## Evaluation Criteria",
+        "",
+    ])
+    
+    for criterion in criteria:
+        unit_str = f" ({criterion.unit})" if criterion.unit else ""
+        direction = "Higher is better" if criterion.higher_is_better else "Lower is better"
+        report_lines.append(f"- **{criterion.name}**{unit_str}: {criterion.description or 'No description'} - Weight: {criterion.weight}% - {direction}")
+    
+    report_lines.extend([
+        "",
+        "## Component Analysis",
+        "",
+    ])
+    
+    for i, result in enumerate(sorted_results, 1):
+        component = result.get("component")
+        if not component:
+            continue
+        
+        report_lines.extend([
+            f"### {i}. {component.manufacturer} {component.part_number}",
+            f"**Total Score:** {result.get('total_score', 0):.2f} / 10.0",
+            f"**Rank:** {result.get('rank', i)}",
+            "",
+        ])
+        
+        if component.description:
+            report_lines.append(f"*{component.description}*")
+            report_lines.append("")
+        
+        # Get scores for this component
+        component_scores = []
+        for criterion in criteria:
+            key = (str(component.id), str(criterion.id))
+            if key in scores_dict:
+                score = scores_dict[key]
+                component_scores.append({
+                    "criterion_name": criterion.name,
+                    "score": score.score,
+                    "raw_value": score.raw_value,
+                    "rationale": score.rationale,
+                })
+        
+        if component_scores:
+            report_lines.append("**Scores by Criterion:**")
+            for score_data in component_scores:
+                criterion_name = score_data.get("criterion_name", "Unknown")
+                score_value = score_data.get("score", 0)
+                raw_value = score_data.get("raw_value")
+                rationale = score_data.get("rationale", "")
+                
+                score_line = f"- {criterion_name}: {score_value}/10"
+                if raw_value:
+                    score_line += f" (Raw: {raw_value})"
+                report_lines.append(score_line)
+                if rationale:
+                    report_lines.append(f"  *{rationale}*")
+            report_lines.append("")
+    
+    # Get top component info
+    top_result = sorted_results[0] if sorted_results else None
+    top_component = top_result.get("component") if top_result else None
+    top_name = f"{top_component.manufacturer} {top_component.part_number}" if top_component else "N/A"
+    top_score = top_result.get('total_score', 0) if top_result else 0
+    
+    report_lines.extend([
+        "## Summary",
+        "",
+        f"This trade study evaluated {len(components)} components against {len(criteria)} criteria. ",
+        f"The top-ranked component is {top_name} ",
+        f"with a total weighted score of {top_score:.2f}/10.0.",
+        "",
+    ])
+    
+    return "\n".join(report_lines)
+
+
 @router.get("/api/projects/{project_id}/report/docx")
 def download_trade_study_report_docx(project_id: UUID, db: Session = Depends(get_db)):
-    """Download the stored trade study report as a Word (.docx) file."""
+    """Download the trade study report as a Word (.docx) file. Generates a basic report if none exists."""
     project = db.query(models.Project).filter(models.Project.id == project_id).first()
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     
-    if not project.trade_study_report:
-        raise HTTPException(status_code=404, detail="No trade study report found. Please generate a report first by clicking 'Generate Study Report' on the Component Discovery page.")
+    # Get project data
+    components = db.query(models.Component).filter(models.Component.project_id == project_id).all()
+    criteria = db.query(models.Criterion).filter(models.Criterion.project_id == project_id).all()
+    all_scores = db.query(models.Score).join(models.Component).filter(
+        models.Component.project_id == project_id
+    ).all()
+    
+    # Use stored report if available, otherwise generate a basic one
+    if project.trade_study_report:
+        report_text = project.trade_study_report
+    elif components and criteria:
+        # Generate basic report from data
+        report_text = _generate_basic_report(project, components, criteria, all_scores)
+    else:
+        raise HTTPException(
+            status_code=400,
+            detail="No report available. Please add components and criteria, or generate a report first."
+        )
     
     word_service = get_word_service()
-    docx_buffer = word_service.generate_report_docx(project.trade_study_report)
+    docx_buffer = word_service.generate_report_docx(report_text)
     
     safe_name = _sanitize_filename(project.name or "trade_study")
     filename = f"trade_study_report_{safe_name}.docx"
