@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { projectsApi, criteriaApi, projectGroupsApi, componentsApi } from "../services/api";
+import { projectsApi, criteriaApi, projectGroupsApi } from "../services/api";
 import { projectTemplates, studyTemplates } from "../data/templateData";
 import type { ProjectTemplate, StudyTemplate } from "../data/templateTypes";
 import { API_BASE_URL, getAuthToken } from "../utils/apiHelpers";
