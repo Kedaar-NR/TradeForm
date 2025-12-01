@@ -22,7 +22,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app import models
-from app.database import engine
+from app.database import engine, run_sql_migrations, ensure_project_group_schema
 from app.routers import (
     auth,
     projects,
@@ -38,8 +38,15 @@ from app.routers import (
     search
 )
 
-# Create all database tables
+# Create all database tables and run migrations
+print("=" * 60)
+print("Initializing database...")
+print("=" * 60)
 models.Base.metadata.create_all(bind=engine)
+print("✓ Base tables created")
+run_sql_migrations()
+ensure_project_group_schema()
+print("=" * 60)
 
 # Initialize FastAPI app
 app = FastAPI(

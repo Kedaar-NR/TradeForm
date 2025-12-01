@@ -25,7 +25,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 try:
     print("\n1. Importing modules...")
     from app import models
-    from app.database import engine, Base
+    from app.database import engine, Base, run_sql_migrations, ensure_project_group_schema
     
     print("✓ Modules imported successfully")
     
@@ -33,14 +33,19 @@ try:
     Base.metadata.create_all(bind=engine)
     print("✓ Database tables created")
     
-    print("\n3. Checking database file...")
+    print("\n3. Applying SQL migrations (if needed)...")
+    run_sql_migrations()
+    ensure_project_group_schema()
+    print("✓ Migrations applied")
+    
+    print("\n4. Checking database file...")
     if os.path.exists("tradeform.db"):
         size = os.path.getsize("tradeform.db")
         print(f"✓ Database file exists: tradeform.db ({size} bytes)")
     else:
         print("⚠ Database file not found!")
     
-    print("\n4. Checking environment variables...")
+    print("\n5. Checking environment variables...")
     gemini_key = os.getenv("GEMINI_API_KEY")
     if gemini_key:
         # Mask the key for security (show first 10 chars)
@@ -50,7 +55,7 @@ try:
         print("⚠ GEMINI_API_KEY is not set. AI datasheet Q&A features will not be available.")
         print("   Set GEMINI_API_KEY in your .env file to enable Gemini API features.")
     
-    print("\n5. Starting FastAPI server...")
+    print("\n6. Starting FastAPI server...")
     print("   Backend will be available at: http://localhost:8000")
     print("   API docs at: http://localhost:8000/docs")
     print("=" * 60)
@@ -79,4 +84,3 @@ except Exception as e:
     import traceback
     traceback.print_exc()
     sys.exit(1)
-

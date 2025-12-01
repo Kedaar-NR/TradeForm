@@ -1,13 +1,13 @@
 """Project management endpoints for CRUD operations."""
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.exc import SQLAlchemyError, ProgrammingError
 from sqlalchemy.orm import Session
 from typing import List
 from uuid import UUID
 
 from app import models, schemas
-from app.database import get_db
+from app.database import get_db, run_sql_migrations, ensure_project_group_schema
 from app.services.change_logger import log_project_change
 
 router = APIRouter(prefix="/api/projects", tags=["projects"])
@@ -16,72 +16,104 @@ router = APIRouter(prefix="/api/projects", tags=["projects"])
 @router.post("", response_model=schemas.Project, status_code=status.HTTP_201_CREATED)
 def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)):
     """Create a new trade study project"""
-    try:
-        # Get first user or create a default one if none exists
-        user = db.query(models.User).first()
-        if not user:
-            from app.auth import get_password_hash
-            user = models.User(
-                email="default@tradeform.com",
-                name="Default User",
-                password_hash=get_password_hash("default")
-            )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
+    # Retry once if the database is missing the project_group_id column (migration not applied yet)
+    for attempt in range(2):
+        try:
+            # Get first user or create a default one if none exists
+            user = db.query(models.User).first()
+            if not user:
+                from app.auth import get_password_hash
+                user = models.User(
+                    email="default@tradeform.com",
+                    name="Default User",
+                    password_hash=get_password_hash("default")
+                )
+                db.add(user)
+                db.commit()
+                db.refresh(user)
 
-        # Persist project with group and status so it shows up under the correct template
-        status_value = models.ProjectStatus(project.status.value) if project.status else models.ProjectStatus.DRAFT
-        db_project = models.Project(
-            name=project.name,
-            component_type=project.component_type,
-            description=project.description,
-            status=status_value,
-            project_group_id=project.project_group_id,
-            created_by=user.id,
-        )
-        
-        db.add(db_project)
-        db.flush()
-        log_project_change(
-            db,
-            project_id=db_project.id,
-            change_type="project_created",
-            description=f"Created project '{db_project.name}'",
-            entity_type="project",
-            entity_id=db_project.id,
-            new_value={
-                "name": db_project.name,
-                "component_type": db_project.component_type,
-                "status": db_project.status.value if db_project.status else None,
-                "project_group_id": str(db_project.project_group_id) if db_project.project_group_id else None,
-            },
-        )
-        db.commit()
-        db.refresh(db_project)
-        return db_project
-    except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"Failed to create project: {str(e)}")
+            # Persist project with group and status so it shows up under the correct template
+            status_value = models.ProjectStatus(project.status.value) if project.status else models.ProjectStatus.DRAFT
+            db_project = models.Project(
+                name=project.name,
+                component_type=project.component_type,
+                description=project.description,
+                status=status_value,
+                project_group_id=project.project_group_id,
+                created_by=user.id,
+            )
+            
+            db.add(db_project)
+            db.flush()
+            log_project_change(
+                db,
+                project_id=db_project.id,
+                change_type="project_created",
+                description=f"Created project '{db_project.name}'",
+                entity_type="project",
+                entity_id=db_project.id,
+                new_value={
+                    "name": db_project.name,
+                    "component_type": db_project.component_type,
+                    "status": db_project.status.value if db_project.status else None,
+                    "project_group_id": str(db_project.project_group_id) if db_project.project_group_id else None,
+                },
+            )
+            db.commit()
+            db.refresh(db_project)
+            return db_project
+        except ProgrammingError as exc:
+            db.rollback()
+            msg = str(exc).lower()
+            if attempt == 0 and "project_group_id" in msg:
+                try:
+                    run_sql_migrations()
+                    ensure_project_group_schema()
+                    continue
+                except Exception as migrate_exc:
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"Database migration failed while creating project: {migrate_exc}"
+                    ) from migrate_exc
+            raise HTTPException(status_code=500, detail=f"Failed to create project: {str(exc)}") from exc
+        except Exception as exc:
+            db.rollback()
+            raise HTTPException(status_code=500, detail=f"Failed to create project: {str(exc)}") from exc
 
 
 @router.get("", response_model=List[schemas.Project])
 def list_projects(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     """List all trade study projects, sorted by most recently updated"""
-    try:
-        projects = db.query(models.Project).order_by(models.Project.updated_at.desc()).offset(skip).limit(limit).all()
-        return projects
-    except ValueError as e:
-        # Handle invalid UUID values in the database
-        # This can happen if there are legacy records with malformed UUIDs
-        import logging
-        logger = logging.getLogger(__name__)
-        logger.error(f"Error querying projects due to invalid UUID: {e}")
-        logger.warning("This usually indicates corrupted data. Please check your database for invalid UUID values.")
-        raise HTTPException(
-            status_code=500,
-            detail=f"Database contains invalid UUID values. Please check and clean your database. Error: {str(e)}"
-        )
+    # Retry once if the database is missing the project_group_id column (migration not applied yet)
+    for attempt in range(2):
+        try:
+            projects = db.query(models.Project).order_by(models.Project.updated_at.desc()).offset(skip).limit(limit).all()
+            return projects
+        except ProgrammingError as exc:
+            db.rollback()
+            msg = str(exc).lower()
+            if attempt == 0 and "project_group_id" in msg:
+                try:
+                    run_sql_migrations()
+                    ensure_project_group_schema()
+                    continue
+                except Exception as migrate_exc:
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"Database migration failed while listing projects: {migrate_exc}"
+                    ) from migrate_exc
+            raise HTTPException(status_code=500, detail=f"Failed to list projects: {str(exc)}") from exc
+        except ValueError as e:
+            # Handle invalid UUID values in the database
+            # This can happen if there are legacy records with malformed UUIDs
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.error(f"Error querying projects due to invalid UUID: {e}")
+            logger.warning("This usually indicates corrupted data. Please check your database for invalid UUID values.")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Database contains invalid UUID values. Please check and clean your database. Error: {str(e)}"
+            )
 
 
 @router.get("/{project_id}", response_model=schemas.ProjectWithDetails)
