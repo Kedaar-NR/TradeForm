@@ -85,36 +85,37 @@ def discover_components(
             
             # Normalize availability value (AI might return uppercase like "LEAD_TIME" but enum expects "lead_time")
             raw_availability = comp_data.get("availability", "in_stock")
-            availability_str = "in_stock"  # Default
+            logger.info(f"Raw availability from AI: '{raw_availability}' (type: {type(raw_availability)})")
             
+            # Always normalize to lowercase with underscores
             if isinstance(raw_availability, str):
-                # Convert to lowercase and replace hyphens with underscores
                 normalized = raw_availability.lower().replace("-", "_").strip()
-                # Map common variations to valid enum values
-                availability_map = {
-                    "leadtime": "lead_time",
-                    "lead_time": "lead_time",
-                    "instock": "in_stock",
-                    "in_stock": "in_stock",
-                    "limited": "limited",
-                    "obsolete": "obsolete",
-                }
-                availability_str = availability_map.get(normalized, "in_stock")
-                logger.debug(f"Normalized availability: '{raw_availability}' -> '{normalized}' -> '{availability_str}'")
+                logger.info(f"Normalized to: '{normalized}'")
             else:
-                logger.warning(f"Non-string availability value: {raw_availability}, defaulting to 'in_stock'")
+                normalized = "in_stock"
+                logger.warning(f"Non-string availability: {raw_availability}, using default 'in_stock'")
+            
+            # Map to valid enum values
+            availability_map = {
+                "leadtime": "lead_time",
+                "lead_time": "lead_time",
+                "instock": "in_stock",
+                "in_stock": "in_stock",
+                "limited": "limited",
+                "obsolete": "obsolete",
+            }
+            availability_str = availability_map.get(normalized, "in_stock")
+            logger.info(f"Mapped availability: '{normalized}' -> '{availability_str}'")
             
             # Validate and convert to enum, defaulting to IN_STOCK if invalid
             try:
-                # Use the enum value directly, not the name
                 availability = models.ComponentAvailability(availability_str)
-                # Double-check we're using the value, not the name
-                if availability.value != availability_str:
-                    logger.warning(f"Enum value mismatch: expected '{availability_str}', got '{availability.value}'")
+                logger.info(f"Created enum: {availability} with value: '{availability.value}'")
             except (ValueError, KeyError) as e:
-                logger.error(f"Invalid availability value '{raw_availability}' -> '{availability_str}', defaulting to 'in_stock'. Error: {e}")
+                logger.error(f"Failed to create enum from '{availability_str}': {e}, defaulting to IN_STOCK")
                 availability = models.ComponentAvailability.IN_STOCK
             
+            # Create component - SQLAlchemy should use the enum value, not the name
             db_component = models.Component(
                 manufacturer=comp_data["manufacturer"],
                 part_number=comp_data["part_number"],
@@ -124,6 +125,10 @@ def discover_components(
                 project_id=project_id,
                 source=models.ComponentSource.AI_DISCOVERED
             )
+            
+            # Verify the value before insert
+            final_value = db_component.availability.value if hasattr(db_component.availability, 'value') else str(db_component.availability)
+            logger.info(f"Component created with availability value: '{final_value}' (should be lowercase like 'lead_time')")
             db.add(db_component)
             db.flush()
             log_project_change(
