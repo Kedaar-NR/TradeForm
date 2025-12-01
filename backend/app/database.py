@@ -3,8 +3,13 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.exc import IntegrityError
 import os
+import sys
+import logging
 from pathlib import Path
 from dotenv import load_dotenv
+
+# Set up logging for migrations
+logger = logging.getLogger(__name__)
 
 # Load .env from project root (two levels up: backend/app -> backend -> project root)
 project_root = Path(__file__).parent.parent.parent
@@ -35,7 +40,8 @@ def run_sql_migrations():
     """Apply SQL migrations in backend/migrations once per deployment."""
     # Skip migrations for SQLite/local dev where create_all() is enough
     if DATABASE_URL.startswith("sqlite"):
-        print("Skipping SQL migrations (SQLite detected)")
+        logger.info("Skipping SQL migrations (SQLite detected)")
+        print("Skipping SQL migrations (SQLite detected)", flush=True)
         return
 
     # Try multiple possible paths for migrations directory
@@ -52,10 +58,14 @@ def run_sql_migrations():
             break
     
     if not migrations_dir:
-        print(f"WARNING: Migrations directory not found. Tried: {possible_paths}")
+        error_msg = f"WARNING: Migrations directory not found. Tried: {possible_paths}"
+        logger.warning(error_msg)
+        print(error_msg, flush=True, file=sys.stderr)
         return
 
-    print(f"Running migrations from: {migrations_dir}")
+    info_msg = f"Running migrations from: {migrations_dir}"
+    logger.info(info_msg)
+    print(info_msg, flush=True)
     try:
         with engine.begin() as conn:
             # Track applied migrations
@@ -70,7 +80,8 @@ def run_sql_migrations():
 
             migration_files = sorted(migrations_dir.glob("*.sql"))
             if not migration_files:
-                print("No migration files found")
+                logger.info("No migration files found")
+                print("No migration files found", flush=True)
                 return
 
             for migration_path in migration_files:
@@ -81,10 +92,12 @@ def run_sql_migrations():
                 ).scalar()
 
                 if already_applied:
-                    print(f"Migration {filename} already applied, skipping")
+                    logger.info(f"Migration {filename} already applied, skipping")
+                    print(f"Migration {filename} already applied, skipping", flush=True)
                     continue
 
-                print(f"Applying migration: {filename}")
+                logger.info(f"Applying migration: {filename}")
+                print(f"Applying migration: {filename}", flush=True)
                 sql = migration_path.read_text()
                 # exec_driver_sql allows multi-statement SQL (needed for our .sql files)
                 conn.exec_driver_sql(sql)
@@ -96,12 +109,16 @@ def run_sql_migrations():
                 except IntegrityError:
                     # Another process inserted first; safe to ignore
                     pass
-                print(f"✓ Applied DB migration: {filename}")
+                success_msg = f"✓ Applied DB migration: {filename}"
+                logger.info(success_msg)
+                print(success_msg, flush=True)
     except Exception as exc:
         # Fail fast with a clear message so we don't run with an out-of-sync schema
         import traceback
-        print(f"✗ Database migration failed: {exc}")
-        print(traceback.format_exc())
+        error_msg = f"✗ Database migration failed: {exc}"
+        logger.error(error_msg, exc_info=True)
+        print(error_msg, flush=True, file=sys.stderr)
+        print(traceback.format_exc(), flush=True, file=sys.stderr)
         raise
 
 
@@ -111,11 +128,13 @@ def ensure_project_group_schema():
     Adds project_groups table (if missing), column on projects, and FK constraint.
     """
     if DATABASE_URL.startswith("sqlite"):
-        print("Skipping schema self-heal (SQLite detected)")
+        logger.info("Skipping schema self-heal (SQLite detected)")
+        print("Skipping schema self-heal (SQLite detected)", flush=True)
         return
 
     try:
-        print("Running schema self-heal for project_group_id...")
+        logger.info("Running schema self-heal for project_group_id...")
+        print("Running schema self-heal for project_group_id...", flush=True)
         with engine.begin() as conn:
             # Check if column already exists
             column_exists = conn.execute(
@@ -126,9 +145,11 @@ def ensure_project_group_schema():
             ).scalar()
             
             if column_exists:
-                print("✓ project_group_id column already exists")
+                logger.info("✓ project_group_id column already exists")
+                print("✓ project_group_id column already exists", flush=True)
             else:
-                print("Creating project_groups table...")
+                logger.info("Creating project_groups table...")
+                print("Creating project_groups table...", flush=True)
                 conn.exec_driver_sql(
                     """
                     CREATE TABLE IF NOT EXISTS project_groups (
@@ -144,7 +165,8 @@ def ensure_project_group_schema():
                     """
                 )
 
-                print("Adding project_group_id column to projects...")
+                logger.info("Adding project_group_id column to projects...")
+                print("Adding project_group_id column to projects...", flush=True)
                 # PostgreSQL doesn't support ADD COLUMN IF NOT EXISTS, so use DO block
                 conn.exec_driver_sql(
                     """
@@ -160,7 +182,8 @@ def ensure_project_group_schema():
                     """
                 )
 
-                print("Adding foreign key constraint...")
+                logger.info("Adding foreign key constraint...")
+                print("Adding foreign key constraint...", flush=True)
                 conn.exec_driver_sql(
                     """
                     DO $$
@@ -177,11 +200,15 @@ def ensure_project_group_schema():
                     END $$;
                     """
                 )
-                print("✓ Ensured project_group_id column/constraint on projects")
+                success_msg = "✓ Ensured project_group_id column/constraint on projects"
+                logger.info(success_msg)
+                print(success_msg, flush=True)
     except Exception as exc:
         import traceback
-        print(f"✗ Schema self-heal failed: {exc}")
-        print(traceback.format_exc())
+        error_msg = f"✗ Schema self-heal failed: {exc}"
+        logger.error(error_msg, exc_info=True)
+        print(error_msg, flush=True, file=sys.stderr)
+        print(traceback.format_exc(), flush=True, file=sys.stderr)
         raise
 
 # Dependency to get DB session

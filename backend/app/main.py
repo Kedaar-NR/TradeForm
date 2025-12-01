@@ -39,14 +39,14 @@ from app.routers import (
 )
 
 # Create all database tables and run migrations
-print("=" * 60)
-print("Initializing database...")
-print("=" * 60)
+print("=" * 60, flush=True)
+print("Initializing database...", flush=True)
+print("=" * 60, flush=True)
 models.Base.metadata.create_all(bind=engine)
-print("✓ Base tables created")
+print("✓ Base tables created", flush=True)
 run_sql_migrations()
 ensure_project_group_schema()
-print("=" * 60)
+print("=" * 60, flush=True)
 
 # Initialize FastAPI app
 app = FastAPI(
