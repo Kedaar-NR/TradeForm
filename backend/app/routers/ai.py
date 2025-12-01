@@ -111,24 +111,35 @@ def discover_components(
             try:
                 availability = models.ComponentAvailability(availability_str)
                 logger.info(f"Created enum: {availability} with value: '{availability.value}'")
+                # CRITICAL: Ensure we're using the enum VALUE, not the name
+                # SQLAlchemy should handle this, but we'll be explicit
+                if availability.value != availability_str:
+                    logger.warning(f"Enum value mismatch! Expected '{availability_str}', got '{availability.value}'. This might cause issues.")
             except (ValueError, KeyError) as e:
                 logger.error(f"Failed to create enum from '{availability_str}': {e}, defaulting to IN_STOCK")
                 availability = models.ComponentAvailability.IN_STOCK
             
-            # Create component - SQLAlchemy should use the enum value, not the name
+            # Create component - explicitly ensure we use the enum value
+            # SQLAlchemy should serialize the enum value (e.g., "lead_time"), not the name (e.g., "LEAD_TIME")
             db_component = models.Component(
                 manufacturer=comp_data["manufacturer"],
                 part_number=comp_data["part_number"],
                 description=comp_data.get("description"),
                 datasheet_url=comp_data.get("datasheet_url"),
-                availability=availability,
+                availability=availability,  # This is the enum instance - SQLAlchemy should use .value
                 project_id=project_id,
                 source=models.ComponentSource.AI_DISCOVERED
             )
             
-            # Verify the value before insert
+            # Verify the value before insert - this should be lowercase
             final_value = db_component.availability.value if hasattr(db_component.availability, 'value') else str(db_component.availability)
-            logger.info(f"Component created with availability value: '{final_value}' (should be lowercase like 'lead_time')")
+            logger.info(f"Component created with availability value: '{final_value}' (should be lowercase like 'lead_time', NOT 'LEAD_TIME')")
+            
+            # Double-check: if somehow the value is uppercase, force it to lowercase
+            if final_value and final_value.isupper():
+                logger.error(f"CRITICAL: Availability value is uppercase '{final_value}'! This will cause database error. Forcing to lowercase.")
+                # Recreate with explicit lowercase value
+                db_component.availability = models.ComponentAvailability(final_value.lower())
             db.add(db_component)
             db.flush()
             log_project_change(

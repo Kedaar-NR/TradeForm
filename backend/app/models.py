@@ -167,8 +167,10 @@ class Component(Base):
     description = Column(Text)
     datasheet_url = Column(String)
     datasheet_file_path = Column(String)
-    availability = Column(Enum(ComponentAvailability), default=ComponentAvailability.IN_STOCK)
-    source = Column(Enum(ComponentSource), default=ComponentSource.MANUALLY_ADDED)
+    # Use native_enum=False to ensure SQLAlchemy uses string values, not PostgreSQL enum type
+    # This prevents issues where enum names (LEAD_TIME) are used instead of values (lead_time)
+    availability = Column(Enum(ComponentAvailability, native_enum=False, length=20), default=ComponentAvailability.IN_STOCK)
+    source = Column(Enum(ComponentSource, native_enum=False, length=20), default=ComponentSource.MANUALLY_ADDED)
 
     # Relationships
     project = relationship("Project", back_populates="components")
