@@ -30,9 +30,30 @@ def discover_components(
     db: Session = Depends(get_db)
 ):
     """Trigger AI component discovery using Anthropic Claude."""
-    project = db.query(models.Project).filter(models.Project.id == project_id).first()
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
+    # Retry once if the database is missing the project_group_id column (migration not applied yet)
+    from sqlalchemy.exc import ProgrammingError
+    from app.database import run_sql_migrations, ensure_project_group_schema
+    
+    for attempt in range(2):
+        try:
+            project = db.query(models.Project).filter(models.Project.id == project_id).first()
+            if not project:
+                raise HTTPException(status_code=404, detail="Project not found")
+            break  # Success, exit retry loop
+        except ProgrammingError as exc:
+            db.rollback()
+            msg = str(exc).lower()
+            if attempt == 0 and "project_group_id" in msg:
+                try:
+                    run_sql_migrations()
+                    ensure_project_group_schema()
+                    continue
+                except Exception as migrate_exc:
+                    raise HTTPException(
+                        status_code=500,
+                        detail=f"Database migration failed while discovering components: {migrate_exc}"
+                    ) from migrate_exc
+            raise HTTPException(status_code=500, detail=f"Database error: {str(exc)}") from exc
     
     criteria = db.query(models.Criterion).filter(models.Criterion.project_id == project_id).all()
     criteria_names = [c.name for c in criteria] if criteria else None
@@ -98,9 +119,14 @@ def discover_components(
             "components": [schemas.Component.model_validate(c) for c in discovered_components]
         }
     except ValueError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"ValueError in discover_components: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Invalid data: {str(e)}")
     except RuntimeError as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"RuntimeError in discover_components: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"AI service error: {str(e)}")
+    except Exception as e:
+        logger.error(f"Unexpected error in discover_components: {e}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Discovery failed: {str(e)}")
 
 
 async def _score_component_batch(
