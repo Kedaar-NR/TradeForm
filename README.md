@@ -436,3 +436,4 @@ Proprietary - All rights reserved. Contact us for licensing inquiries.
 **Built with love for engineers who want to focus on innovation, not spreadsheets.**
 
 *TradeForm: Because your time is better spent designing the future, not wrestling with datasheets.*
+
