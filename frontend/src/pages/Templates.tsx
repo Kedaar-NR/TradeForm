@@ -70,20 +70,9 @@ const Templates: React.FC = () => {
           )
         );
 
-        // Add components for this study
-        if (study.components && study.components.length > 0) {
-          await Promise.all(
-            study.components.map((component) =>
-              componentsApi.create(projectId, {
-                manufacturer: component.manufacturer,
-                partNumber: component.partNumber,
-                description: component.description,
-                availability: component.availability || "in_stock",
-                source: "manually_added",
-              })
-            )
-          );
-        }
+        // Components are no longer created from templates
+        // Users should use "Discover Components" to add components via AI discovery
+        // This ensures all components are properly sourced and validated
 
         createdCount++;
       }
