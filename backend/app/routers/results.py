@@ -71,7 +71,7 @@ def export_full_trade_study(project_id: UUID, db: Session = Depends(get_db)):
     for result in results:
         formatted_results.append({
             "component": result["component"],
-            "scores": result["score_dict"],
+            "score_dict": result["score_dict"],
             "total_score": result["total_score"]
         })
     
