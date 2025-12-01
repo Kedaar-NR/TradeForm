@@ -186,19 +186,20 @@ async def score_all_components(project_id: UUID, db: Session = Depends(get_db)):
         # Create batch scoring tasks - one per component (scores ALL criteria at once)
         # Process in smaller batches to avoid API overload
         logger.info(f"Starting batch scoring for {len(components)} components with {len(criteria)} criteria")
-        
+
+        # Create scoring tasks for each component
         scoring_tasks = [
-            _score_component_batch(ai_service, component, criteria)
+            _score_component_batch(ai_service, component, criteria, timeout_seconds=60)
             for component in components
         ]
-        
+
         # Run with low concurrency to avoid API rate limits (2 at a time)
         semaphore = asyncio.Semaphore(2)
-        
+
         async def bounded_score(task):
             async with semaphore:
                 return await task
-        
+
         bounded_tasks = [bounded_score(task) for task in scoring_tasks]
         results = await asyncio.gather(*bounded_tasks, return_exceptions=True)
         
@@ -448,7 +449,7 @@ def get_trade_study_report(project_id: UUID, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Project not found")
     
     if not project.trade_study_report:
-        raise HTTPException(status_code=404, detail="No trade study report found for this project")
+        raise HTTPException(status_code=404, detail="No trade study report found. Please generate a report first by clicking 'Generate Study Report' on the Component Discovery page.")
     
     return {"report": project.trade_study_report, "generated_at": project.report_generated_at}
 
@@ -461,7 +462,7 @@ def download_trade_study_report_pdf(project_id: UUID, db: Session = Depends(get_
         raise HTTPException(status_code=404, detail="Project not found")
     
     if not project.trade_study_report:
-        raise HTTPException(status_code=404, detail="No trade study report found for this project")
+        raise HTTPException(status_code=404, detail="No trade study report found. Please generate a report first by clicking 'Generate Study Report' on the Component Discovery page.")
     
     # Fetch data for professional PDF
     components = db.query(models.Component).filter(models.Component.project_id == project_id).all()
@@ -536,7 +537,7 @@ def download_trade_study_report_docx(project_id: UUID, db: Session = Depends(get
         raise HTTPException(status_code=404, detail="Project not found")
     
     if not project.trade_study_report:
-        raise HTTPException(status_code=404, detail="No trade study report found for this project")
+        raise HTTPException(status_code=404, detail="No trade study report found. Please generate a report first by clicking 'Generate Study Report' on the Component Discovery page.")
     
     word_service = get_word_service()
     docx_buffer = word_service.generate_report_docx(project.trade_study_report)
