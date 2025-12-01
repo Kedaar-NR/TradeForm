@@ -148,6 +148,7 @@ const ComponentDiscovery: React.FC = () => {
           Boolean(comp.datasheetUrl)
         );
 
+        let datasheetStatus = "";
         if (hasDatasheetUrls) {
           try {
             const { successCount, skippedCount, failedDetails } =
@@ -155,24 +156,17 @@ const ComponentDiscovery: React.FC = () => {
             await loadComponents();
 
             const failedCount = failedDetails?.length || 0;
-            let message = `✓ Discovered ${data.discovered_count} components!\n\nDatasheet Import:\n• Uploaded: ${successCount}\n• Failed: ${failedCount}\n• Skipped (not PDFs): ${skippedCount}`;
-
-            if (failedCount > 0) {
-              message += `\n\nFailed imports can be retried from each component's detail drawer, or upload PDFs manually.`;
-            }
-
-            alert(message);
+            datasheetStatus = `\n• Datasheets uploaded: ${successCount}\n• Failed: ${failedCount}\n• Skipped (not PDFs): ${skippedCount}`;
           } catch (err) {
             console.error("Automatic datasheet uploads failed:", err);
-            alert(
-              `Successfully discovered ${data.discovered_count} components!\n\nNote: Datasheets could not be auto-imported. You can manually upload them from the component detail view.`
-            );
+            datasheetStatus = "\n• Datasheets: Auto-upload failed, upload manually from component details";
           }
-        } else {
-          alert(
-            `Successfully discovered ${data.discovered_count} components!\n\nNote: No datasheet URLs were found. You can manually upload datasheets from the component detail view.`
-          );
         }
+
+        // Show single notification at the end
+        alert(
+          `✓ Successfully discovered ${data.discovered_count} components!${datasheetStatus}`
+        );
       } else {
         alert(
           "No new components discovered. Try refining your project description or criteria."
@@ -207,10 +201,8 @@ const ComponentDiscovery: React.FC = () => {
     setIsScoring(true);
 
     try {
-      console.log("Starting scoring for project:", projectId);
       const response = await aiApi.scoreComponents(projectId);
       const data = response.data;
-      console.log("Scoring response:", data);
 
       // Update status
       await saveProjectStatus("in_progress");
@@ -234,7 +226,6 @@ const ComponentDiscovery: React.FC = () => {
       );
     } finally {
       // Always reset loading state
-      console.log("Resetting isScoring state");
       setIsScoring(false);
     }
   };
