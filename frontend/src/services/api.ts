@@ -1,9 +1,20 @@
 import axios from "axios";
-import { Project, ProjectGroup, ProjectGroupWithProjects, Component, Criterion, Score, OnboardingStatusData, UserDocument } from "../types";
+import {
+    Project,
+    ProjectGroup,
+    ProjectGroupWithProjects,
+    Component,
+    Criterion,
+    Score,
+    OnboardingStatusData,
+    UserDocument,
+} from "../types";
 import { API_BASE_URL, getAuthToken } from "../utils/apiHelpers";
 
+// In development, use empty string to leverage Vite proxy
+// In production, use the full API URL
 const api = axios.create({
-    baseURL: API_BASE_URL,
+    baseURL: API_BASE_URL || "",
     headers: {
         "Content-Type": "application/json",
     },
@@ -44,10 +55,7 @@ api.interceptors.response.use(
             console.error(errorMsg);
 
             // Show user-friendly error in production
-            if (
-                import.meta.env.PROD &&
-                typeof window !== "undefined"
-            ) {
+            if (import.meta.env.PROD && typeof window !== "undefined") {
                 // You could dispatch a toast notification here if you have a notification system
                 console.error(
                     "Backend connection failed. Please check your deployment configuration."
@@ -81,8 +89,14 @@ export const authApi = {
 // Project Groups
 export const projectGroupsApi = {
     getAll: () => api.get<ProjectGroup[]>("/api/project-groups"),
-    getById: (id: string) => api.get<ProjectGroupWithProjects>(`/api/project-groups/${id}`),
-    create: (projectGroup: Omit<ProjectGroup, "id" | "createdAt" | "updatedAt" | "createdBy">) =>
+    getById: (id: string) =>
+        api.get<ProjectGroupWithProjects>(`/api/project-groups/${id}`),
+    create: (
+        projectGroup: Omit<
+            ProjectGroup,
+            "id" | "createdAt" | "updatedAt" | "createdBy"
+        >
+    ) =>
         api.post<ProjectGroup>("/api/project-groups", {
             name: projectGroup.name,
             description: projectGroup.description,
@@ -92,7 +106,9 @@ export const projectGroupsApi = {
     update: (id: string, updates: Partial<ProjectGroup>) =>
         api.put<ProjectGroup>(`/api/project-groups/${id}`, {
             ...(updates.name !== undefined && { name: updates.name }),
-            ...(updates.description !== undefined && { description: updates.description }),
+            ...(updates.description !== undefined && {
+                description: updates.description,
+            }),
             ...(updates.icon !== undefined && { icon: updates.icon }),
             ...(updates.color !== undefined && { color: updates.color }),
         }),
@@ -379,23 +395,23 @@ export const reportsApi = {
 
 // Onboarding
 export const onboardingApi = {
-    getStatus: () => api.get<OnboardingStatusData>('/api/onboarding/status'),
-    updateStatus: (status: string) => 
-        api.post('/api/onboarding/status', { status }),
+    getStatus: () => api.get<OnboardingStatusData>("/api/onboarding/status"),
+    updateStatus: (status: string) =>
+        api.post("/api/onboarding/status", { status }),
     uploadDocument: (docType: string, file: File) => {
         const formData = new FormData();
-        formData.append('file', file);
-        formData.append('doc_type', docType);
-        return api.post<UserDocument>('/api/onboarding/upload', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' }
+        formData.append("file", file);
+        formData.append("doc_type", docType);
+        return api.post<UserDocument>("/api/onboarding/upload", formData, {
+            headers: { "Content-Type": "multipart/form-data" },
         });
     },
-    getDocuments: (docType?: string) => 
-        api.get<UserDocument[]>('/api/onboarding/documents', { 
-            params: docType ? { doc_type: docType } : undefined 
+    getDocuments: (docType?: string) =>
+        api.get<UserDocument[]>("/api/onboarding/documents", {
+            params: docType ? { doc_type: docType } : undefined,
         }),
-    deleteDocument: (docId: string) => 
-        api.delete(`/api/onboarding/documents/${docId}`)
+    deleteDocument: (docId: string) =>
+        api.delete(`/api/onboarding/documents/${docId}`),
 };
 
 export default api;

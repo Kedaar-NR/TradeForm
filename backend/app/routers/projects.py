@@ -67,9 +67,21 @@ def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)
 
 @router.get("", response_model=List[schemas.Project])
 def list_projects(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    """List all trade study projects"""
-    projects = db.query(models.Project).offset(skip).limit(limit).all()
-    return projects
+    """List all trade study projects, sorted by most recently updated"""
+    try:
+        projects = db.query(models.Project).order_by(models.Project.updated_at.desc()).offset(skip).limit(limit).all()
+        return projects
+    except ValueError as e:
+        # Handle invalid UUID values in the database
+        # This can happen if there are legacy records with malformed UUIDs
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.error(f"Error querying projects due to invalid UUID: {e}")
+        logger.warning("This usually indicates corrupted data. Please check your database for invalid UUID values.")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Database contains invalid UUID values. Please check and clean your database. Error: {str(e)}"
+        )
 
 
 @router.get("/{project_id}", response_model=schemas.ProjectWithDetails)
