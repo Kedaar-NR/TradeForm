@@ -209,29 +209,44 @@ const DatasheetAssistantPanel: React.FC<DatasheetAssistantPanelProps> = ({
         </div>
       ) : (
         <div className="flex-1 flex flex-col overflow-hidden">
-          {/* Input Section - Always visible at top */}
-          <div className="flex-shrink-0 max-w-2xl mx-auto w-full">
-            {/* Suggested Questions - Always show when available */}
-            {suggestions.length > 0 && (
-              <div className="mb-4">
-                <p className="text-xs text-gray-600 font-medium mb-2">
-                  Suggested Questions
-                </p>
+          {/* Recommended Questions - Prominent display at top */}
+          {suggestions.length > 0 && (
+            <div className="flex-shrink-0 mb-6 pb-4 border-b border-gray-200">
+              <div className="max-w-2xl mx-auto w-full">
+                <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+                  <svg
+                    className="w-5 h-5 mr-2 text-indigo-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                    />
+                  </svg>
+                  Recommended Questions
+                </h3>
                 <div className="flex flex-wrap gap-2">
                   {suggestions.slice(0, 6).map((suggestion, idx) => (
                     <button
                       key={idx}
                       onClick={() => handleSuggestionClick(suggestion)}
                       disabled={loading}
-                      className="inline-flex items-center px-3 py-1.5 border border-indigo-300 text-xs rounded-full text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                      className="inline-flex items-center px-3 py-2 border border-indigo-300 text-sm rounded-lg text-indigo-700 bg-indigo-50 hover:bg-indigo-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed font-medium shadow-sm hover:shadow-md"
                     >
                       {suggestion}
                     </button>
                   ))}
                 </div>
               </div>
-            )}
+            </div>
+          )}
 
+          {/* Input Section - Always visible at top */}
+          <div className="flex-shrink-0 max-w-2xl mx-auto w-full">
             {/* Question Input */}
             <div className="mb-4">
               <label className="block text-sm font-medium text-gray-700 mb-2">
