@@ -51,7 +51,7 @@ export const DiscoveryActions: React.FC<DiscoveryActionsProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [showLocationDialog, setShowLocationDialog] = useState(false);
   const [locationPreference, setLocationPreference] = useState("");
-  const [numberOfComponents, setNumberOfComponents] = useState("");
+  const [numberOfComponents, setNumberOfComponents] = useState<number>(5);
   const canDownloadReport = hasReport && !isReportStale;
   const reportButtonDisabled = canDownloadReport
     ? isDownloadingReport
@@ -73,18 +73,16 @@ export const DiscoveryActions: React.FC<DiscoveryActionsProps> = ({
   const handleDialogConfirm = async () => {
     setShowLocationDialog(false);
     const location = locationPreference.trim() || undefined;
-    const numComponents = numberOfComponents.trim()
-      ? parseInt(numberOfComponents.trim(), 10)
-      : undefined;
+    const numComponents = numberOfComponents;
     await onDiscover(location, numComponents);
     setLocationPreference(""); // Reset after discovery
-    setNumberOfComponents(""); // Reset after discovery
+    setNumberOfComponents(5); // Reset to default after discovery
   };
 
   const handleDialogCancel = () => {
     setShowLocationDialog(false);
     setLocationPreference("");
-    setNumberOfComponents("");
+    setNumberOfComponents(5); // Reset to default
   };
 
   return (
@@ -107,34 +105,42 @@ export const DiscoveryActions: React.FC<DiscoveryActionsProps> = ({
               >
                 Location Preference (Optional)
               </label>
-              <input
+              <select
                 id="location-preference"
-                type="text"
                 value={locationPreference}
                 onChange={(e) => setLocationPreference(e.target.value)}
-                placeholder="e.g., United States, Europe, Asia-Pacific"
                 className="input-field"
-              />
+              >
+                <option value="">Any Location</option>
+                <option value="United States">United States</option>
+                <option value="China">China</option>
+                <option value="India">India</option>
+              </select>
             </div>
             <div className="mb-4">
               <label
                 htmlFor="number-of-components"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Number of Components (Optional)
+                Number of Components: <span className="font-semibold text-indigo-600">{numberOfComponents}</span>
               </label>
               <input
                 id="number-of-components"
-                type="number"
+                type="range"
                 min="1"
+                max="10"
                 value={numberOfComponents}
-                onChange={(e) => setNumberOfComponents(e.target.value)}
-                placeholder="e.g., 5, 10, 15"
-                className="input-field"
+                onChange={(e) => setNumberOfComponents(parseInt(e.target.value, 10))}
+                className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-indigo-600"
+                style={{
+                  background: `linear-gradient(to right, rgb(79 70 229) 0%, rgb(79 70 229) ${((numberOfComponents - 1) / 9) * 100}%, rgb(229 231 235) ${((numberOfComponents - 1) / 9) * 100}%, rgb(229 231 235) 100%)`
+                }}
               />
-              <p className="text-xs text-gray-500 mt-1">
-                Leave empty for default (5-10 components)
-              </p>
+              <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>1</span>
+                <span>5</span>
+                <span>10</span>
+              </div>
             </div>
             <div className="flex gap-3 justify-end">
               <button
