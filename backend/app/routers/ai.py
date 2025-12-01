@@ -84,28 +84,35 @@ def discover_components(
                 continue
             
             # Normalize availability value (AI might return uppercase like "LEAD_TIME" but enum expects "lead_time")
-            availability_str = comp_data.get("availability", "in_stock")
-            if isinstance(availability_str, str):
+            raw_availability = comp_data.get("availability", "in_stock")
+            availability_str = "in_stock"  # Default
+            
+            if isinstance(raw_availability, str):
                 # Convert to lowercase and replace hyphens with underscores
-                availability_str = availability_str.lower().replace("-", "_")
+                normalized = raw_availability.lower().replace("-", "_").strip()
                 # Map common variations to valid enum values
                 availability_map = {
                     "leadtime": "lead_time",
+                    "lead_time": "lead_time",
                     "instock": "in_stock",
                     "in_stock": "in_stock",
                     "limited": "limited",
-                    "lead_time": "lead_time",
                     "obsolete": "obsolete",
                 }
-                availability_str = availability_map.get(availability_str, "in_stock")
+                availability_str = availability_map.get(normalized, "in_stock")
+                logger.debug(f"Normalized availability: '{raw_availability}' -> '{normalized}' -> '{availability_str}'")
             else:
-                availability_str = "in_stock"
+                logger.warning(f"Non-string availability value: {raw_availability}, defaulting to 'in_stock'")
             
             # Validate and convert to enum, defaulting to IN_STOCK if invalid
             try:
+                # Use the enum value directly, not the name
                 availability = models.ComponentAvailability(availability_str)
+                # Double-check we're using the value, not the name
+                if availability.value != availability_str:
+                    logger.warning(f"Enum value mismatch: expected '{availability_str}', got '{availability.value}'")
             except (ValueError, KeyError) as e:
-                logger.warning(f"Invalid availability value '{comp_data.get('availability')}' -> '{availability_str}', defaulting to 'in_stock'. Error: {e}")
+                logger.error(f"Invalid availability value '{raw_availability}' -> '{availability_str}', defaulting to 'in_stock'. Error: {e}")
                 availability = models.ComponentAvailability.IN_STOCK
             
             db_component = models.Component(
