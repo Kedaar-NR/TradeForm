@@ -329,6 +329,54 @@
         0 8px 10px -6px rgba(0, 0, 0, 0.1);
 }
 
+/* Smooth hover lift for compact cards */
+.tf-hover-card {
+    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
+    will-change: transform;
+}
+
+.tf-hover-card:hover {
+    transform: scale(1.02);
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15),
+        0 10px 10px -5px rgba(0, 0, 0, 0.08);
+}
+
+/* Video performance optimizations */
+video {
+    will-change: auto;
+}
+
+video:not([autoplay]) {
+    display: block;
+}
+
+/* Smooth scroll-triggered card animation */
+@keyframes tf-card-scroll-in {
+    0% {
+        opacity: 0;
+        transform: translateY(48px) scale(0.95);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+.tf-card-scroll-reveal {
+    animation: tf-card-scroll-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+    /* Disable animations for users who prefer reduced motion */
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
 /* Tilt in top for icons */
 @keyframes tf-tilt-in-top {
     0% {

@@ -5,685 +5,138 @@ import { useInView } from "../hooks/useInView";
 interface FeatureCardProps {
   feature: Feature;
   index: number;
+  isVisible: boolean;
 }
 
-const FeatureCard: React.FC<FeatureCardProps> = ({ feature, index }) => {
-  const [ref, isVisible] = useInView<HTMLDivElement>({
-    rootMargin: "0px 0px -15% 0px",
-    threshold: 0.1,
+const FeatureCard: React.FC<FeatureCardProps> = ({ feature, index, isVisible }) => {
+  // Individual card visibility for scroll animations
+  const [cardRef, isCardVisible] = useInView<HTMLDivElement>({
+    rootMargin: "0px 0px -100px 0px",
+    threshold: 0.2,
   });
+  const hasVideo = feature.videoSrc;
 
-  // Determine layout based on feature preference or alternate
-  const layout = feature.layout || (index % 2 === 0 ? "hero" : "split");
+  // Select top 3 bullets for compact view
+  const displayBullets = feature.bullets.slice(0, 3);
 
-  // Render based on layout type
-  if (layout === "hero") {
-    return <HeroLayout feature={feature} index={index} isVisible={isVisible} ref={ref} />;
-  } else if (layout === "split") {
-    return <SplitLayout feature={feature} index={index} isVisible={isVisible} ref={ref} />;
-  } else if (layout === "grid") {
-    return <GridLayout feature={feature} index={index} isVisible={isVisible} ref={ref} />;
-  } else {
-    return <StackedLayout feature={feature} index={index} isVisible={isVisible} ref={ref} />;
-  }
-};
+  // Show card when it enters viewport (independent of parent section visibility)
+  const shouldShow = isCardVisible;
 
-// Hero Layout - Large centered design
-const HeroLayout = React.forwardRef<HTMLDivElement, { feature: Feature; index: number; isVisible: boolean }>(
-  ({ feature, index, isVisible }, ref) => {
-    return (
-      <article
-        ref={ref}
-        className={`
-          relative min-h-screen flex items-center justify-center py-20 px-6 bg-gray-50
-          ${!isVisible ? "opacity-0" : ""}
-        `}
-      >
-        <div className="max-w-6xl mx-auto w-full">
-          {/* Icon */}
-          <div
-            className={`text-7xl sm:text-8xl mb-8 text-center ${
-              isVisible ? "tf-anim-bounce-in" : ""
-            }`}
-            style={{ 
-              animationDelay: `${index * 0.1}s`,
-              filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1))'
-            }}
-            role="img"
-            aria-label={feature.title}
+  return (
+    <article
+      ref={cardRef}
+      className={`
+        relative overflow-hidden rounded-2xl border border-gray-200 shadow-lg
+        min-h-[450px] sm:min-h-[480px] flex flex-col
+        transition-all duration-500 ease-out
+        hover:scale-[1.02] hover:shadow-xl
+        ${!shouldShow ? "opacity-0 translate-y-12 scale-95" : "opacity-100 translate-y-0 scale-100"}
+      `}
+      style={{
+        transitionDelay: shouldShow ? `${index * 0.1}s` : "0s",
+        willChange: shouldShow ? "transform, opacity" : "auto",
+      }}
+    >
+      {/* Video Background or Gradient Background */}
+      {hasVideo ? (
+        <div className="absolute inset-0 w-full h-full z-0">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full h-full object-cover"
+            style={{ filter: "brightness(0.7)" }}
           >
-            {feature.icon}
-          </div>
+            <source src={feature.videoSrc} type="video/mp4" />
+          </video>
+          {/* Gradient overlay for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70"></div>
+        </div>
+      ) : (
+        <div
+          className="absolute inset-0 w-full h-full z-0"
+          style={{
+            background: `linear-gradient(135deg, 
+              ${getGradientColors(index)[0]} 0%, 
+              ${getGradientColors(index)[1]} 100%)`,
+          }}
+        ></div>
+      )}
 
-          {/* Title */}
-          <h3
-            className={`text-4xl sm:text-5xl lg:text-6xl font-bold text-gray-900 mb-4 text-center tracking-tight ${
-              isVisible ? "tf-anim-tracking-in-expand" : ""
-            }`}
-            style={{ animationDelay: `${index * 0.1 + 0.1}s` }}
-          >
-            {feature.title}
-          </h3>
+      {/* Content */}
+      <div className="relative z-10 p-6 sm:p-7 lg:p-8 flex flex-col h-full">
+        {/* Icon */}
+        <div
+          className="text-5xl sm:text-6xl mb-3 sm:mb-4"
+          style={{
+            filter: "drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3))",
+          }}
+          role="img"
+          aria-label={feature.title}
+        >
+          {feature.icon}
+        </div>
 
-          {/* Tagline */}
-          {feature.tagline && (
-            <p
-              className={`text-xl sm:text-2xl text-gray-600 mb-6 text-center max-w-3xl mx-auto ${
-                isVisible ? "tf-anim-text-focus-in" : ""
-              }`}
-              style={{ animationDelay: `${index * 0.1 + 0.2}s` }}
-            >
-              {feature.tagline}
-            </p>
-          )}
+        {/* Title */}
+        <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-2 tracking-tight">
+          {feature.title}
+        </h3>
 
-          {/* Description */}
-          <p
-            className={`text-lg text-gray-700 mb-12 text-center max-w-4xl mx-auto leading-relaxed ${
-              isVisible ? "tf-anim-fade-in-up-stagger" : ""
-            }`}
-            style={{ animationDelay: `${index * 0.1 + 0.3}s` }}
-          >
-            {feature.description}
+        {/* Tagline */}
+        {feature.tagline && (
+          <p className="text-sm sm:text-base text-white/90 mb-3 sm:mb-4 leading-relaxed">
+            {feature.tagline}
           </p>
+        )}
 
-          {/* Stats Row */}
-          {feature.stats && feature.stats.length > 0 && (
-            <div className="grid grid-cols-3 gap-6 mb-12 max-w-3xl mx-auto">
-              {feature.stats.map((stat, statIndex) => (
-                <div
-                  key={statIndex}
-                  className={`text-center p-6 bg-white rounded-xl border border-gray-200 shadow-md tf-hover-lift ${
-                    isVisible ? "tf-anim-fade-in-up-stagger" : ""
-                  }`}
-                  style={{ 
-                    animationDelay: `${index * 0.1 + 0.4 + statIndex * 0.1}s`,
-                  }}
-                >
-                  <div className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">
-                    {stat.value}
-                  </div>
-                  <div className="text-sm text-gray-600">{stat.label}</div>
-                </div>
-              ))}
-            </div>
-          )}
+        {/* Divider */}
+        <div className="h-0.5 w-12 sm:w-16 bg-white/40 rounded-full mb-3 sm:mb-4"></div>
 
-          {/* Highlights Grid */}
-          {feature.highlights && feature.highlights.length > 0 && (
-            <div className="grid md:grid-cols-3 gap-6 mb-12">
-              {feature.highlights.map((highlight, hIndex) => (
-                <div
-                  key={hIndex}
-                  className={`p-6 bg-white rounded-xl border border-gray-200 shadow-md tf-hover-lift ${
-                    isVisible ? "tf-anim-slide-in-scale" : ""
-                  }`}
-                  style={{ 
-                    animationDelay: `${index * 0.1 + 0.5 + hIndex * 0.1}s`,
-                  }}
-                >
-                  <h4 className="text-lg font-semibold text-gray-900 mb-3">
-                    {highlight.title}
-                  </h4>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    {highlight.description}
-                  </p>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Bullets */}
-          <div className="max-w-5xl mx-auto">
-            <div className="grid md:grid-cols-2 gap-4">
-              {feature.bullets.map((bullet, bulletIndex) => (
-                <div
-                  key={bulletIndex}
-                  className={`flex items-start gap-3 p-4 bg-white rounded-lg border border-gray-200 shadow-sm ${
-                    isVisible ? "tf-anim-fade-in-up-stagger" : ""
-                  }`}
-                  style={{ animationDelay: `${index * 0.1 + 0.6 + bulletIndex * 0.05}s` }}
-                >
-                  <span className="flex-shrink-0 mt-1 text-lg text-gray-700">✓</span>
-                  <span className="text-sm text-gray-700">{bullet}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </article>
-    );
-  }
-);
-
-// Split Layout - Content with video cutout
-const SplitLayout = React.forwardRef<HTMLDivElement, { feature: Feature; index: number; isVisible: boolean }>(
-  ({ feature, index, isVisible }, ref) => {
-    const hasVideo = feature.videoSrc;
-    const videoOnLeft = feature.videoPosition === "left";
-
-    return (
-      <article
-        ref={ref}
-        className={`
-          relative min-h-screen flex items-center justify-center py-20 px-6 bg-white
-          ${!isVisible ? "opacity-0" : ""}
-        `}
-      >
-        <div className="max-w-7xl mx-auto w-full">
-          <div className={`grid lg:grid-cols-2 gap-12 items-center ${videoOnLeft ? 'lg:grid-flow-dense' : ''}`}>
-            {/* Content Column */}
-            <div className={`space-y-6 ${videoOnLeft ? 'lg:col-start-2' : ''}`}>
-              {/* Icon */}
-              <div
-                className={`text-6xl ${isVisible ? "tf-anim-rotate-in" : ""}`}
-                style={{ 
-                  animationDelay: `${index * 0.1}s`,
-                  filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1))'
-                }}
-                role="img"
-                aria-label={feature.title}
-              >
-                {feature.icon}
-              </div>
-
-              {/* Title */}
-              <h3
-                className={`text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 tracking-tight ${
-                  isVisible ? "tf-anim-slide-in-left" : ""
-                }`}
-                style={{ animationDelay: `${index * 0.1 + 0.1}s` }}
-              >
-                {feature.title}
-              </h3>
-
-              {/* Decorative line */}
-              <div className="h-1 w-24 rounded-full bg-gray-900"></div>
-
-              {/* Tagline */}
-              {feature.tagline && (
-                <p
-                  className={`text-lg sm:text-xl text-gray-600 ${
-                    isVisible ? "tf-anim-fade-in-up-stagger" : ""
-                  }`}
-                  style={{ animationDelay: `${index * 0.1 + 0.2}s` }}
-                >
-                  {feature.tagline}
-                </p>
-              )}
-
-              {/* Description */}
-              <p
-                className={`text-base text-gray-700 leading-relaxed ${
-                  isVisible ? "tf-anim-fade-in-up-stagger" : ""
-                }`}
-                style={{ animationDelay: `${index * 0.1 + 0.3}s` }}
-              >
-                {feature.description}
-              </p>
-
-              {/* Stats if available */}
-              {feature.stats && feature.stats.length > 0 && (
-                <div className="grid grid-cols-3 gap-4 pt-4">
-                  {feature.stats.map((stat, statIndex) => (
-                    <div
-                      key={statIndex}
-                      className={`text-center p-4 bg-gray-50 rounded-lg border border-gray-200 shadow-sm ${
-                        isVisible ? "tf-anim-bounce-in" : ""
-                      }`}
-                      style={{ 
-                        animationDelay: `${index * 0.1 + 0.4 + statIndex * 0.1}s`,
-                      }}
-                    >
-                      <div className="text-2xl font-bold text-gray-900">{stat.value}</div>
-                      <div className="text-xs text-gray-600">{stat.label}</div>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Highlights */}
-              {feature.highlights && feature.highlights.length > 0 && !hasVideo && (
-                <div className="space-y-4 pt-4">
-                  {feature.highlights.map((highlight, hIndex) => (
-                    <div
-                      key={hIndex}
-                      className={`p-5 bg-gray-50 rounded-xl border border-gray-200 shadow-sm tf-hover-lift ${
-                        isVisible ? "tf-anim-slide-in-right" : ""
-                      }`}
-                      style={{ 
-                        animationDelay: `${index * 0.1 + 0.3 + hIndex * 0.1}s`,
-                      }}
-                    >
-                      <h4 className="text-base font-semibold text-gray-900 mb-2">
-                        {highlight.title}
-                      </h4>
-                      <p className="text-sm text-gray-600 leading-relaxed">
-                        {highlight.description}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Bullets */}
-              <div className="space-y-3 pt-4">
-                {feature.bullets.slice(0, 6).map((bullet, bulletIndex) => (
-                  <div
-                    key={bulletIndex}
-                    className={`flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 ${
-                      isVisible ? "tf-anim-fade-in-up-stagger" : ""
-                    }`}
-                    style={{ animationDelay: `${index * 0.1 + 0.5 + bulletIndex * 0.05}s` }}
-                  >
-                    <span className="flex-shrink-0 mt-1 text-sm text-gray-700">✓</span>
-                    <span className="text-sm text-gray-700">{bullet}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Video/Visual Column */}
-            <div className={`${videoOnLeft ? 'lg:col-start-1 lg:row-start-1' : ''}`}>
-              {hasVideo ? (
-                <div 
-                  className={`relative rounded-2xl overflow-hidden shadow-2xl ${
-                    isVisible ? "tf-anim-blur-reveal" : ""
-                  }`}
-                  style={{ animationDelay: `${index * 0.1 + 0.4}s` }}
-                >
-                  <video
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    className="w-full h-full object-cover"
-                    style={{ maxHeight: '600px' }}
-                  >
-                    <source src={feature.videoSrc} type="video/mp4" />
-                  </video>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
-                </div>
-              ) : (
-                feature.highlights && feature.highlights.length > 0 && (
-                  <div className="space-y-4">
-                    {feature.highlights.map((highlight, hIndex) => (
-                      <div
-                        key={hIndex}
-                        className={`p-6 bg-gray-50 rounded-xl border border-gray-200 shadow-md tf-hover-lift ${
-                          isVisible ? "tf-anim-slide-in-right" : ""
-                        }`}
-                        style={{ 
-                          animationDelay: `${index * 0.1 + 0.3 + hIndex * 0.1}s`,
-                        }}
-                      >
-                        <h4 className="text-base font-semibold text-gray-900 mb-2">
-                          {highlight.title}
-                        </h4>
-                        <p className="text-sm text-gray-600 leading-relaxed">
-                          {highlight.description}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )
-              )}
-            </div>
-          </div>
-        </div>
-      </article>
-    );
-  }
-);
-
-// Grid Layout - Feature cards in grid
-const GridLayout = React.forwardRef<HTMLDivElement, { feature: Feature; index: number; isVisible: boolean }>(
-  ({ feature, index, isVisible }, ref) => {
-    return (
-      <article
-        ref={ref}
-        className={`
-          relative min-h-screen flex items-center justify-center py-20 px-6 bg-gray-50
-          ${!isVisible ? "opacity-0" : ""}
-        `}
-      >
-        <div className="max-w-7xl mx-auto w-full">
-          {/* Header */}
-          <div className="text-center mb-12">
+        {/* Key Bullets */}
+        <div className="space-y-2 sm:space-y-2.5 flex-grow">
+          {displayBullets.map((bullet, bulletIndex) => (
             <div
-              className={`text-6xl mb-6 ${isVisible ? "tf-anim-bounce-in" : ""}`}
-              style={{ 
-                animationDelay: `${index * 0.1}s`,
-                filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1))'
-              }}
-              role="img"
-              aria-label={feature.title}
+              key={bulletIndex}
+              className="flex items-start gap-2 sm:gap-2.5"
             >
-              {feature.icon}
+              <span className="flex-shrink-0 mt-0.5 sm:mt-1 text-white/80 text-xs sm:text-sm">✓</span>
+              <span className="text-xs sm:text-sm text-white/95 leading-relaxed">
+                {bullet}
+              </span>
             </div>
+          ))}
+        </div>
 
-            <h3
-              className={`text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 tracking-tight ${
-                isVisible ? "tf-anim-tracking-in-expand" : ""
-              }`}
-              style={{ animationDelay: `${index * 0.1 + 0.1}s` }}
-            >
-              {feature.title}
-            </h3>
-
-            <div className="h-1 w-24 rounded-full mx-auto mb-4 bg-gray-900"></div>
-
-            {feature.tagline && (
-              <p
-                className={`text-lg sm:text-xl text-gray-600 mb-4 ${
-                  isVisible ? "tf-anim-text-focus-in" : ""
-                }`}
-                style={{ animationDelay: `${index * 0.1 + 0.2}s` }}
-              >
-                {feature.tagline}
-              </p>
-            )}
-
-            <p
-              className={`text-base text-gray-700 max-w-3xl mx-auto leading-relaxed ${
-                isVisible ? "tf-anim-fade-in-up-stagger" : ""
-              }`}
-              style={{ animationDelay: `${index * 0.1 + 0.3}s` }}
-            >
-              {feature.description}
-            </p>
-          </div>
-
-          {/* Highlights Grid */}
-          {feature.highlights && feature.highlights.length > 0 && (
-            <div className="grid md:grid-cols-3 gap-6 mb-10">
-              {feature.highlights.map((highlight, hIndex) => (
-                <div
-                  key={hIndex}
-                  className={`p-6 bg-white rounded-xl border border-gray-200 shadow-md tf-hover-lift ${
-                    isVisible ? "tf-anim-slide-in-scale" : ""
-                  }`}
-                  style={{ 
-                    animationDelay: `${index * 0.1 + 0.4 + hIndex * 0.1}s`,
-                  }}
-                >
-                  <h4 className="text-lg font-semibold text-gray-900 mb-3">
-                    {highlight.title}
-                  </h4>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    {highlight.description}
-                  </p>
+        {/* Stats (if available) */}
+        {feature.stats && feature.stats.length > 0 && (
+          <div className="grid grid-cols-3 gap-2 sm:gap-3 mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-white/20">
+            {feature.stats.map((stat, statIndex) => (
+              <div key={statIndex} className="text-center">
+                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-white mb-0.5">
+                  {stat.value}
                 </div>
-              ))}
-            </div>
-          )}
-
-          {/* Bullets Grid */}
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {feature.bullets.map((bullet, bulletIndex) => (
-              <div
-                key={bulletIndex}
-                className={`flex items-start gap-3 p-4 bg-white rounded-lg border border-gray-200 shadow-sm tf-hover-lift ${
-                  isVisible ? "tf-anim-fade-in-up-stagger" : ""
-                }`}
-                style={{ animationDelay: `${index * 0.1 + 0.5 + bulletIndex * 0.05}s` }}
-              >
-                <span className="flex-shrink-0 mt-1 text-sm text-gray-700">✓</span>
-                <span className="text-sm text-gray-700">{bullet}</span>
+                <div className="text-[10px] sm:text-xs text-white/70 leading-tight">{stat.label}</div>
               </div>
             ))}
           </div>
+        )}
+      </div>
+    </article>
+  );
+};
 
-          {/* Stats Row */}
-          {feature.stats && feature.stats.length > 0 && (
-            <div className="grid grid-cols-3 gap-6 mt-10 max-w-3xl mx-auto">
-              {feature.stats.map((stat, statIndex) => (
-                <div
-                  key={statIndex}
-                  className={`text-center p-6 bg-white rounded-xl border border-gray-200 shadow-md ${
-                    isVisible ? "tf-anim-bounce-in" : ""
-                  }`}
-                  style={{ 
-                    animationDelay: `${index * 0.1 + 0.7 + statIndex * 0.1}s`,
-                  }}
-                >
-                  <div className="text-3xl font-bold text-gray-900 mb-2">{stat.value}</div>
-                  <div className="text-sm text-gray-600">{stat.label}</div>
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-      </article>
-    );
-  }
-);
-
-// Stacked Layout - Full-width content with video option
-const StackedLayout = React.forwardRef<HTMLDivElement, { feature: Feature; index: number; isVisible: boolean }>(
-  ({ feature, index, isVisible }, ref) => {
-    const hasVideo = feature.videoSrc;
-    const videoOnLeft = feature.videoPosition === "left";
-
-    return (
-      <article
-        ref={ref}
-        className={`
-          relative min-h-screen flex items-center justify-center py-20 px-6 bg-white
-          ${!isVisible ? "opacity-0" : ""}
-        `}
-      >
-        <div className="max-w-7xl mx-auto w-full">
-          {hasVideo ? (
-            <div className="grid lg:grid-cols-2 gap-12 items-center">
-              {/* Content Side */}
-              <div className={`space-y-8 ${videoOnLeft ? 'lg:order-2' : ''}`}>
-                {/* Header */}
-                <div className="flex items-center gap-6">
-                  <div
-                    className={`text-5xl ${isVisible ? "tf-anim-bounce-in" : ""}`}
-                    style={{ 
-                      animationDelay: `${index * 0.1}s`,
-                      filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1))'
-                    }}
-                    role="img"
-                    aria-label={feature.title}
-                  >
-                    {feature.icon}
-                  </div>
-
-                  <div className="flex-1">
-                    <h3
-                      className={`text-3xl sm:text-4xl font-bold text-gray-900 mb-2 tracking-tight ${
-                        isVisible ? "tf-anim-slide-in-left" : ""
-                      }`}
-                      style={{ animationDelay: `${index * 0.1 + 0.1}s` }}
-                    >
-                      {feature.title}
-                    </h3>
-                    {feature.tagline && (
-                      <p
-                        className={`text-lg text-gray-600 ${
-                          isVisible ? "tf-anim-fade-in-up-stagger" : ""
-                        }`}
-                        style={{ animationDelay: `${index * 0.1 + 0.2}s` }}
-                      >
-                        {feature.tagline}
-                      </p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="h-1 w-32 rounded-full bg-gray-900"></div>
-
-                {/* Description */}
-                <p
-                  className={`text-base text-gray-700 leading-relaxed ${
-                    isVisible ? "tf-anim-fade-in-up-stagger" : ""
-                  }`}
-                  style={{ animationDelay: `${index * 0.1 + 0.3}s` }}
-                >
-                  {feature.description}
-                </p>
-
-                {/* Highlights */}
-                {feature.highlights && feature.highlights.length > 0 && (
-                  <div className="space-y-4">
-                    {feature.highlights.map((highlight, hIndex) => (
-                      <div
-                        key={hIndex}
-                        className={`p-5 bg-gray-50 rounded-xl border border-gray-200 shadow-sm tf-hover-lift ${
-                          isVisible ? "tf-anim-slide-in-scale" : ""
-                        }`}
-                        style={{ 
-                          animationDelay: `${index * 0.1 + 0.4 + hIndex * 0.1}s`,
-                        }}
-                      >
-                        <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                          {highlight.title}
-                        </h4>
-                        <p className="text-sm text-gray-600 leading-relaxed">
-                          {highlight.description}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* Bullets */}
-                <div className="grid sm:grid-cols-2 gap-3">
-                  {feature.bullets.slice(0, 6).map((bullet, bulletIndex) => (
-                    <div
-                      key={bulletIndex}
-                      className={`flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 ${
-                        isVisible ? "tf-anim-fade-in-up-stagger" : ""
-                      }`}
-                      style={{ animationDelay: `${index * 0.1 + 0.5 + bulletIndex * 0.05}s` }}
-                    >
-                      <span className="flex-shrink-0 mt-1 text-sm text-gray-700">✓</span>
-                      <span className="text-sm text-gray-700">{bullet}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Video Side */}
-              <div className={videoOnLeft ? 'lg:order-1' : ''}>
-                <div 
-                  className={`relative rounded-2xl overflow-hidden shadow-2xl ${
-                    isVisible ? "tf-anim-blur-reveal" : ""
-                  }`}
-                  style={{ animationDelay: `${index * 0.1 + 0.4}s` }}
-                >
-                  <video
-                    autoPlay
-                    loop
-                    muted
-                    playsInline
-                    className="w-full h-full object-cover"
-                    style={{ maxHeight: '600px' }}
-                  >
-                    <source src={feature.videoSrc} type="video/mp4" />
-                  </video>
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="max-w-5xl mx-auto space-y-10">
-              {/* Header */}
-              <div className="flex items-center gap-6">
-                <div
-                  className={`text-5xl ${isVisible ? "tf-anim-bounce-in" : ""}`}
-                  style={{ 
-                    animationDelay: `${index * 0.1}s`,
-                    filter: 'drop-shadow(0 4px 12px rgba(0, 0, 0, 0.1))'
-                  }}
-                  role="img"
-                  aria-label={feature.title}
-                >
-                  {feature.icon}
-                </div>
-
-                <div className="flex-1">
-                  <h3
-                    className={`text-3xl sm:text-4xl font-bold text-gray-900 mb-2 tracking-tight ${
-                      isVisible ? "tf-anim-slide-in-left" : ""
-                    }`}
-                    style={{ animationDelay: `${index * 0.1 + 0.1}s` }}
-                  >
-                    {feature.title}
-                  </h3>
-                  {feature.tagline && (
-                    <p
-                      className={`text-lg text-gray-600 ${
-                        isVisible ? "tf-anim-fade-in-up-stagger" : ""
-                      }`}
-                      style={{ animationDelay: `${index * 0.1 + 0.2}s` }}
-                    >
-                      {feature.tagline}
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              <div className="h-1 w-32 rounded-full bg-gray-900"></div>
-
-              {/* Description */}
-              <p
-                className={`text-base text-gray-700 leading-relaxed ${
-                  isVisible ? "tf-anim-fade-in-up-stagger" : ""
-                }`}
-                style={{ animationDelay: `${index * 0.1 + 0.3}s` }}
-              >
-                {feature.description}
-              </p>
-
-              {/* Highlights */}
-              {feature.highlights && feature.highlights.length > 0 && (
-                <div className="space-y-4">
-                  {feature.highlights.map((highlight, hIndex) => (
-                    <div
-                      key={hIndex}
-                      className={`p-5 bg-gray-50 rounded-xl border border-gray-200 shadow-sm tf-hover-lift ${
-                        isVisible ? "tf-anim-slide-in-scale" : ""
-                      }`}
-                      style={{ 
-                        animationDelay: `${index * 0.1 + 0.4 + hIndex * 0.1}s`,
-                      }}
-                    >
-                      <h4 className="text-lg font-semibold text-gray-900 mb-2">
-                        {highlight.title}
-                      </h4>
-                      <p className="text-sm text-gray-600 leading-relaxed">
-                        {highlight.description}
-                      </p>
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {/* Bullets */}
-              <div className="grid sm:grid-cols-2 gap-3">
-                {feature.bullets.map((bullet, bulletIndex) => (
-                  <div
-                    key={bulletIndex}
-                    className={`flex items-start gap-3 p-3 bg-gray-50 rounded-lg border border-gray-200 ${
-                      isVisible ? "tf-anim-fade-in-up-stagger" : ""
-                    }`}
-                    style={{ animationDelay: `${index * 0.1 + 0.5 + bulletIndex * 0.05}s` }}
-                  >
-                    <span className="flex-shrink-0 mt-1 text-sm text-gray-700">✓</span>
-                    <span className="text-sm text-gray-700">{bullet}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </article>
-    );
-  }
-);
+// Helper function to get gradient colors based on index
+function getGradientColors(index: number): [string, string] {
+  const gradients: [string, string][] = [
+    ["#667eea", "#764ba2"], // Purple gradient
+    ["#f093fb", "#f5576c"], // Pink gradient
+    ["#4facfe", "#00f2fe"], // Blue gradient
+    ["#43e97b", "#38f9d7"], // Green gradient
+    ["#fa709a", "#fee140"], // Orange-pink gradient
+    ["#30cfd0", "#330867"], // Teal-purple gradient
+  ];
+  return gradients[index % gradients.length];
+}
 
 export default FeatureCard;

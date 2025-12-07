@@ -40,7 +40,7 @@ export function useInView<T extends HTMLElement>(
     observerRef.current = new IntersectionObserver(([entry]) => {
       if (entry.isIntersecting) {
         setIsVisible(true);
-        // Stop observing once visible
+        // Stop observing once visible - entrance animation should only happen once
         if (observerRef.current && element) {
           observerRef.current.unobserve(element);
         }

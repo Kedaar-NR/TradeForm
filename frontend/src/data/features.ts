@@ -62,6 +62,7 @@ export const FEATURES: Feature[] = [
     category: "Evaluation",
     priority: 1,
     layout: "hero",
+    videoSrc: "/videos/31772-388253161_small.mp4",
   },
   {
     id: "fast-results",
@@ -154,6 +155,7 @@ export const FEATURES: Feature[] = [
     category: "Reporting",
     priority: 3,
     layout: "grid",
+    videoSrc: "/videos/1046-142621379.mp4",
   },
   {
     id: "custom-criteria",
@@ -281,5 +283,6 @@ export const FEATURES: Feature[] = [
     category: "Collaboration",
     priority: 6,
     layout: "hero",
+    videoSrc: "/videos/192281-892475127.mp4",
   },
 ];
