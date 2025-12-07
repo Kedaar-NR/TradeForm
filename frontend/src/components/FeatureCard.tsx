@@ -5,10 +5,9 @@ import { useInView } from "../hooks/useInView";
 interface FeatureCardProps {
   feature: Feature;
   index: number;
-  isVisible: boolean;
 }
 
-const FeatureCard: React.FC<FeatureCardProps> = ({ feature, index, isVisible }) => {
+const FeatureCard: React.FC<FeatureCardProps> = ({ feature, index }) => {
   // Individual card visibility for scroll animations
   const [cardRef, isCardVisible] = useInView<HTMLDivElement>({
     rootMargin: "0px 0px -100px 0px",

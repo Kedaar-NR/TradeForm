@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Logo from "../components/Logo";
 import FeaturesScrollSection from "../components/sections/FeaturesScrollSection";
+import CompanyLogoSlider from "../components/sections/CompanyLogoSlider";
 
 const Landing: React.FC = () => {
   const navigate = useNavigate();
@@ -318,6 +319,7 @@ const Landing: React.FC = () => {
       {/* Features Section - Scrollable Content */}
       <div className="relative z-20" style={{ marginTop: "100vh" }}>
         <FeaturesScrollSection />
+        <CompanyLogoSlider />
       </div>
     </div>
   );

@@ -120,7 +120,6 @@ const FeaturesScrollSection: React.FC = () => {
                 key={feature.id}
                 feature={feature}
                 index={index}
-                isVisible={sectionVisible}
               />
             ))}
           </div>

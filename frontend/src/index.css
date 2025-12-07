@@ -366,6 +366,23 @@ video:not([autoplay]) {
     animation: tf-card-scroll-in 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) both;
 }
 
+/* Logo styling - handles both transparent and white backgrounds */
+.logo-hover-effect {
+    transition: opacity 0.3s ease;
+}
+
+.logo-hover-effect img {
+    filter: grayscale(100%) brightness(1.1);
+    transition: filter 0.3s ease;
+    mix-blend-mode: darken;
+    background: transparent;
+}
+
+.logo-hover-effect:hover img {
+    filter: grayscale(0%) brightness(1);
+    mix-blend-mode: normal;
+}
+
 @media (prefers-reduced-motion: reduce) {
     /* Disable animations for users who prefer reduced motion */
     *,
