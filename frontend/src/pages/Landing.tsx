@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Logo from "../components/Logo";
+import FeaturesScrollSection from "../components/sections/FeaturesScrollSection";
 
 const Landing: React.FC = () => {
   const navigate = useNavigate();
@@ -14,6 +15,8 @@ const Landing: React.FC = () => {
     null
   );
   const heroContentRef = useRef<HTMLDivElement | null>(null);
+  const [videoOpacity, setVideoOpacity] = useState(1);
+  const [heroOpacity, setHeroOpacity] = useState(1);
 
   const videos = useMemo(
     () => [
@@ -73,12 +76,24 @@ const Landing: React.FC = () => {
   }, [useA, currentVideoIndex, videos]);
   // No source swapping inside the element anymore — handled by refs & .src
 
-  // Move hero content up slightly as user scrolls
+  // Handle scroll for video fade-out and hero parallax
   useEffect(() => {
     const handleScroll = () => {
-      // Move hero content up slightly as user scrolls
-      if (heroContentRef.current) {
-        const scrollY = window.scrollY;
+      const scrollY = window.scrollY;
+      const fadeStart = 0;
+      const fadeEnd = 800; // Fade out over 800px of scroll
+
+      // Calculate opacity (1 to 0) based on scroll position
+      const opacity = Math.max(
+        0,
+        Math.min(1, 1 - (scrollY - fadeStart) / (fadeEnd - fadeStart))
+      );
+
+      setVideoOpacity(opacity);
+      setHeroOpacity(opacity);
+
+      // Move hero content up slightly as user scrolls (only when still visible)
+      if (heroContentRef.current && opacity > 0) {
         const maxScroll = window.innerHeight;
         const translateY = Math.min(scrollY * 0.3, maxScroll * 0.3);
         heroContentRef.current.style.transform = `translateY(-${translateY}px)`;
@@ -120,9 +135,12 @@ const Landing: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen relative overflow-x-hidden">
+    <div className="min-h-[200vh] relative overflow-x-hidden">
       {/* Full Page Video Background */}
-      <div className="fixed inset-0 w-full h-full z-0 bg-black">
+      <div
+        className="fixed inset-0 w-full h-full z-0 bg-black"
+        style={{ opacity: videoOpacity }}
+      >
         <video
           ref={videoARef}
           autoPlay
@@ -207,6 +225,7 @@ const Landing: React.FC = () => {
           justifyContent: "center",
           willChange: "transform",
           position: "fixed",
+          opacity: heroOpacity,
         }}
       >
         <div
@@ -301,6 +320,11 @@ const Landing: React.FC = () => {
           </div>
         </div>
       </section>
+
+      {/* Features Section - Scrollable Content */}
+      <div className="relative z-20" style={{ marginTop: "100vh" }}>
+        <FeaturesScrollSection />
+      </div>
     </div>
   );
 };

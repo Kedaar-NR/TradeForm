@@ -1,5 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import Logo from "../components/Logo";
+import FeaturesScrollSection from "../components/sections/FeaturesScrollSection";
 
 const Features = () => {
   const navigate = useNavigate();
@@ -56,115 +57,7 @@ const Features = () => {
       </nav>
 
       {/* Features Section */}
-      <section className="py-28 bg-white">
-        <div className="max-w-7xl mx-auto px-6 lg:px-8">
-          <div className="text-center mb-16 -mt-2">
-            <h2 className="text-4xl md:text-5xl font-bold text-gray-900 mb-3 tracking-tight flex items-center justify-center gap-3">
-              <span role="img" aria-label="USA">
-                🇺🇸
-              </span>
-              TradeForm Features
-            </h2>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="p-10 bg-white border border-gray-200 rounded-xl hover:shadow-md transition-shadow">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center justify-center gap-2">
-                <span role="img" aria-label="gear">
-                  ⚙️
-                </span>
-                Automated Scoring
-              </h3>
-              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-6">
-                <li>Score and rank components against weighted criteria</li>
-                <li>
-                  Adjust weights in real-time, see instant ranking updates
-                </li>
-                <li>
-                  Multi-dimensional evaluation across performance, cost,
-                  reliability
-                </li>
-                <li>Objective, data-backed decision support</li>
-              </ul>
-            </div>
-
-            <div className="p-10 bg-white border border-gray-200 rounded-xl hover:shadow-md transition-shadow">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center justify-center gap-2">
-                <span role="img" aria-label="lightning">
-                  ⚡
-                </span>
-                Fast Results
-              </h3>
-              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-6">
-                <li>Complete trade studies in minutes instead of weeks</li>
-                <li>Parallel AI-assisted component discovery</li>
-                <li>Automated technical specification gathering</li>
-                <li>Simultaneous scoring across all alternatives</li>
-              </ul>
-            </div>
-
-            <div className="p-10 bg-white border border-gray-200 rounded-xl hover:shadow-md transition-shadow">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center justify-center gap-2">
-                <span role="img" aria-label="chart">
-                  📊
-                </span>
-                Reports & Exports
-              </h3>
-              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-6">
-                <li>Presentation-ready reports with professional charts</li>
-                <li>Sensitivity analysis and trade-off visualizations</li>
-                <li>CSV/Excel export for further processing</li>
-                <li>Tornado diagrams, spider charts, comparison matrices</li>
-              </ul>
-            </div>
-
-            <div className="p-10 bg-white border border-gray-200 rounded-xl hover:shadow-md transition-shadow">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center justify-center gap-2">
-                <span role="img" aria-label="abacus">
-                  🧮
-                </span>
-                Custom Criteria
-              </h3>
-              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-6">
-                <li>Define bespoke criteria tailored to your decisions</li>
-                <li>Templates for common trade study types</li>
-                <li>Custom scoring rubrics and thresholds</li>
-                <li>Support for quantitative and qualitative assessments</li>
-              </ul>
-            </div>
-
-            <div className="p-10 bg-white border border-gray-200 rounded-xl hover:shadow-md transition-shadow">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center justify-center gap-2">
-                <span role="img" aria-label="clock">
-                  🕒
-                </span>
-                Version History
-              </h3>
-              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-6">
-                <li>Track every design iteration and decision point</li>
-                <li>Compare alternatives side-by-side with visual diffs</li>
-                <li>Roll back to previous versions or explore branches</li>
-                <li>Essential for design reviews and compliance audits</li>
-              </ul>
-            </div>
-
-            <div className="p-10 bg-white border border-gray-200 rounded-xl hover:shadow-md transition-shadow">
-              <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center justify-center gap-2">
-                <span role="img" aria-label="people">
-                  👥
-                </span>
-                Team Collaboration
-              </h3>
-              <ul className="text-sm text-gray-600 space-y-2 text-left list-disc list-inside ml-6">
-                <li>Share studies with team members and stakeholders</li>
-                <li>Comment inline on specific criteria or components</li>
-                <li>Capture decision rationale and approval trails</li>
-                <li>Track who changed what and when</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </section>
+      <FeaturesScrollSection />
 
       {/* Footer Section */}
       <footer className="bg-white border-t border-gray-200 pt-12 pb-8">

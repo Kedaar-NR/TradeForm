@@ -187,6 +187,187 @@
     animation-delay: 4s;
 }
 
+/* ============================================
+   Animista Animations - https://animista.net
+   All animations namespaced with .tf-anim-*
+   ============================================ */
+
+/* Fade in bottom - for section intro */
+@keyframes tf-fade-in-bottom {
+    0% {
+        transform: translateY(50px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.tf-anim-fade-in-bottom {
+    animation: tf-fade-in-bottom 0.6s ease-out both;
+}
+
+/* Tracking in expand - for main heading */
+@keyframes tf-tracking-in-expand {
+    0% {
+        letter-spacing: -0.5em;
+        opacity: 0;
+    }
+    40% {
+        opacity: 0.6;
+    }
+    100% {
+        letter-spacing: normal;
+        opacity: 1;
+    }
+}
+
+.tf-anim-tracking-in-expand {
+    animation: tf-tracking-in-expand 0.7s cubic-bezier(0.215, 0.61, 0.355, 1) both;
+}
+
+/* Text focus in - for subheading */
+@keyframes tf-text-focus-in {
+    0% {
+        filter: blur(12px);
+        opacity: 0;
+    }
+    100% {
+        filter: blur(0px);
+        opacity: 1;
+    }
+}
+
+.tf-anim-text-focus-in {
+    animation: tf-text-focus-in 0.8s cubic-bezier(0.55, 0.085, 0.68, 0.53) both;
+}
+
+/* Slide in from left */
+@keyframes tf-slide-in-left {
+    0% {
+        transform: translateX(-80px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.tf-anim-slide-in-left {
+    animation: tf-slide-in-left 0.5s ease-out both;
+}
+
+/* Slide in from right */
+@keyframes tf-slide-in-right {
+    0% {
+        transform: translateX(80px);
+        opacity: 0;
+    }
+    100% {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.tf-anim-slide-in-right {
+    animation: tf-slide-in-right 0.5s ease-out both;
+}
+
+/* Scale up center - for hover */
+@keyframes tf-scale-up-center {
+    0% {
+        transform: scale(1);
+    }
+    100% {
+        transform: scale(1.03);
+    }
+}
+
+.tf-anim-scale-up-center:hover,
+.tf-anim-scale-up-center:focus-within {
+    animation: tf-scale-up-center 0.3s cubic-bezier(0.39, 0.575, 0.565, 1) both;
+}
+
+/* Shadow drop center - for hover */
+@keyframes tf-shadow-drop-center {
+    0% {
+        box-shadow: 0 0 0 0 rgba(0, 0, 0, 0);
+    }
+    100% {
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
+            0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    }
+}
+
+.tf-anim-shadow-drop:hover,
+.tf-anim-shadow-drop:focus-within {
+    animation: tf-shadow-drop-center 0.3s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* Combined hover effect */
+.tf-feature-card {
+    transition: all 0.3s ease;
+}
+
+.tf-feature-card:hover,
+.tf-feature-card:focus-within {
+    transform: scale(1.02);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1),
+        0 8px 10px -6px rgba(0, 0, 0, 0.1);
+}
+
+/* Tilt in top for icons */
+@keyframes tf-tilt-in-top {
+    0% {
+        transform: rotateY(30deg) translateY(-20px) skewY(-5deg);
+        opacity: 0;
+    }
+    100% {
+        transform: rotateY(0deg) translateY(0) skewY(0deg);
+        opacity: 1;
+    }
+}
+
+.tf-anim-tilt-in-top {
+    animation: tf-tilt-in-top 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* Hidden State */
+.tf-feature-card--hidden {
+    opacity: 0;
+    transform: translateY(20px);
+}
+
+/* Reduced Motion Support */
+@media (prefers-reduced-motion: reduce) {
+    .tf-anim-fade-in-bottom,
+    .tf-anim-tracking-in-expand,
+    .tf-anim-text-focus-in,
+    .tf-anim-slide-in-left,
+    .tf-anim-slide-in-right,
+    .tf-anim-scale-up-center,
+    .tf-anim-shadow-drop,
+    .tf-anim-tilt-in-top {
+        animation: none !important;
+    }
+
+    .tf-feature-card--hidden {
+        opacity: 0;
+    }
+
+    .tf-feature-card:not(.tf-feature-card--hidden) {
+        opacity: 1;
+        transition: opacity 0.3s ease;
+    }
+
+    .tf-feature-card:hover,
+    .tf-feature-card:focus-within {
+        transform: none;
+    }
+}
+
 /* Safe area insets for iOS devices */
 .safe-area-top {
     padding-top: env(safe-area-inset-top);
