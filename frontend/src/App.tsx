@@ -4,7 +4,6 @@ import Layout from "./components/Layout";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
-import Features from "./pages/Features";
 import Pricing from "./pages/Pricing";
 import Dashboard from "./pages/Dashboard";
 import ProjectSetup from "./pages/ProjectSetup";
@@ -40,7 +39,6 @@ function App() {
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<Landing />} />
-        <Route path="/features" element={<Features />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />

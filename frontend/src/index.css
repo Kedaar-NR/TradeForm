@@ -57,6 +57,10 @@
 }
 
 @layer base {
+    html {
+        scroll-behavior: smooth;
+    }
+
     body {
         @apply text-gray-900;
         margin: 0;
@@ -80,6 +84,13 @@
     h5,
     h6 {
         @apply tracking-tight font-semibold;
+    }
+
+    /* Respect user's motion preferences */
+    @media (prefers-reduced-motion: reduce) {
+        html {
+            scroll-behavior: auto;
+        }
     }
 }
 
@@ -340,6 +351,326 @@
     transform: translateY(20px);
 }
 
+/* ============================================
+   Portal Space Inspired Animations
+   Advanced effects for enhanced features section
+   ============================================ */
+
+/* Glow Pulse - Pulsing glow effect on hover */
+@keyframes tf-glow-pulse {
+    0%,
+    100% {
+        box-shadow: 0 0 20px rgba(59, 130, 246, 0.3),
+            0 0 40px rgba(59, 130, 246, 0.2),
+            0 0 60px rgba(59, 130, 246, 0.1);
+    }
+    50% {
+        box-shadow: 0 0 30px rgba(59, 130, 246, 0.4),
+            0 0 60px rgba(59, 130, 246, 0.3),
+            0 0 90px rgba(59, 130, 246, 0.2);
+    }
+}
+
+.tf-anim-glow-pulse {
+    animation: tf-glow-pulse 3s ease-in-out infinite;
+}
+
+/* Gradient Shift - Animated gradient backgrounds */
+@keyframes tf-gradient-shift {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
+}
+
+.tf-anim-gradient-shift {
+    background-size: 200% 200%;
+    animation: tf-gradient-shift 8s ease infinite;
+}
+
+/* Parallax Float - Vertical floating motion */
+@keyframes tf-parallax-float {
+    0%,
+    100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-20px);
+    }
+}
+
+.tf-anim-parallax-float {
+    animation: tf-parallax-float 6s ease-in-out infinite;
+}
+
+/* Blur Reveal - Blur to sharp transition */
+@keyframes tf-blur-reveal {
+    0% {
+        filter: blur(10px);
+        opacity: 0;
+        transform: scale(0.95);
+    }
+    100% {
+        filter: blur(0px);
+        opacity: 1;
+        transform: scale(1);
+    }
+}
+
+.tf-anim-blur-reveal {
+    animation: tf-blur-reveal 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* Scale Glow - Combined scale + shadow transform */
+@keyframes tf-scale-glow {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1),
+            0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    }
+    100% {
+        transform: scale(1.03);
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1),
+            0 10px 10px -5px rgba(0, 0, 0, 0.04),
+            0 0 40px rgba(59, 130, 246, 0.15);
+    }
+}
+
+.tf-anim-scale-glow:hover {
+    animation: tf-scale-glow 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* Shimmer Effect - Light sweep across element */
+@keyframes tf-shimmer {
+    0% {
+        background-position: -200% center;
+    }
+    100% {
+        background-position: 200% center;
+    }
+}
+
+.tf-anim-shimmer {
+    background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, 0.4) 50%,
+        transparent 100%
+    );
+    background-size: 200% 100%;
+    animation: tf-shimmer 3s ease-in-out infinite;
+}
+
+/* Fade In Up Stagger - For sequential reveals */
+@keyframes tf-fade-in-up-stagger {
+    0% {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+    100% {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.tf-anim-fade-in-up-stagger {
+    animation: tf-fade-in-up-stagger 0.6s ease-out both;
+}
+
+/* Rotate In - 3D rotation entrance */
+@keyframes tf-rotate-in {
+    0% {
+        opacity: 0;
+        transform: perspective(1000px) rotateY(-90deg);
+    }
+    100% {
+        opacity: 1;
+        transform: perspective(1000px) rotateY(0deg);
+    }
+}
+
+.tf-anim-rotate-in {
+    animation: tf-rotate-in 0.8s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* Bounce In - Playful entrance */
+@keyframes tf-bounce-in {
+    0% {
+        opacity: 0;
+        transform: scale(0.3);
+    }
+    50% {
+        opacity: 1;
+        transform: scale(1.05);
+    }
+    70% {
+        transform: scale(0.9);
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.tf-anim-bounce-in {
+    animation: tf-bounce-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55) both;
+}
+
+/* Pulse Glow Icon - Continuous pulse for icons */
+@keyframes tf-pulse-glow-icon {
+    0%,
+    100% {
+        transform: scale(1);
+        filter: drop-shadow(0 0 8px rgba(59, 130, 246, 0.4));
+    }
+    50% {
+        transform: scale(1.1);
+        filter: drop-shadow(0 0 16px rgba(59, 130, 246, 0.6));
+    }
+}
+
+.tf-anim-pulse-glow-icon {
+    animation: tf-pulse-glow-icon 2.5s ease-in-out infinite;
+}
+
+/* Slide In Scale - Entrance with scale */
+@keyframes tf-slide-in-scale {
+    0% {
+        opacity: 0;
+        transform: translateX(-50px) scale(0.8);
+    }
+    100% {
+        opacity: 1;
+        transform: translateX(0) scale(1);
+    }
+}
+
+.tf-anim-slide-in-scale {
+    animation: tf-slide-in-scale 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94) both;
+}
+
+/* Background Gradient Mesh Animation */
+@keyframes tf-mesh-gradient {
+    0%,
+    100% {
+        background-position: 0% 0%;
+    }
+    25% {
+        background-position: 100% 0%;
+    }
+    50% {
+        background-position: 100% 100%;
+    }
+    75% {
+        background-position: 0% 100%;
+    }
+}
+
+.tf-mesh-gradient-animated {
+    background-size: 400% 400%;
+    animation: tf-mesh-gradient 20s ease infinite;
+}
+
+/* Hover Lift - Subtle lift on hover */
+.tf-hover-lift {
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+    will-change: transform;
+}
+
+.tf-hover-lift:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.15);
+}
+
+/* Smooth Reveal Container */
+.tf-reveal-container {
+    perspective: 1000px;
+}
+
+/* Performance optimizations */
+.tf-anim-fade-in-bottom,
+.tf-anim-tracking-in-expand,
+.tf-anim-text-focus-in,
+.tf-anim-slide-in-left,
+.tf-anim-slide-in-right,
+.tf-anim-blur-reveal,
+.tf-anim-fade-in-up-stagger,
+.tf-anim-rotate-in,
+.tf-anim-bounce-in,
+.tf-anim-slide-in-scale {
+    will-change: transform, opacity;
+}
+
+.tf-anim-glow-pulse,
+.tf-anim-scale-glow {
+    will-change: transform, box-shadow;
+}
+
+.tf-anim-gradient-shift,
+.tf-mesh-gradient-animated {
+    will-change: background-position;
+}
+
+.tf-anim-parallax-float,
+.tf-floating-particle {
+    will-change: transform, opacity;
+}
+
+.tf-anim-pulse-glow-icon {
+    will-change: transform, filter;
+}
+
+/* Floating Particles Effect */
+@keyframes tf-float-particle {
+    0%,
+    100% {
+        transform: translateY(0) translateX(0);
+        opacity: 0.3;
+    }
+    33% {
+        transform: translateY(-30px) translateX(15px);
+        opacity: 0.6;
+    }
+    66% {
+        transform: translateY(-15px) translateX(-15px);
+        opacity: 0.4;
+    }
+}
+
+.tf-floating-particle {
+    animation: tf-float-particle 8s ease-in-out infinite;
+}
+
+/* Stagger delay utilities */
+.tf-stagger-1 {
+    animation-delay: 0.1s;
+}
+.tf-stagger-2 {
+    animation-delay: 0.2s;
+}
+.tf-stagger-3 {
+    animation-delay: 0.3s;
+}
+.tf-stagger-4 {
+    animation-delay: 0.4s;
+}
+.tf-stagger-5 {
+    animation-delay: 0.5s;
+}
+.tf-stagger-6 {
+    animation-delay: 0.6s;
+}
+.tf-stagger-7 {
+    animation-delay: 0.7s;
+}
+.tf-stagger-8 {
+    animation-delay: 0.8s;
+}
+
 /* Reduced Motion Support */
 @media (prefers-reduced-motion: reduce) {
     .tf-anim-fade-in-bottom,
@@ -349,7 +680,20 @@
     .tf-anim-slide-in-right,
     .tf-anim-scale-up-center,
     .tf-anim-shadow-drop,
-    .tf-anim-tilt-in-top {
+    .tf-anim-tilt-in-top,
+    .tf-anim-glow-pulse,
+    .tf-anim-gradient-shift,
+    .tf-anim-parallax-float,
+    .tf-anim-blur-reveal,
+    .tf-anim-scale-glow,
+    .tf-anim-shimmer,
+    .tf-anim-fade-in-up-stagger,
+    .tf-anim-rotate-in,
+    .tf-anim-bounce-in,
+    .tf-anim-pulse-glow-icon,
+    .tf-anim-slide-in-scale,
+    .tf-mesh-gradient-animated,
+    .tf-floating-particle {
         animation: none !important;
     }
 
@@ -363,7 +707,8 @@
     }
 
     .tf-feature-card:hover,
-    .tf-feature-card:focus-within {
+    .tf-feature-card:focus-within,
+    .tf-hover-lift:hover {
         transform: none;
     }
 }
@@ -398,4 +743,67 @@ body {
 img {
     max-width: 100%;
     height: auto;
+}
+
+/* Mobile responsiveness utilities */
+@media (max-width: 768px) {
+    /* Reduce animation intensity on mobile for better performance */
+    .tf-anim-parallax-float {
+        animation-duration: 4s;
+    }
+
+    .tf-floating-particle {
+        animation-duration: 6s;
+    }
+
+    .tf-anim-glow-pulse {
+        animation: none;
+    }
+
+    /* Adjust feature card padding for mobile */
+    .tf-feature-card {
+        padding: 1.5rem;
+    }
+
+    /* Simplify gradient mesh on mobile */
+    .tf-mesh-gradient-animated {
+        animation-duration: 30s;
+        opacity: 0.5;
+    }
+}
+
+/* Tablet and up */
+@media (min-width: 768px) {
+    /* Enable GPU acceleration for smoother animations */
+    .tf-anim-fade-in-bottom,
+    .tf-anim-tracking-in-expand,
+    .tf-anim-text-focus-in,
+    .tf-anim-slide-in-left,
+    .tf-anim-slide-in-right,
+    .tf-anim-blur-reveal,
+    .tf-anim-fade-in-up-stagger,
+    .tf-anim-rotate-in,
+    .tf-anim-bounce-in,
+    .tf-anim-slide-in-scale,
+    .tf-hover-lift,
+    .tf-floating-particle {
+        backface-visibility: hidden;
+        -webkit-font-smoothing: subpixel-antialiased;
+    }
+}
+
+/* High contrast mode support */
+@media (prefers-contrast: high) {
+    .tf-hover-lift:hover {
+        box-shadow: 0 0 0 3px currentColor;
+    }
+
+    .tf-anim-glow-pulse {
+        animation: none;
+    }
+}
+
+/* Dark mode support (if ever needed) */
+@media (prefers-color-scheme: dark) {
+    /* Currently maintaining light theme, but structure is here for future */
 }

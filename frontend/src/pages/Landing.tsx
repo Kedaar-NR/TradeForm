@@ -169,13 +169,7 @@ const Landing: React.FC = () => {
           <div className="flex justify-between items-center h-14 sm:h-16 min-h-[44px]">
             <Logo textColor="white" />
 
-            <div className="flex items-center gap-1.5 sm:gap-2 md:gap-3 flex-shrink-0">
-              <button
-                onClick={() => navigate("/features")}
-                className="text-xs sm:text-[13px] text-white font-medium hover:text-white/80 transition-colors px-2 sm:px-2.5 py-1 sm:py-1.5 whitespace-nowrap min-h-[32px] flex items-center font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]"
-              >
-                Features
-              </button>
+            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               <button
                 onClick={() =>
                   window.open(
@@ -183,7 +177,7 @@ const Landing: React.FC = () => {
                     "_blank"
                   )
                 }
-                className="text-xs sm:text-[13px] text-white font-medium px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 rounded-md bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm whitespace-nowrap min-h-[32px] flex items-center justify-center font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif] gap-1 sm:gap-1.5"
+                className="text-xs sm:text-[13px] text-white font-medium px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 rounded-md bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm whitespace-nowrap min-h-[32px] flex items-center justify-center font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif] gap-1.5 sm:gap-2"
               >
                 <span className="hidden sm:inline">Schedule Demo</span>
                 <span className="sm:hidden">Demo</span>
@@ -203,7 +197,7 @@ const Landing: React.FC = () => {
               </button>
               <button
                 onClick={() => navigate("/login")}
-                className="hidden md:inline-flex text-xs sm:text-[13px] text-white font-medium px-2 sm:px-3 md:px-4 py-1 sm:py-1.5 rounded-md bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm whitespace-nowrap min-h-[32px] items-center justify-center font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]"
+                className="hidden md:inline-flex text-xs sm:text-[13px] text-white font-medium px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 rounded-md bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm whitespace-nowrap min-h-[32px] items-center justify-center font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]"
               >
                 Log In
               </button>
