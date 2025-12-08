@@ -25,10 +25,14 @@ import {
 } from "../components/ui";
 import { downloadBlob, MIME_TYPES } from "../utils/fileDownloadHelpers";
 import { extractErrorMessage } from "../utils/errorHelpers";
+import { markStudyAccess } from "../utils/recentActivity";
 
 const ComponentDiscovery: React.FC = () => {
   const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
+  useEffect(() => {
+    markStudyAccess(projectId);
+  }, [projectId]);
 
   // Local UI state
   const [showAddForm, setShowAddForm] = useState(false);

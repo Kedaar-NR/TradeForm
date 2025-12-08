@@ -32,6 +32,7 @@ import type { Criterion } from "../types";
 import type { ComponentScore } from "../utils/sensitivityAnalysis";
 import type { ApiCriterion } from "../types/api";
 import { getScoreColorClass } from "../utils/scoreHelpers";
+import { markStudyAccess } from "../utils/recentActivity";
 
 type ViewMode = "table" | "heatmap" | "charts";
 type ChartType = "bar" | "spider" | "tornado";
@@ -39,6 +40,9 @@ type ChartType = "bar" | "spider" | "tornado";
 const Results: React.FC = () => {
   const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
+  useEffect(() => {
+    markStudyAccess(projectId);
+  }, [projectId]);
   const [components, setComponents] = useState<ComponentScore[]>([]);
   const [criteria, setCriteria] = useState<Criterion[]>([]);
   const [isLoading, setIsLoading] = useState(true);

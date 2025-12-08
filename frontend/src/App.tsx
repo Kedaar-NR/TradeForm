@@ -16,6 +16,9 @@ import Documentation from "./pages/Documentation";
 import Templates from "./pages/Templates";
 import DatasheetLab from "./pages/DatasheetLab";
 import Onboarding from "./pages/Onboarding";
+import Suppliers from "./pages/Suppliers";
+import Scheduler from "./pages/Scheduler";
+import SharedSupplier from "./pages/SharedSupplier";
 
 // Protected Route wrapper
 // TODO: TEMPORARILY BYPASSED FOR DEVELOPMENT - Re-enable auth check when fixing auth
@@ -42,6 +45,7 @@ function App() {
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/suppliers/shared/:shareToken" element={<SharedSupplier />} />
 
         {/* Onboarding routes - protected */}
         <Route
@@ -157,6 +161,26 @@ function App() {
           }
         />
         <Route
+          path="/suppliers"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Suppliers />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/scheduler"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <Scheduler />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/datasheet-lab"
           element={
             <ProtectedRoute>
@@ -172,4 +196,3 @@ function App() {
 }
 
 export default App;
-

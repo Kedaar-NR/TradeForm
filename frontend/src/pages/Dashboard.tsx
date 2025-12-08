@@ -19,6 +19,12 @@ import {
     MoveStudyContextMenu,
 } from "../components/Dashboard";
 import type { ApiProjectGroup } from "../types/api";
+import {
+    getAccessedAt,
+    hasAccessRecord,
+    RECENT_GROUP_PREFIX,
+    RECENT_STUDY_PREFIX,
+} from "../utils/recentActivity";
 
 // Known template study names for filtering
 const TEMPLATE_STUDY_NAMES = new Set(
@@ -98,11 +104,27 @@ const Dashboard: React.FC = () => {
     const loadProjectGroups = useCallback(async () => {
         try {
             const response = await projectGroupsApi.getAll();
-            setProjectGroups(
-                transformProjectGroups(
-                    response.data as unknown as ApiProjectGroup[]
-                )
+            const transformed = transformProjectGroups(
+                response.data as unknown as ApiProjectGroup[]
+            ).map((group) => ({
+                ...group,
+                lastAccessedAt: getAccessedAt(
+                    RECENT_GROUP_PREFIX,
+                    group.id,
+                    group.updatedAt
+                ),
+            }));
+
+            transformed.sort(
+                (a, b) =>
+                    new Date(
+                        (b.lastAccessedAt || b.updatedAt) ?? ""
+                    ).getTime() -
+                    new Date(
+                        (a.lastAccessedAt || a.updatedAt) ?? ""
+                    ).getTime()
             );
+            setProjectGroups(transformed);
         } catch (error) {
             console.error("Failed to load project groups:", error);
         }
@@ -142,6 +164,11 @@ const Dashboard: React.FC = () => {
                         ? localStorage.getItem(`template_project_${p.id}`) ===
                           "grouped"
                         : false,
+                lastAccessedAt: getAccessedAt(
+                    RECENT_STUDY_PREFIX,
+                    p.id,
+                    p.updated_at
+                ),
             }));
 
             // Auto-mark legacy ungrouped template studies
@@ -169,9 +196,16 @@ const Dashboard: React.FC = () => {
 
             // Sort by most recent
             transformedProjects.sort(
-                (a: { updatedAt: string }, b: { updatedAt: string }) =>
-                    new Date(b.updatedAt).getTime() -
-                    new Date(a.updatedAt).getTime()
+                (
+                    a: { lastAccessedAt?: string | null; updatedAt: string },
+                    b: { lastAccessedAt?: string | null; updatedAt: string }
+                ) =>
+                    new Date(
+                        (b.lastAccessedAt || b.updatedAt) ?? ""
+                    ).getTime() -
+                    new Date(
+                        (a.lastAccessedAt || a.updatedAt) ?? ""
+                    ).getTime()
             );
             setProjects(transformedProjects);
         } catch (error) {
@@ -237,9 +271,25 @@ const Dashboard: React.FC = () => {
                     .includes(searchTerm.toLowerCase()))
     );
 
+    // Get recently accessed project group IDs
+    const recentlyAccessedGroupIds = new Set(
+        projectGroups
+            .filter((pg) => hasAccessRecord(RECENT_GROUP_PREFIX, pg.id))
+            .map((pg) => pg.id)
+    );
+
     // Filter ungrouped studies (for the "Recent Studies" section at the bottom)
+    // Only show studies from recently accessed project groups OR ungrouped studies
     const filteredStudies = projects
         .filter((p) => {
+            // Only include studies that were recently accessed
+            if (!hasAccessRecord(RECENT_STUDY_PREFIX, p.id)) return false;
+
+            // If study belongs to a project group, only show if that group was recently accessed
+            if (p.projectGroupId && !recentlyAccessedGroupIds.has(p.projectGroupId)) {
+                return false;
+            }
+
             const isUngrouped = !p.projectGroupId;
             const markedGrouped =
                 typeof window !== "undefined"
@@ -574,7 +624,7 @@ const Dashboard: React.FC = () => {
 
             {/* Recent Studies (Ungrouped) */}
             <div ref={studiesSectionRef}>
-                {filteredStudies.length > 0 ? (
+                {filteredStudies.length > 0 && (
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
                             <h2 className="text-xl font-semibold text-gray-900">
@@ -647,7 +697,7 @@ const Dashboard: React.FC = () => {
                             </div>
                         </div>
                     </div>
-                ) : null}
+                )}
             </div>
 
             {/* Context Menu */}

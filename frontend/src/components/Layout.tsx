@@ -83,8 +83,8 @@ const Layout = ({ children }: LayoutProps) => {
       ),
     },
     {
-      name: "Templates",
-      path: "/templates",
+      name: "Suppliers",
+      path: "/suppliers",
       icon: (
         <svg
           className="w-5 h-5"
@@ -96,7 +96,32 @@ const Layout = ({ children }: LayoutProps) => {
             strokeLinecap="round"
             strokeLinejoin="round"
             strokeWidth={2}
-            d="M3 7h4l2-2h6l2 2h4v12a2 2 0 01-2 2H5a2 2 0 01-2-2V7z"
+            d="M17 21H7a2 2 0 01-2-2V9a2 2 0 012-2h3l2-2h3a2 2 0 012 2v12a2 2 0 01-2 2z"
+          />
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M9 12h6M9 16h3"
+          />
+        </svg>
+      ),
+    },
+    {
+      name: "Scheduler",
+      path: "/scheduler",
+      icon: (
+        <svg
+          className="w-5 h-5"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            strokeWidth={2}
+            d="M8 7V5m8 2V5m-9 8h2m3 0h2m-9 4h6m3 0h2M5 9h14a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2v-7a2 2 0 012-2z"
           />
         </svg>
       ),

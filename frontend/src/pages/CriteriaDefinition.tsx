@@ -26,6 +26,7 @@ import {
   isWeightBalanced,
   calculateTotalWeight,
 } from "../utils/criteriaHelpers";
+import { markStudyAccess } from "../utils/recentActivity";
 
 interface ParsedCriterionRow {
   Name: string;
@@ -99,6 +100,9 @@ const COMMON_CRITERIA: CriterionForm[] = [
 const CriteriaDefinition: React.FC = () => {
   const navigate = useNavigate();
   const { projectId } = useParams<{ projectId: string }>();
+  useEffect(() => {
+    markStudyAccess(projectId);
+  }, [projectId]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [showSuggestions, setShowSuggestions] = useState(false);
   const [isImportingExcel, setIsImportingExcel] = useState(false);

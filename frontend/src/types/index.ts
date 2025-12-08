@@ -7,6 +7,7 @@ export interface ProjectGroup {
   createdAt: string;
   updatedAt: string;
   createdBy?: string;
+  lastAccessedAt?: string | null;
 }
 
 export interface ProjectGroupWithProjects extends ProjectGroup {
@@ -26,6 +27,7 @@ export interface Project {
   tradeStudyReport?: string | null;
   reportGeneratedAt?: string | null;
   createdViaTemplateGroup?: boolean;
+  lastAccessedAt?: string | null;
 }
 
 export interface Criterion {
@@ -145,4 +147,3 @@ export interface OnboardingStatusData {
   ratingDocsCount: number;
   reportTemplatesCount: number;
 }
-

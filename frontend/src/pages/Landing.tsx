@@ -161,7 +161,7 @@ const Landing: React.FC = () => {
           style={{ opacity: useA ? 0 : 1 }}
         />
         {/* Overlay for better text readability */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/40 via-black/30 to-black/50"></div>
+        <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/45 to-black/60"></div>
       </div>
 
       {/* Navigation */}

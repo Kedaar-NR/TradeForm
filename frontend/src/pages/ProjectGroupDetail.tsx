@@ -5,6 +5,7 @@ import { ProjectGroupWithProjects } from "../types";
 import SystemArchitectureMap from "../components/SystemArchitectureMap";
 import ProjectFileTray from "../components/ProjectDetails/ProjectFileTray";
 import { formatDisplayDate } from "../utils/dateFormatters";
+import { markProjectGroupAccess } from "../utils/recentActivity";
 
 const ProjectGroupDetail: React.FC = () => {
   const navigate = useNavigate();
@@ -47,6 +48,7 @@ const ProjectGroupDetail: React.FC = () => {
         })),
       };
       setProjectGroup(transformedGroup);
+      markProjectGroupAccess(projectGroupId);
     } catch (error) {
       console.error("Failed to load project group:", error);
     } finally {

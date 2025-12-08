@@ -418,5 +418,76 @@ export const onboardingApi = {
         api.delete(`/api/onboarding/documents/${docId}`),
 };
 
+// Suppliers
+export interface SupplierStep {
+    id: string;
+    step_id: string;
+    step_order: number;
+    title: string;
+    description?: string;
+    completed: boolean;
+    started_at?: string;
+    completed_at?: string;
+}
+
+export interface Supplier {
+    id: string;
+    name: string;
+    contact_name?: string;
+    contact_email?: string;
+    color: string;
+    notes?: string;
+    grade?: string;
+    share_token?: string;
+    created_at: string;
+    updated_at: string;
+    steps: SupplierStep[];
+}
+
+export interface SupplierCreate {
+    name: string;
+    contact_name?: string;
+    contact_email?: string;
+    color?: string;
+    notes?: string;
+}
+
+export interface SupplierUpdate {
+    name?: string;
+    contact_name?: string;
+    contact_email?: string;
+    color?: string;
+    notes?: string;
+    grade?: string;
+}
+
+export interface StepToggle {
+    step_id: string;
+    completed: boolean;
+    completed_at?: string;
+    started_at?: string;
+}
+
+export interface ShareLinkResponse {
+    share_token: string;
+    share_url: string;
+}
+
+export const suppliersApi = {
+    getAll: () => api.get<Supplier[]>("/api/suppliers"),
+    getById: (id: string) => api.get<Supplier>(`/api/suppliers/${id}`),
+    create: (supplier: SupplierCreate) =>
+        api.post<Supplier>("/api/suppliers", supplier),
+    update: (id: string, updates: SupplierUpdate) =>
+        api.patch<Supplier>(`/api/suppliers/${id}`, updates),
+    delete: (id: string) => api.delete(`/api/suppliers/${id}`),
+    toggleStep: (supplierId: string, stepId: string, toggle: StepToggle) =>
+        api.patch(`/api/suppliers/${supplierId}/steps/${stepId}`, toggle),
+    generateShareLink: (supplierId: string) =>
+        api.post<ShareLinkResponse>(`/api/suppliers/${supplierId}/share`),
+    getSharedSupplier: (shareToken: string) =>
+        api.get<Supplier>(`/api/suppliers/shared/${shareToken}`),
+};
+
 export default api;
 

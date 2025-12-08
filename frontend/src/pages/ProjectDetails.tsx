@@ -24,6 +24,7 @@ import { extractErrorMessage } from "../utils/errorHelpers";
 import { transformProjectChanges } from "../utils/apiTransformers";
 import type { ProjectChange } from "../types";
 import type { ApiProjectChange } from "../types/api";
+import { markStudyAccess } from "../utils/recentActivity";
 
 type TabType = "overview" | "versions" | "collaboration";
 
@@ -40,6 +41,9 @@ const ProjectDetails: React.FC = () => {
     const [isLoadingChanges, setIsLoadingChanges] = useState(false);
 
     const { project, components, criteria, isLoading, setProject, loadProject } = useProjectData(projectId);
+    useEffect(() => {
+        markStudyAccess(projectId);
+    }, [projectId]);
 
     const loadChanges = useCallback(async () => {
         if (!projectId) return;

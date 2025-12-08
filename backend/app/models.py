@@ -38,6 +38,15 @@ class ProcessingStatus(str, enum.Enum):
     READY = "ready"
     FAILED = "failed"
 
+class SupplierOnboardingStep(str, enum.Enum):
+    NDA = "nda"
+    SECURITY = "security"
+    QUALITY = "quality"
+    SAMPLE = "sample"
+    COMMERCIAL = "commercial"
+    PILOT = "pilot"
+    PRODUCTION = "production"
+
 class User(Base):
     __tablename__ = "users"
 
@@ -317,3 +326,44 @@ class DatasheetParameter(Base):
 
     # Relationships
     component = relationship("Component")
+
+# ============================================================================
+# SUPPLIER MODELS
+# ============================================================================
+
+class Supplier(Base):
+    """Represents a supplier being onboarded"""
+    __tablename__ = "suppliers"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    name = Column(String, nullable=False)
+    contact_name = Column(String)
+    contact_email = Column(String)
+    color = Column(String, default="#0ea5e9")
+    notes = Column(Text)
+    grade = Column(String)
+    share_token = Column(String, unique=True)  # For shareable links
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    user = relationship("User")
+    steps = relationship("SupplierStep", back_populates="supplier", cascade="all, delete-orphan", order_by="SupplierStep.step_order")
+
+class SupplierStep(Base):
+    """Represents an onboarding step for a supplier"""
+    __tablename__ = "supplier_steps"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    supplier_id = Column(UUID(as_uuid=True), ForeignKey("suppliers.id"), nullable=False)
+    step_id = Column(Enum(SupplierOnboardingStep), nullable=False)
+    step_order = Column(Integer, nullable=False)
+    title = Column(String, nullable=False)
+    description = Column(Text)
+    completed = Column(Boolean, default=False)
+    started_at = Column(DateTime(timezone=True))
+    completed_at = Column(DateTime(timezone=True))
+
+    # Relationships
+    supplier = relationship("Supplier", back_populates="steps")
