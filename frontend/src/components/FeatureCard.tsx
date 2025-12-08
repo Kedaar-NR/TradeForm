@@ -121,12 +121,12 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ feature, index }) => {
 // Helper function to get gradient colors based on index
 function getGradientColors(index: number): [string, string] {
   const gradients: [string, string][] = [
-    ["#1e3a8a", "#3b82f6"], // Deep blue to blue
-    ["#7c2d12", "#ea580c"], // Deep orange to orange
-    ["#065f46", "#10b981"], // Deep green to emerald
-    ["#581c87", "#a855f7"], // Deep purple to purple
-    ["#831843", "#ec4899"], // Deep pink to pink
-    ["#0c4a6e", "#0ea5e9"], // Deep cyan to sky blue
+    ["#f97316", "#ec4899"], // Orange to pink (like Discover)
+    ["#8b5cf6", "#3b82f6"], // Purple to blue
+    ["#ec4899", "#8b5cf6"], // Pink to purple
+    ["#06b6d4", "#8b5cf6"], // Cyan to purple
+    ["#f59e0b", "#ef4444"], // Amber to red
+    ["#10b981", "#06b6d4"], // Green to cyan
   ];
   return gradients[index % gradients.length];
 }

@@ -21,10 +21,9 @@ const Landing: React.FC = () => {
 
   const videos = useMemo(
     () => [
-      "/videos/2249554-uhd_3840_2160_24fps.mp4",
-      "/videos/2252797-uhd_3840_2160_30fps.mp4",
-      "/videos/4990233-hd_1920_1080_30fps.mp4",
-      "/videos/854274-hd_1280_720_30fps.mp4",
+      "/vid.mp4",
+      "/vid2.mp4",
+      "/vid3.mp4",
     ],
     []
   );
@@ -250,6 +249,8 @@ const Landing: React.FC = () => {
           <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/95 mb-6 sm:mb-8 md:mb-10 max-w-3xl mx-auto leading-relaxed px-2 sm:px-4 font-['Inter',sans-serif]">
             <span className="font-bold">Automate</span> component evaluation and
             scoring.
+            <br />
+            <span className="font-bold">Streamline</span> manufacturing pipelines.
             <br />
             <span className="font-bold">Faster</span> data-driven decisions.
           </p>
