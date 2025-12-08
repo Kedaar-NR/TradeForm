@@ -367,3 +367,190 @@ class SupplierStep(Base):
 
     # Relationships
     supplier = relationship("Supplier", back_populates="steps")
+
+
+# ============================================================================
+# CAD INTEGRATION MODELS
+# ============================================================================
+
+class CADFileType(str, enum.Enum):
+    STEP = "step"
+    IGES = "iges"
+    DWG = "dwg"
+    DXF = "dxf"
+    OBJ = "obj"
+    FBX = "fbx"
+    OTHER = "other"
+
+class AssemblyType(str, enum.Enum):
+    PART = "part"
+    ASSEMBLY = "assembly"
+    OVERARCHING_ASSEMBLY = "overarching_assembly"
+
+class CADFile(Base):
+    """Represents an uploaded CAD file"""
+    __tablename__ = "cad_files"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=True)
+    filename = Column(String, nullable=False)
+    file_type = Column(Enum(CADFileType), nullable=False)
+    file_size_bytes = Column(Integer)
+    file_path = Column(String)  # S3 or local path
+    processing_status = Column(Enum(ProcessingStatus), default=ProcessingStatus.UPLOADED)
+    processing_error = Column(Text)
+    file_metadata = Column(Text)  # JSON string for additional CAD metadata
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    processed_at = Column(DateTime(timezone=True))
+
+    # Relationships
+    user = relationship("User")
+    project = relationship("Project")
+    components = relationship("CADComponent", back_populates="cad_file", cascade="all, delete-orphan")
+    assemblies = relationship("CADAssembly", back_populates="cad_file", cascade="all, delete-orphan")
+    simulations = relationship("CADSimulation", back_populates="cad_file", cascade="all, delete-orphan")
+
+class MaterialSpecification(Base):
+    """Represents material specifications"""
+    __tablename__ = "material_specifications"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False)
+    category = Column(String)  # Metal, Plastic, Composite, etc.
+    density = Column(Float)  # kg/m³
+    tensile_strength = Column(Float)  # MPa
+    youngs_modulus = Column(Float)  # GPa
+    cost_per_kg = Column(Float)
+    supplier = Column(String)
+    properties = Column(Text)  # JSON string for additional properties
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    components = relationship("CADComponent", back_populates="material")
+
+class CADComponent(Base):
+    """Represents a component extracted from CAD file"""
+    __tablename__ = "cad_components"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    cad_file_id = Column(UUID(as_uuid=True), ForeignKey("cad_files.id"), nullable=False)
+    parent_assembly_id = Column(UUID(as_uuid=True), ForeignKey("cad_assemblies.id"), nullable=True)
+    material_id = Column(UUID(as_uuid=True), ForeignKey("material_specifications.id"), nullable=True)
+
+    name = Column(String, nullable=False)
+    part_number = Column(String)
+    assembly_type = Column(Enum(AssemblyType), default=AssemblyType.PART)
+    quantity = Column(Integer, default=1)
+
+    # Dimensions
+    length_mm = Column(Float)
+    width_mm = Column(Float)
+    height_mm = Column(Float)
+    volume_mm3 = Column(Float)
+    weight_kg = Column(Float)
+
+    # Timing
+    procurement_lead_time_days = Column(Float)
+    build_time_days = Column(Float)
+    total_time_days = Column(Float)
+
+    # Cost
+    estimated_cost = Column(Float)
+
+    # Additional data
+    description = Column(Text)
+    component_metadata = Column(Text)  # JSON string for additional CAD-specific data
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    cad_file = relationship("CADFile", back_populates="components")
+    parent_assembly = relationship("CADAssembly", foreign_keys=[parent_assembly_id], back_populates="child_components")
+    material = relationship("MaterialSpecification", back_populates="components")
+
+class CADAssembly(Base):
+    """Represents assembly hierarchy from CAD file"""
+    __tablename__ = "cad_assemblies"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    cad_file_id = Column(UUID(as_uuid=True), ForeignKey("cad_files.id"), nullable=False)
+    parent_id = Column(UUID(as_uuid=True), ForeignKey("cad_assemblies.id"), nullable=True)
+
+    name = Column(String, nullable=False)
+    assembly_type = Column(Enum(AssemblyType), default=AssemblyType.ASSEMBLY)
+    level = Column(Integer, default=0)  # Hierarchy level (0 = top level)
+    order_index = Column(Integer, default=0)  # Order in assembly sequence
+
+    description = Column(Text)
+    assembly_metadata = Column(Text)  # JSON for additional assembly data
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    cad_file = relationship("CADFile", back_populates="assemblies")
+    parent = relationship("CADAssembly", remote_side=[id], backref="children")
+    child_components = relationship("CADComponent", foreign_keys=[CADComponent.parent_assembly_id], back_populates="parent_assembly")
+
+class DoorSchedule(Base):
+    """Represents door schedule data from architectural CAD"""
+    __tablename__ = "door_schedules"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    cad_file_id = Column(UUID(as_uuid=True), ForeignKey("cad_files.id"), nullable=False)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=True)
+
+    door_number = Column(String, nullable=False)
+    door_type = Column(String)  # Single, Double, Sliding, etc.
+    width_mm = Column(Float)
+    height_mm = Column(Float)
+    material = Column(String)
+    hardware = Column(Text)  # Description of hardware requirements
+    fire_rating = Column(String)
+    location = Column(String)
+    quantity = Column(Integer, default=1)
+    notes = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    cad_file = relationship("CADFile")
+    project = relationship("Project")
+
+class FixtureList(Base):
+    """Represents fixture list data from architectural CAD"""
+    __tablename__ = "fixture_lists"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    cad_file_id = Column(UUID(as_uuid=True), ForeignKey("cad_files.id"), nullable=False)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=True)
+
+    fixture_number = Column(String, nullable=False)
+    fixture_type = Column(String)  # Light, Plumbing, HVAC, etc.
+    specifications = Column(Text)
+    location = Column(String)
+    quantity = Column(Integer, default=1)
+    installation_requirements = Column(Text)
+    notes = Column(Text)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    cad_file = relationship("CADFile")
+    project = relationship("Project")
+
+class CADSimulation(Base):
+    """Represents timeline simulation results for CAD build process"""
+    __tablename__ = "cad_simulations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    cad_file_id = Column(UUID(as_uuid=True), ForeignKey("cad_files.id"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+
+    simulation_name = Column(String)
+    total_procurement_days = Column(Float)
+    total_build_days = Column(Float)
+    total_project_days = Column(Float)
+    critical_path_component_ids = Column(Text)  # JSON array of component IDs on critical path
+    timeline_data = Column(Text)  # JSON for Gantt chart data
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    cad_file = relationship("CADFile", back_populates="simulations")
+    user = relationship("User")
