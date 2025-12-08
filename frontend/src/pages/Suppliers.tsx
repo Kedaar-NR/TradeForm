@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { suppliersApi, Supplier, SupplierCreate, SupplierUpdate } from "../services/api";
-import { Send, ChevronDown, ChevronUp, Copy } from "lucide-react";
+import { suppliersApi, Supplier, SupplierCreate } from "../services/api";
+import { Send, ChevronDown, ChevronUp } from "lucide-react";
 
 const formatDuration = (start?: string, end?: string) => {
   if (!start || !end) return "—";
