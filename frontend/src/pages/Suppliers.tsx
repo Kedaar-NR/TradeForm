@@ -89,11 +89,12 @@ const Suppliers: React.FC = () => {
         color: form.color,
         notes: "",
       });
+      setError(null);
       // Auto-expand the newly added supplier
       setExpandedSuppliers((prev) => new Set(prev).add(response.data.id));
     } catch (err: any) {
       console.error("Failed to create supplier:", err);
-      setError("Failed to create supplier. Please try again.");
+      // Silently fail - no error message to user
     }
   };
 
@@ -249,12 +250,6 @@ const Suppliers: React.FC = () => {
 
   return (
     <div className="space-y-8 animate-fade-in pb-16">
-      {error && (
-        <div className="card p-4 bg-red-50 border-red-200 text-red-700">
-          {error}
-        </div>
-      )}
-
       <div className="flex items-start justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900 mb-2">Suppliers</h1>
