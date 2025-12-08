@@ -24,6 +24,7 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ feature, index }) => {
     rootMargin: "0px 0px -100px 0px",
     threshold: 0.2,
   });
+  const hasVideo = feature.videoSrc;
 
   // Select top 3 bullets for compact view
   const displayBullets = feature.bullets.slice(0, 3);
@@ -46,15 +47,32 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ feature, index }) => {
         willChange: shouldShow ? "transform, opacity" : "auto",
       }}
     >
-      {/* Gradient Background */}
-      <div
-        className="absolute inset-0 w-full h-full z-0"
-        style={{
-          background: `linear-gradient(135deg,
-            ${getGradientColors(index)[0]} 0%,
-            ${getGradientColors(index)[1]} 100%)`,
-        }}
-      ></div>
+      {/* Video Background or Gradient Background */}
+      {hasVideo ? (
+        <div className="absolute inset-0 w-full h-full z-0">
+          <video
+            autoPlay
+            loop
+            muted
+            playsInline
+            className="w-full h-full object-cover"
+            style={{ filter: "brightness(0.7)" }}
+          >
+            <source src={feature.videoSrc} type="video/mp4" />
+          </video>
+          {/* Gradient overlay for text readability */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70"></div>
+        </div>
+      ) : (
+        <div
+          className="absolute inset-0 w-full h-full z-0"
+          style={{
+            background: `linear-gradient(135deg,
+              ${getGradientColors(index)[0]} 0%,
+              ${getGradientColors(index)[1]} 100%)`,
+          }}
+        ></div>
+      )}
 
       {/* Content */}
       <div className="relative z-10 p-6 sm:p-7 lg:p-8 flex flex-col h-full">
@@ -118,10 +136,10 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ feature, index }) => {
   );
 };
 
-// Helper function to get gradient colors based on index
+// Helper function to get gradient colors based on index (for cards without videos)
 function getGradientColors(index: number): [string, string] {
   const gradients: [string, string][] = [
-    ["#f97316", "#ec4899"], // Orange to pink (like Discover)
+    ["#f97316", "#ec4899"], // Orange to pink
     ["#8b5cf6", "#3b82f6"], // Purple to blue
     ["#ec4899", "#8b5cf6"], // Pink to purple
     ["#06b6d4", "#8b5cf6"], // Cyan to purple
