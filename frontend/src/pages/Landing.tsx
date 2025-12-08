@@ -18,15 +18,33 @@ const Landing: React.FC = () => {
   const heroContentRef = useRef<HTMLDivElement | null>(null);
   const [videoOpacity, setVideoOpacity] = useState(1);
   const [heroOpacity, setHeroOpacity] = useState(1);
+  const [showLoadscreen, setShowLoadscreen] = useState(true);
+  const [loadscreenFadingOut, setLoadscreenFadingOut] = useState(false);
 
   const videos = useMemo(
     () => [
-      "/vid.mp4",
-      "/vid2.mp4",
-      "/vid3.mp4",
+      "/videos/vid.mp4",
+      "/videos/vid2.mp4",
+      "/videos/vid3.mp4",
     ],
     []
   );
+
+  // Handle loadscreen fade-out
+  useEffect(() => {
+    const fadeOutTimer = setTimeout(() => {
+      setLoadscreenFadingOut(true);
+    }, 1500); // Show loadscreen for 1.5 seconds
+
+    const removeTimer = setTimeout(() => {
+      setShowLoadscreen(false);
+    }, 2500); // Remove loadscreen after fade completes (1s fade)
+
+    return () => {
+      clearTimeout(fadeOutTimer);
+      clearTimeout(removeTimer);
+    };
+  }, []);
 
   // Preload next video for instant switching
   useEffect(() => {
@@ -136,10 +154,27 @@ const Landing: React.FC = () => {
 
   return (
     <div className="min-h-[200vh] relative overflow-x-hidden">
+      {/* Loadscreen Image */}
+      {showLoadscreen && (
+        <div
+          className="fixed inset-0 w-full h-full z-50 bg-black transition-opacity duration-1000"
+          style={{ opacity: loadscreenFadingOut ? 0 : 1 }}
+        >
+          <img
+            src="/videos/loadscreen.jpg"
+            alt="Loading"
+            className="absolute inset-0 w-full h-full object-cover"
+          />
+        </div>
+      )}
+
       {/* Full Page Video Background */}
       <div
-        className="fixed inset-0 w-full h-full z-0 bg-black"
-        style={{ opacity: videoOpacity }}
+        className="fixed inset-0 w-full h-full z-0 bg-black transition-all duration-1000"
+        style={{
+          opacity: videoOpacity,
+          transform: showLoadscreen ? 'translateY(-100%)' : 'translateY(0)',
+        }}
       >
         <video
           ref={videoARef}
@@ -165,9 +200,11 @@ const Landing: React.FC = () => {
 
       {/* Navigation */}
       <nav className="z-50 sticky top-0 font-['Inter',sans-serif] safe-area-top">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto pl-1 sm:pl-2 lg:pl-3 pr-4 sm:pr-6 lg:pr-8">
           <div className="flex justify-between items-center h-14 sm:h-16 min-h-[44px]">
-            <Logo textColor="white" />
+            <div className="-ml-1 sm:-ml-0.5">
+              <Logo textColor="white" size="lg" />
+            </div>
 
             <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
               <button
@@ -231,7 +268,7 @@ const Landing: React.FC = () => {
             style={{
               fontFamily: "Inter, sans-serif",
               fontWeight: 800,
-              fontSize: "clamp(32px, 8vw, 68px)",
+              fontSize: "clamp(28px, 7vw, 58px)",
               lineHeight: "1.04",
               marginTop: "clamp(20px, 5vh, 40px)",
             }}
@@ -246,7 +283,7 @@ const Landing: React.FC = () => {
               Simplified
             </span>
           </h1>
-          <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/95 mb-6 sm:mb-8 md:mb-10 max-w-3xl mx-auto leading-relaxed px-2 sm:px-4 font-['Inter',sans-serif]">
+          <p className="text-sm sm:text-base md:text-lg lg:text-xl text-white/95 mb-6 sm:mb-8 md:mb-10 max-w-3xl mx-auto leading-relaxed px-2 sm:px-4 font-['Inter',sans-serif]">
             <span className="font-bold">Automate</span> component evaluation and
             scoring.
             <br />
@@ -266,7 +303,7 @@ const Landing: React.FC = () => {
                     "_blank"
                   )
                 }
-                className="text-sm sm:text-base text-white font-bold px-5 sm:px-6 md:px-8 py-2.5 sm:py-3 rounded-lg bg-white/15 hover:bg-white/25 active:bg-white/30 transition-all backdrop-blur-sm whitespace-nowrap min-h-[44px] font-['Inter',sans-serif] flex items-center justify-center gap-2"
+                className="text-xs sm:text-sm md:text-base text-white font-bold px-5 sm:px-6 md:px-8 py-2.5 sm:py-3 rounded-lg bg-white/15 hover:bg-white/25 active:bg-white/30 transition-all backdrop-blur-sm whitespace-nowrap min-h-[44px] font-['Inter',sans-serif] flex items-center justify-center gap-2"
               >
                 Schedule Demo
                 <svg
@@ -296,12 +333,12 @@ const Landing: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Enter your email"
-                  className="flex-1 px-3 sm:px-3 py-1.5 sm:py-2 rounded-md border-0 focus:ring-0 outline-none text-gray-900 placeholder-gray-500 bg-transparent text-sm min-h-[36px]"
+                  className="flex-1 px-3 sm:px-3 py-1.5 sm:py-2 rounded-md border-0 focus:ring-0 outline-none text-gray-900 placeholder-gray-500 bg-transparent text-xs sm:text-sm min-h-[36px]"
                   required
                 />
                 <button
                   type="submit"
-                  className="bg-black hover:bg-black/90 active:bg-black/80 text-white px-4 sm:px-5 md:px-7 py-1.5 sm:py-2 rounded-md font-semibold transition-colors whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed text-sm min-h-[36px] flex items-center justify-center"
+                  className="bg-black hover:bg-black/90 active:bg-black/80 text-white px-4 sm:px-5 md:px-7 py-1.5 sm:py-2 rounded-md font-semibold transition-colors whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed text-xs sm:text-sm min-h-[36px] flex items-center justify-center"
                   disabled={isSubmitting}
                 >
                   Join Waitlist
