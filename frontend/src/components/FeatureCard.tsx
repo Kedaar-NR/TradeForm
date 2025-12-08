@@ -1,11 +1,22 @@
 import React from "react";
 import { Feature } from "../data/features";
 import { useInView } from "../hooks/useInView";
+import { Settings, Zap, BarChart3, Sliders, Clock, Users } from "lucide-react";
 
 interface FeatureCardProps {
   feature: Feature;
   index: number;
 }
+
+// Icon mapping
+const iconMap: Record<string, React.ReactNode> = {
+  settings: <Settings className="w-14 h-14 sm:w-16 sm:h-16 text-white" strokeWidth={1.5} />,
+  zap: <Zap className="w-14 h-14 sm:w-16 sm:h-16 text-white" strokeWidth={1.5} />,
+  chart: <BarChart3 className="w-14 h-14 sm:w-16 sm:h-16 text-white" strokeWidth={1.5} />,
+  sliders: <Sliders className="w-14 h-14 sm:w-16 sm:h-16 text-white" strokeWidth={1.5} />,
+  clock: <Clock className="w-14 h-14 sm:w-16 sm:h-16 text-white" strokeWidth={1.5} />,
+  users: <Users className="w-14 h-14 sm:w-16 sm:h-16 text-white" strokeWidth={1.5} />,
+};
 
 const FeatureCard: React.FC<FeatureCardProps> = ({ feature, index }) => {
   // Individual card visibility for scroll animations
@@ -13,7 +24,6 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ feature, index }) => {
     rootMargin: "0px 0px -100px 0px",
     threshold: 0.2,
   });
-  const hasVideo = feature.videoSrc;
 
   // Select top 3 bullets for compact view
   const displayBullets = feature.bullets.slice(0, 3);
@@ -36,49 +46,32 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ feature, index }) => {
         willChange: shouldShow ? "transform, opacity" : "auto",
       }}
     >
-      {/* Video Background or Gradient Background */}
-      {hasVideo ? (
-        <div className="absolute inset-0 w-full h-full z-0">
-          <video
-            autoPlay
-            loop
-            muted
-            playsInline
-            className="w-full h-full object-cover"
-            style={{ filter: "brightness(0.7)" }}
-          >
-            <source src={feature.videoSrc} type="video/mp4" />
-          </video>
-          {/* Gradient overlay for text readability */}
-          <div className="absolute inset-0 bg-gradient-to-b from-black/60 via-black/50 to-black/70"></div>
-        </div>
-      ) : (
-        <div
-          className="absolute inset-0 w-full h-full z-0"
-          style={{
-            background: `linear-gradient(135deg, 
-              ${getGradientColors(index)[0]} 0%, 
-              ${getGradientColors(index)[1]} 100%)`,
-          }}
-        ></div>
-      )}
+      {/* Gradient Background */}
+      <div
+        className="absolute inset-0 w-full h-full z-0"
+        style={{
+          background: `linear-gradient(135deg,
+            ${getGradientColors(index)[0]} 0%,
+            ${getGradientColors(index)[1]} 100%)`,
+        }}
+      ></div>
 
       {/* Content */}
       <div className="relative z-10 p-6 sm:p-7 lg:p-8 flex flex-col h-full">
         {/* Icon */}
         <div
-          className="text-5xl sm:text-6xl mb-3 sm:mb-4"
+          className="mb-3 sm:mb-4"
           style={{
             filter: "drop-shadow(0 2px 8px rgba(0, 0, 0, 0.3))",
           }}
           role="img"
           aria-label={feature.title}
         >
-          {feature.icon}
+          {iconMap[feature.icon] || iconMap.settings}
         </div>
 
         {/* Title */}
-        <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-2 tracking-tight">
+        <h3 className="text-xl sm:text-2xl lg:text-3xl font-bold text-white mb-2 tracking-tight whitespace-nowrap">
           {feature.title}
         </h3>
 
@@ -112,10 +105,10 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ feature, index }) => {
           <div className="grid grid-cols-3 gap-2 sm:gap-3 mt-4 sm:mt-6 pt-3 sm:pt-4 border-t border-white/20">
             {feature.stats.map((stat, statIndex) => (
               <div key={statIndex} className="text-center">
-                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-white mb-0.5">
+                <div className="text-lg sm:text-xl lg:text-2xl font-bold text-white mb-0.5 whitespace-nowrap">
                   {stat.value}
                 </div>
-                <div className="text-[10px] sm:text-xs text-white/70 leading-tight">{stat.label}</div>
+                <div className="text-[10px] sm:text-xs text-white/70 leading-tight whitespace-nowrap">{stat.label}</div>
               </div>
             ))}
           </div>
@@ -128,12 +121,12 @@ const FeatureCard: React.FC<FeatureCardProps> = ({ feature, index }) => {
 // Helper function to get gradient colors based on index
 function getGradientColors(index: number): [string, string] {
   const gradients: [string, string][] = [
-    ["#667eea", "#764ba2"], // Purple gradient
-    ["#f093fb", "#f5576c"], // Pink gradient
-    ["#4facfe", "#00f2fe"], // Blue gradient
-    ["#43e97b", "#38f9d7"], // Green gradient
-    ["#fa709a", "#fee140"], // Orange-pink gradient
-    ["#30cfd0", "#330867"], // Teal-purple gradient
+    ["#1e3a8a", "#3b82f6"], // Deep blue to blue
+    ["#7c2d12", "#ea580c"], // Deep orange to orange
+    ["#065f46", "#10b981"], // Deep green to emerald
+    ["#581c87", "#a855f7"], // Deep purple to purple
+    ["#831843", "#ec4899"], // Deep pink to pink
+    ["#0c4a6e", "#0ea5e9"], // Deep cyan to sky blue
   ];
   return gradients[index % gradients.length];
 }

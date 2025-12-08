@@ -165,7 +165,7 @@ const Landing: React.FC = () => {
       </div>
 
       {/* Navigation */}
-      <nav className="z-50 sticky top-0 font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif] safe-area-top">
+      <nav className="z-50 sticky top-0 font-['Inter',sans-serif] safe-area-top">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16 min-h-[44px]">
             <Logo textColor="white" />
@@ -178,7 +178,7 @@ const Landing: React.FC = () => {
                     "_blank"
                   )
                 }
-                className="text-xs sm:text-[13px] text-white font-medium px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 rounded-md bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm whitespace-nowrap min-h-[32px] flex items-center justify-center font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif] gap-1.5 sm:gap-2"
+                className="text-xs sm:text-[13px] text-white font-medium px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 rounded-md bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm whitespace-nowrap min-h-[32px] flex items-center justify-center font-['Inter',sans-serif] gap-1.5 sm:gap-2"
               >
                 <span className="hidden sm:inline">Schedule Demo</span>
                 <span className="sm:hidden">Demo</span>
@@ -198,7 +198,7 @@ const Landing: React.FC = () => {
               </button>
               <button
                 onClick={() => navigate("/login")}
-                className="hidden md:inline-flex text-xs sm:text-[13px] text-white font-medium px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 rounded-md bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm whitespace-nowrap min-h-[32px] items-center justify-center font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif]"
+                className="hidden md:inline-flex text-xs sm:text-[13px] text-white font-medium px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 rounded-md bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm whitespace-nowrap min-h-[32px] items-center justify-center font-['Inter',sans-serif]"
               >
                 Log In
               </button>
@@ -230,14 +230,14 @@ const Landing: React.FC = () => {
           <h1
             className="text-white mb-4 sm:mb-6 leading-tight tracking-tight px-2 sm:px-4"
             style={{
-              fontFamily: "AllianceNo2, sans-serif",
+              fontFamily: "Inter, sans-serif",
               fontWeight: 800,
               fontSize: "clamp(32px, 8vw, 68px)",
               lineHeight: "1.04",
               marginTop: "clamp(20px, 5vh, 40px)",
             }}
           >
-            Trade Studies{" "}
+            Manufacturing{" "}
             <span
               style={{
                 borderBottom: "4px solid currentColor",
@@ -247,7 +247,7 @@ const Landing: React.FC = () => {
               Simplified
             </span>
           </h1>
-          <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/95 mb-6 sm:mb-8 md:mb-10 max-w-3xl mx-auto leading-relaxed px-2 sm:px-4">
+          <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-white/95 mb-6 sm:mb-8 md:mb-10 max-w-3xl mx-auto leading-relaxed px-2 sm:px-4 font-['Inter',sans-serif]">
             <span className="font-bold">Automate</span> component evaluation and
             scoring.
             <br />
@@ -265,7 +265,7 @@ const Landing: React.FC = () => {
                     "_blank"
                   )
                 }
-                className="text-sm sm:text-base text-white font-bold px-5 sm:px-6 md:px-8 py-2.5 sm:py-3 rounded-lg bg-white/15 hover:bg-white/25 active:bg-white/30 transition-all backdrop-blur-sm whitespace-nowrap min-h-[44px] font-[system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,'Helvetica Neue',Arial,sans-serif] flex items-center justify-center gap-2"
+                className="text-sm sm:text-base text-white font-bold px-5 sm:px-6 md:px-8 py-2.5 sm:py-3 rounded-lg bg-white/15 hover:bg-white/25 active:bg-white/30 transition-all backdrop-blur-sm whitespace-nowrap min-h-[44px] font-['Inter',sans-serif] flex items-center justify-center gap-2"
               >
                 Schedule Demo
                 <svg

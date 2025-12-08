@@ -271,24 +271,12 @@ const Dashboard: React.FC = () => {
                     .includes(searchTerm.toLowerCase()))
     );
 
-    // Get recently accessed project group IDs
-    const recentlyAccessedGroupIds = new Set(
-        projectGroups
-            .filter((pg) => hasAccessRecord(RECENT_GROUP_PREFIX, pg.id))
-            .map((pg) => pg.id)
-    );
-
     // Filter ungrouped studies (for the "Recent Studies" section at the bottom)
-    // Only show studies from recently accessed project groups OR ungrouped studies
+    // Show all recently accessed studies, regardless of whether they're in a project group
     const filteredStudies = projects
         .filter((p) => {
             // Only include studies that were recently accessed
             if (!hasAccessRecord(RECENT_STUDY_PREFIX, p.id)) return false;
-
-            // If study belongs to a project group, only show if that group was recently accessed
-            if (p.projectGroupId && !recentlyAccessedGroupIds.has(p.projectGroupId)) {
-                return false;
-            }
 
             const isUngrouped = !p.projectGroupId;
             const markedGrouped =

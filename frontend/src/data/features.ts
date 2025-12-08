@@ -23,7 +23,7 @@ export const FEATURES: Feature[] = [
   {
     id: "automated-scoring",
     title: "Automated Scoring",
-    icon: "⚙️",
+    icon: "settings",
     tagline: "Data-driven decisions at the speed of thought",
     description:
       "Score and rank components against weighted criteria with instant updates. Our intelligent scoring engine evaluates alternatives across multiple dimensions simultaneously, giving you objective insights in real-time.",
@@ -67,7 +67,7 @@ export const FEATURES: Feature[] = [
   {
     id: "fast-results",
     title: "Fast Results",
-    icon: "⚡",
+    icon: "zap",
     tagline: "From requirements to recommendations in minutes, not weeks",
     description:
       "Complete comprehensive trade studies in minutes instead of weeks with AI-assisted automation. Our parallel processing engine discovers components, gathers specifications, and scores alternatives simultaneously.",
@@ -114,7 +114,7 @@ export const FEATURES: Feature[] = [
   {
     id: "reports-exports",
     title: "Reports & Exports",
-    icon: "📊",
+    icon: "chart",
     tagline: "Presentation-ready insights that tell your story",
     description:
       "Generate presentation-ready reports with professional visualizations in seconds. From executive summaries to detailed technical appendices, our reporting engine creates documents that communicate your findings clearly and persuasively.",
@@ -160,7 +160,7 @@ export const FEATURES: Feature[] = [
   {
     id: "custom-criteria",
     title: "Custom Criteria",
-    icon: "🧮",
+    icon: "sliders",
     tagline: "Your decisions, your rules, your criteria",
     description:
       "Define bespoke criteria tailored to your specific decisions. Whether you're evaluating spacecraft components or software vendors, create custom scoring rubrics that reflect what truly matters to your project.",
@@ -201,7 +201,7 @@ export const FEATURES: Feature[] = [
   {
     id: "version-history",
     title: "Version History",
-    icon: "🕒",
+    icon: "clock",
     tagline: "Every decision, every iteration, fully documented",
     description:
       "Track every design iteration and decision point with complete history. Never lose track of why you made a choice or what alternatives you considered. Essential for design reviews, compliance audits, and institutional knowledge preservation.",
@@ -242,7 +242,7 @@ export const FEATURES: Feature[] = [
   {
     id: "team-collaboration",
     title: "Team Collaboration",
-    icon: "👥",
+    icon: "users",
     tagline: "Better decisions through collective intelligence",
     description:
       "Share studies with team members and stakeholders for real-time collaboration. Capture institutional knowledge, build consensus, and make better decisions together with inline comments, approval workflows, and activity tracking.",

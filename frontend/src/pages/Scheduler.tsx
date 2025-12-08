@@ -138,23 +138,19 @@ const Scheduler: React.FC = () => {
     <div className="space-y-8 animate-fade-in pb-16">
       <div>
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Scheduler</h1>
-        <p className="text-gray-600 max-w-3xl">
-          Upload a bill of materials to estimate procurement and build time per
-          component. We read the first sheet of your Excel/CSV and highlight the
-          slowest items.
+        <p className="text-gray-600">
+          Upload a bill of materials to estimate procurement and build time per component. We read the first sheet of your Excel/CSV and highlight the slowest items.
         </p>
       </div>
 
       <div className="card p-6 border-dashed border-2 border-gray-200 bg-gradient-to-br from-white to-gray-50">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+          <div className="space-y-2">
             <h3 className="text-lg font-semibold text-gray-900">
               Upload BOM (.xlsx / .csv)
             </h3>
             <p className="text-sm text-gray-600">
-              We look for columns like &ldquo;Component&rdquo;, &ldquo;Qty&rdquo;,
-              &ldquo;Lead Time&rdquo;, and &ldquo;Build Time&rdquo;. Missing fields fall
-              back to your defaults.
+              We look for columns like &ldquo;Component&rdquo;, &ldquo;Qty&rdquo;, &ldquo;Lead Time&rdquo;, and &ldquo;Build Time&rdquo;. Missing fields fall back to your defaults.
             </p>
           </div>
           <div className="flex items-center gap-3">
