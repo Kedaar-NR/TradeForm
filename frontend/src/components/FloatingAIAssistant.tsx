@@ -13,7 +13,7 @@ const FloatingAIAssistant: React.FC = () => {
     {
       role: "assistant",
       content:
-        "Hi! I'm your TradeForm AI assistant. Ask me anything about TradeForm, trade studies, components, criteria, or how to use the platform!",
+        "Hi! I'm your TradeForm AI assistant. Ask me anything about TradeForm, trade studies, components, criteria, or how to use the platform! If you'd like a quick human reply, email us at team@trade-form.com and we'll respond within 15 minutes.",
     },
   ]);
   const [inputValue, setInputValue] = useState("");
