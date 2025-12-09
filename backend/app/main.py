@@ -58,10 +58,45 @@ app = FastAPI(
 )
 
 # CORS configuration - must be added BEFORE routes for OPTIONS to work
-cors_origins_str = os.getenv("CORS_ORIGINS", "http://localhost:3000,http://localhost:3001,http://localhost:5173")
-cors_origins = [origin.strip() for origin in cors_origins_str.split(",") if origin.strip()]
+# We allow defaults for local dev and automatically add common deployment URLs when present.
+def _parse_origins(value: str) -> list[str]:
+    """Split a comma string into a list of cleaned origins."""
+    return [origin.strip() for origin in value.split(",") if origin.strip()]
 
-# For development, allow all origins if explicitly set
+
+default_origins = [
+    "http://localhost:3000",
+    "http://localhost:3001",
+    "http://localhost:5173",
+]
+prod_defaults = [
+    "https://trade-form.com",
+    "https://www.trade-form.com",
+    "https://tradeform-production.up.railway.app",
+]
+env_origins = _parse_origins(os.getenv("CORS_ORIGINS", ""))
+
+# Auto-add deploy URLs when provided (e.g., Vercel/Render)
+vercel_url = os.getenv("VERCEL_URL")  # Usually set without protocol
+frontend_url = os.getenv("FRONTEND_URL")
+render_host = os.getenv("RENDER_EXTERNAL_URL") or os.getenv("RENDER_EXTERNAL_HOSTNAME")
+
+def _normalize_url(url: str | None) -> str | None:
+    if not url:
+        return None
+    if url.startswith("http://") or url.startswith("https://"):
+        return url
+    return f"https://{url}"
+
+derived_origins = [
+    _normalize_url(vercel_url),
+    _normalize_url(frontend_url),
+    _normalize_url(render_host),
+]
+
+cors_origins = [o for o in env_origins + default_origins + prod_defaults + derived_origins if o]
+
+# For development/temporary allow all, set ALLOW_ALL_ORIGINS=true
 if os.getenv("ALLOW_ALL_ORIGINS", "false").lower() == "true":
     cors_origins = ["*"]
 
