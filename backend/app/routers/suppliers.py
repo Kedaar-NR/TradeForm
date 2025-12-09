@@ -7,6 +7,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
+from sqlalchemy.exc import IntegrityError
 
 from app import models, auth
 from app.database import get_db
@@ -108,16 +109,54 @@ def create_default_steps(supplier_id: UUID, db: Session, created_at: datetime):
     return steps
 
 
+def _get_or_create_dev_user(db: Session) -> models.User:
+    """Get or create a shared development user for testing.
+    
+    TODO: TEMPORARILY BYPASSED FOR DEVELOPMENT - Re-enable auth check when fixing auth
+    
+    WARNING: This creates a SHARED dev user. All unauthenticated requests use the same
+    user account, meaning suppliers are NOT isolated between sessions. This is only
+    acceptable for development/testing. Proper authentication will provide per-user
+    data isolation.
+    """
+    dev_email = "dev@tradeform.local"
+    
+    # Try to get existing user first
+    dev_user = db.query(models.User).filter(models.User.email == dev_email).first()
+    if dev_user:
+        return dev_user
+    
+    # Try to create new user, handle race condition
+    try:
+        dev_user = models.User(
+            email=dev_email,
+            name="Development User (Shared)",
+            password_hash=""  # No password for dev user
+        )
+        db.add(dev_user)
+        db.commit()
+        db.refresh(dev_user)
+        return dev_user
+    except IntegrityError:
+        # Another request created the user concurrently, fetch it
+        db.rollback()
+        dev_user = db.query(models.User).filter(models.User.email == dev_email).first()
+        if not dev_user:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to create or retrieve development user"
+            )
+        return dev_user
+
+
 @router.post("", response_model=SupplierResponse)
 def create_supplier(
     supplier_data: SupplierCreate,
     db: Session = Depends(get_db)
 ):
     """Create a new supplier with default onboarding steps"""
-    # Get first user (similar pattern to other routers)
-    user = db.query(models.User).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="No user found. Please create a user first.")
+    # Get or create dev user (similar pattern to onboarding router)
+    user = _get_or_create_dev_user(db)
 
     supplier = Supplier(
         user_id=user.id,

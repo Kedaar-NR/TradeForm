@@ -36,7 +36,8 @@ from app.routers import (
     ai,
     onboarding,
     search,
-    suppliers
+    suppliers,
+    cad
 )
 
 # Create all database tables and run migrations
@@ -89,6 +90,7 @@ app.include_router(ai.router)
 app.include_router(onboarding.router)
 app.include_router(search.router)
 app.include_router(suppliers.router)
+app.include_router(cad.router)
 
 
 @app.on_event("startup")
