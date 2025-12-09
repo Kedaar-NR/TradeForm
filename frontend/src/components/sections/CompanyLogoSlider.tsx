@@ -300,20 +300,50 @@ const FeaturesInteractiveSection: React.FC = () => {
   ];
 
   useEffect(() => {
+    const addedLinks: HTMLLinkElement[] = [];
+
+    // Preload via <link> to start fetching immediately
+    features.forEach((feature) => {
+      const existing = document.head.querySelector(
+        `link[data-preload-video="${feature.videoSrc}"]`
+      );
+      if (existing) return;
+
+      const link = document.createElement("link");
+      link.rel = "preload";
+      link.as = "video";
+      link.href = feature.videoSrc;
+      link.setAttribute("data-preload-video", feature.videoSrc);
+      document.head.appendChild(link);
+      addedLinks.push(link);
+    });
+
+    // Warm actual <video> elements so switching tabs is instant
     preloadRefs.current.forEach((video) => {
       if (!video) return;
       video.preload = "auto";
       video.muted = true;
       video.playsInline = true;
-      // Kick off buffering so switching tabs feels instant
-      if (video.readyState < 2) {
-        try {
-          video.load();
-        } catch {
-          // Ignore preload failures; main player will still request on demand
-        }
+      try {
+        video.load();
+      } catch {
+        /* ignore */
+      }
+
+      const playPromise = video.play();
+      if (playPromise?.then) {
+        playPromise
+          .then(() => {
+            video.pause();
+            video.currentTime = 0;
+          })
+          .catch(() => {});
       }
     });
+
+    return () => {
+      addedLinks.forEach((link) => link.remove());
+    };
   }, []);
 
   const selectedFeature = features[selectedIndex];
