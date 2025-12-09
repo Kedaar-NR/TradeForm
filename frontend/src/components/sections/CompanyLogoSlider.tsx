@@ -250,7 +250,7 @@ const CompanyLogoSlider: React.FC = () => {
         </div>
 
         {/* Optional subtitle */}
-        <div className="text-center mt-8">
+        <div className="text-center mt-6">
           <p
             className="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto"
             style={{
@@ -379,36 +379,39 @@ const FeaturesInteractiveSection: React.FC = () => {
               >
                 {selectedFeature.description}
               </p>
-              <div className="flex-grow"></div>
-              <button
-                onClick={() =>
-                  window.open(
-                    "https://calendly.com/team-trade-form/30min",
-                    "_blank"
-                  )
-                }
-                className="flex items-center gap-2 text-white hover:opacity-90 transition-opacity self-start"
-                style={{
-                  fontFamily:
-                    'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-                  fontWeight: 300,
-                }}
-              >
-                <svg
-                  className="w-4 h-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
+              <div className="mt-auto pt-10">
+                <button
+                  onClick={() =>
+                    window.open(
+                      "https://calendly.com/team-trade-form/30min",
+                      "_blank"
+                    )
+                  }
+                  className="flex items-center gap-2 text-white hover:opacity-90 transition-opacity self-start"
+                  style={{
+                    fontFamily:
+                      'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+                    fontWeight: 300,
+                  }}
                 >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M13 7l5 5m0 0l-5 5m5-5H6"
-                  />
-                </svg>
-                <span className="text-base font-normal">Book a free call</span>
-              </button>
+                  <svg
+                    className="w-4 h-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 7l5 5m0 0l-5 5m5-5H6"
+                    />
+                  </svg>
+                  <span className="text-base font-normal">
+                    Book a free call
+                  </span>
+                </button>
+              </div>
             </div>
           </div>
         </div>

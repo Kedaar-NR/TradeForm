@@ -403,14 +403,14 @@ video:not([autoplay]) {
 }
 
 .logo-hover-effect img {
-    filter: grayscale(100%) brightness(1.1);
+    filter: none;
     transition: filter 0.3s ease;
-    mix-blend-mode: darken;
+    mix-blend-mode: normal;
     background: transparent;
 }
 
 .logo-hover-effect:hover img {
-    filter: grayscale(0%) brightness(1);
+    filter: none;
     mix-blend-mode: normal;
 }
 

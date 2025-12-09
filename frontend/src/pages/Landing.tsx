@@ -14,9 +14,19 @@ const Landing: React.FC = () => {
   const [submissionMessage, setSubmissionMessage] = useState<string | null>(
     null
   );
+  const [navScrolled, setNavScrolled] = useState(false);
 
   useEffect(() => {
     document.title = "TradeForm";
+  }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setNavScrolled(window.scrollY > 20);
+    };
+    handleScroll();
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
   const videos = useMemo(
@@ -138,7 +148,11 @@ const Landing: React.FC = () => {
         </div>
 
         {/* Navigation */}
-        <nav className="z-50 fixed top-0 left-0 right-0 safe-area-top bg-transparent">
+        <nav
+          className={`z-50 fixed top-0 left-0 right-0 safe-area-top transition-colors duration-300 ${
+            navScrolled ? "bg-white/15 backdrop-blur-md" : "bg-transparent"
+          }`}
+        >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-14 sm:h-16 min-h-[44px]">
               {/* Logo on left */}
