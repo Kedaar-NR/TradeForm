@@ -2,6 +2,15 @@ import React, { useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { API_BASE_URL, getAuthToken } from "../utils/apiHelpers";
 
+type GeometrySummary = {
+  bboxMin: number[];
+  bboxMax: number[];
+  dimensions: number[];
+  volume?: number | null;
+  surfaceArea?: number | null;
+  triangleCount?: number | null;
+};
+
 type BomItem = {
   id: string;
   name: string;
@@ -10,6 +19,8 @@ type BomItem = {
   leadTimeDays: number;
   buildTimeDays: number;
   totalDays: number;
+  reasoning?: string;
+  geometry?: GeometrySummary;
 };
 
 const defaultAssumptions = {
@@ -21,6 +32,28 @@ const formatDays = (days: number) => {
   if (!Number.isFinite(days)) return "—";
   if (days < 1) return "<1 day";
   return `${days.toFixed(1).replace(/\.0$/, "")} days`;
+};
+
+const formatDimensions = (dimensions?: number[]) => {
+  if (!dimensions || dimensions.length === 0) return null;
+  const rounded = dimensions.map((d) =>
+    Math.abs(d) < 10 ? d.toFixed(1) : Math.round(d).toString()
+  );
+  return rounded.join(" x ");
+};
+
+const describeGeometry = (geometry?: GeometrySummary) => {
+  if (!geometry) return null;
+  const dimText = formatDimensions(geometry.dimensions);
+  const triText =
+    geometry.triangleCount !== undefined && geometry.triangleCount !== null
+      ? `${geometry.triangleCount.toLocaleString()} faces`
+      : null;
+
+  if (dimText && triText) return `~${dimText} (model units), ${triText}`;
+  if (dimText) return `~${dimText} (model units)`;
+  if (triText) return triText;
+  return null;
 };
 
 const normalizeRow = (row: Record<string, any>) => {
@@ -87,6 +120,8 @@ const parseBom = (
       leadTimeDays,
       buildTimeDays,
       totalDays: leadTimeDays + buildTimeDays,
+      reasoning:
+        "Parsed from BOM; used provided lead/build values where available, otherwise defaults.",
     };
   });
 };
@@ -135,7 +170,7 @@ const Scheduler: React.FC = () => {
     } catch (err: any) {
       console.error("Failed to analyze CAD file:", err);
       setError(
-        err.message || "Could not analyze that file. Try another .xlsx or .csv."
+        err.message || "Could not analyze that 3D model. Try another supported format (STL, STEP, OBJ, etc.)."
       );
 
       // Fallback to local parsing if backend fails
@@ -201,19 +236,16 @@ const Scheduler: React.FC = () => {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-6">
           <div className="space-y-2">
             <h3 className="text-lg font-semibold text-gray-900">
-              Upload CAD Design (.xlsx / .csv / .stl)
+              Upload 3D Model
             </h3>
             <p className="text-sm text-gray-600">
-              Upload your CAD file with component details, then click Parse to
-              analyze timing. We look for columns like &ldquo;Component&rdquo;,
-              &ldquo;Qty&rdquo;, &ldquo;Lead Time&rdquo;, and &ldquo;Build
-              Time&rdquo;.
+              Upload your 3D CAD model (STL, STEP, OBJ, FBX, 3MF, etc.) and we'll automatically split it into components with procurement and build time estimates.
             </p>
           </div>
           <div className="flex items-center gap-3">
             <input
               type="file"
-              accept=".xlsx,.xls,.csv,.stl"
+              accept=".stl,.step,.stp,.obj,.fbx,.3mf,.iges,.igs,.dae,.gltf,.glb"
               onChange={onFileChange}
               className="block text-sm text-gray-600 file:mr-3 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-gray-900 file:text-white hover:file:bg-gray-800 cursor-pointer transition-all"
             />
@@ -369,6 +401,15 @@ const Scheduler: React.FC = () => {
                       summary.longest &&
                       summary.longest.id === item.id &&
                       item.totalDays === summary.longest.totalDays;
+                    const geometryNote = describeGeometry(item.geometry);
+                    const notes = [
+                      isCritical ? "On the critical path." : null,
+                      item.reasoning,
+                      geometryNote,
+                    ]
+                      .filter(Boolean)
+                      .join(" ");
+
                     return (
                       <tr
                         key={item.id}
@@ -395,7 +436,7 @@ const Scheduler: React.FC = () => {
                           {formatDays(item.totalDays)}
                         </td>
                         <td className="px-4 py-3 text-xs text-gray-500">
-                          {isCritical ? "On the critical path" : ""}
+                          {notes || "—"}
                         </td>
                       </tr>
                     );
