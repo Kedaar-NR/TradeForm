@@ -226,19 +226,25 @@ const Landing: React.FC = () => {
       </nav>
 
       {/* Hero Section - Scrollable over video */}
-      <section className="relative z-20 min-h-screen flex items-end pb-24 sm:pb-28 lg:pb-32">
-        <div className="px-4 sm:px-6 lg:px-8 text-left w-full safe-area-inset">
+      <section className="relative z-20 min-h-screen flex items-center justify-center">
+        <div className="px-4 sm:px-6 lg:px-8 text-center w-full safe-area-inset">
           {/* Made in America Badge */}
-          <div className="mb-3 sm:mb-4 px-2 sm:px-4">
+          <div className="mb-3 sm:mb-4 flex justify-center">
             <div className="inline-flex items-center gap-2 bg-gray-600/80 backdrop-blur-sm px-4 py-2 rounded-full">
-              <span className="text-white text-sm font-medium">
+              <span
+                className="text-white text-sm font-medium"
+                style={{
+                  fontFamily:
+                    '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
+                }}
+              >
                 Made in America
               </span>
               <span className="text-lg">🇺🇸</span>
             </div>
           </div>
           <h1
-            className="text-white mb-4 sm:mb-6 leading-tight tracking-tight px-2 sm:px-4"
+            className="text-white mb-4 sm:mb-6 leading-tight tracking-tight"
             style={{
               fontFamily:
                 '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
@@ -249,7 +255,13 @@ const Landing: React.FC = () => {
           >
             Manufacturing Simplified
           </h1>
-          <p className="text-sm sm:text-base md:text-lg lg:text-xl text-white/95 mb-6 sm:mb-8 md:mb-10 max-w-3xl leading-relaxed px-2 sm:px-4">
+          <p
+            className="text-sm sm:text-base md:text-lg lg:text-xl text-white/95 mb-6 sm:mb-8 md:mb-10 max-w-3xl mx-auto leading-relaxed"
+            style={{
+              fontFamily:
+                '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
+            }}
+          >
             <span className="font-bold">Automate</span> component evaluation and
             scoring.
             <br />
@@ -260,25 +272,30 @@ const Landing: React.FC = () => {
           </p>
 
           {/* Email Form - Typeform style */}
-          <div className="max-w-2xl">
-            <form
-              onSubmit={handleJoinWaitlist}
-              className="max-w-md px-2 sm:px-4"
-            >
-              <div className="flex flex-col sm:flex-row items-end gap-3 sm:gap-4">
+          <div className="max-w-2xl mx-auto">
+            <form onSubmit={handleJoinWaitlist} className="max-w-md mx-auto">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
                 <div className="flex-1 w-full">
                   <input
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="Email address"
-                    className="email-input-white w-full bg-transparent border-0 border-b-2 border-white/70 text-white placeholder-white/60 focus:outline-none focus:border-white/90 focus:placeholder-white/80 pb-2 text-base sm:text-lg transition-colors"
+                    className="email-input-white w-full bg-transparent border-0 border-b-2 border-white/70 text-white placeholder-white/60 focus:outline-none focus:border-white/90 focus:placeholder-white/80 pb-2 text-base sm:text-lg transition-colors text-center sm:text-left"
+                    style={{
+                      fontFamily:
+                        '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
+                    }}
                     required
                   />
                 </div>
                 <button
                   type="submit"
                   className="text-white/90 hover:text-white text-base sm:text-lg font-medium flex items-center gap-2 pb-2 border-b-2 border-transparent hover:border-white/50 transition-all whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
+                  style={{
+                    fontFamily:
+                      '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
+                  }}
                   disabled={isSubmitting}
                 >
                   Join waitlist
@@ -298,7 +315,13 @@ const Landing: React.FC = () => {
                 </button>
               </div>
               {submissionMessage && (
-                <p className="mt-4 text-sm sm:text-base text-white/90 px-2 font-medium">
+                <p
+                  className="mt-4 text-sm sm:text-base text-white/90 font-medium"
+                  style={{
+                    fontFamily:
+                      '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
+                  }}
+                >
                   {submissionMessage}
                 </p>
               )}
