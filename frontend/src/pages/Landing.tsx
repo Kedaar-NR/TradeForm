@@ -245,21 +245,6 @@ const Landing: React.FC = () => {
         {/* Hero Content */}
         <section className="relative z-20 min-h-screen flex items-center justify-center">
           <div className="px-4 sm:px-6 lg:px-8 text-center w-full safe-area-inset">
-            {/* Made in America Badge */}
-            <div className="mb-3 sm:mb-4 flex justify-center">
-              <div className="inline-flex items-center gap-2 bg-gray-600/80 backdrop-blur-sm px-4 py-2 rounded-full">
-                <span
-                  className="text-white text-sm font-medium"
-                  style={{
-                    fontFamily:
-                      '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
-                  }}
-                >
-                  Made in California
-                </span>
-                <span className="text-lg">🇺🇸</span>
-              </div>
-            </div>
             <h1
               className="text-white mb-4 sm:mb-6 leading-tight tracking-tight"
               style={{
