@@ -2,6 +2,9 @@
 export default {
     content: ["./src/**/*.{js,jsx,ts,tsx}"],
     theme: {
+        fontFamily: {
+            sans: ['-apple-system', 'BlinkMacSystemFont', 'SF Pro Display', 'SF Pro Text', 'SF Pro', 'Helvetica Neue', 'Helvetica', 'Arial', 'sans-serif'],
+        },
         extend: {
             colors: {
                 primary: {
