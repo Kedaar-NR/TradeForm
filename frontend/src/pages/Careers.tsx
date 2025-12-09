@@ -95,7 +95,13 @@ const Careers: React.FC = () => {
             >
               We're hiring for every role
             </h1>
-            <p className="text-base sm:text-lg text-gray-700 text-center max-w-2xl">
+            <p
+              className="text-base sm:text-lg text-gray-700 text-center max-w-2xl"
+              style={{
+                fontFamily:
+                  '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
+              }}
+            >
               Fill this form out, we'll ask identifying information, your best
               technical work, and what you want to work on.
             </p>
