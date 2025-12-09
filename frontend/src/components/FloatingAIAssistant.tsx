@@ -185,7 +185,7 @@ const FloatingAIAssistant: React.FC = () => {
                       {message.content}
                     </div>
                   ) : (
-                    <FormattedMarkdown 
+                    <FormattedMarkdown
                       content={message.content}
                       className="text-gray-900"
                     />
