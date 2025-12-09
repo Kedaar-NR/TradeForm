@@ -160,7 +160,8 @@ const CompanyLogoSlider: React.FC = () => {
               '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
           }}
         >
-          We build fast so you can manufacture smarter.
+          We build fast so you can manufacture{" "}
+          <span className="text-gray-500">smarter.</span>
         </h2>
         <p
           className="text-base sm:text-lg text-gray-700 leading-relaxed whitespace-nowrap"
