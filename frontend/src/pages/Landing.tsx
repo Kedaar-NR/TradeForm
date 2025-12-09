@@ -137,199 +137,199 @@ const Landing: React.FC = () => {
           <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/45 to-black/60"></div>
         </div>
 
-      {/* Navigation */}
-      <nav className="z-50 fixed top-0 left-0 right-0 safe-area-top bg-transparent">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center h-14 sm:h-16 min-h-[44px]">
-            {/* Logo on left */}
-            <Logo textColor="white" size="md" />
+        {/* Navigation */}
+        <nav className="z-50 fixed top-0 left-0 right-0 safe-area-top bg-transparent">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex justify-between items-center h-14 sm:h-16 min-h-[44px]">
+              {/* Logo on left */}
+              <Logo textColor="white" size="md" />
 
-            {/* Navigation Links in center */}
-            <div className="hidden md:flex items-center gap-6 lg:gap-8 absolute left-1/2 transform -translate-x-1/2">
-              <button
-                onClick={() => navigate("/")}
-                className="text-sm text-white/90 hover:text-white transition-colors font-medium"
-                style={{
-                  fontFamily:
-                    '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
-                }}
-              >
-                Home
-              </button>
-              <button
-                onClick={() => navigate("/about")}
-                className="text-sm text-white/90 hover:text-white transition-colors font-medium"
-                style={{
-                  fontFamily:
-                    '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
-                }}
-              >
-                About
-              </button>
-              <button
-                onClick={() => navigate("/careers")}
-                className="text-sm text-white/90 hover:text-white transition-colors font-medium"
-                style={{
-                  fontFamily:
-                    '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
-                }}
-              >
-                Careers
-              </button>
-              <button
-                onClick={() => navigate("/blog")}
-                className="text-sm text-white/90 hover:text-white transition-colors font-medium"
-                style={{
-                  fontFamily:
-                    '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
-                }}
-              >
-                Blog
-              </button>
-            </div>
+              {/* Navigation Links in center */}
+              <div className="hidden md:flex items-center gap-6 lg:gap-8 absolute left-1/2 transform -translate-x-1/2">
+                <button
+                  onClick={() => navigate("/")}
+                  className="text-sm text-white/90 hover:text-white transition-colors font-medium"
+                  style={{
+                    fontFamily:
+                      '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
+                  }}
+                >
+                  Home
+                </button>
+                <button
+                  onClick={() => navigate("/about")}
+                  className="text-sm text-white/90 hover:text-white transition-colors font-medium"
+                  style={{
+                    fontFamily:
+                      '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
+                  }}
+                >
+                  About
+                </button>
+                <button
+                  onClick={() => navigate("/careers")}
+                  className="text-sm text-white/90 hover:text-white transition-colors font-medium"
+                  style={{
+                    fontFamily:
+                      '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
+                  }}
+                >
+                  Careers
+                </button>
+                <button
+                  onClick={() => navigate("/blog")}
+                  className="text-sm text-white/90 hover:text-white transition-colors font-medium"
+                  style={{
+                    fontFamily:
+                      '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
+                  }}
+                >
+                  Blog
+                </button>
+              </div>
 
-            {/* Right side: Sign in text + Button */}
-            <div className="flex items-center gap-4 sm:gap-6 flex-shrink-0 ml-auto">
-              <button
-                onClick={() => {
-                  const token = localStorage.getItem("token");
-                  if (token) {
-                    navigate("/dashboard");
-                  } else {
-                    navigate("/login");
+              {/* Right side: Sign in text + Button */}
+              <div className="flex items-center gap-4 sm:gap-6 flex-shrink-0 ml-auto">
+                <button
+                  onClick={() => {
+                    const token = localStorage.getItem("token");
+                    if (token) {
+                      navigate("/dashboard");
+                    } else {
+                      navigate("/login");
+                    }
+                  }}
+                  className="text-sm text-white/90 hover:text-white transition-colors font-medium"
+                  style={{
+                    fontFamily:
+                      '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
+                  }}
+                >
+                  Sign in
+                </button>
+                <button
+                  onClick={() =>
+                    window.open(
+                      "https://calendly.com/team-trade-form/30min",
+                      "_blank"
+                    )
                   }
-                }}
-                className="text-sm text-white/90 hover:text-white transition-colors font-medium"
-                style={{
-                  fontFamily:
-                    '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
-                }}
-              >
-                Sign in
-              </button>
-              <button
-                onClick={() =>
-                  window.open(
-                    "https://calendly.com/team-trade-form/30min",
-                    "_blank"
-                  )
-                }
-                className="text-sm text-black font-medium px-4 sm:px-5 py-2 rounded-md bg-white hover:bg-gray-100 transition-all whitespace-nowrap"
-                style={{
-                  fontFamily:
-                    '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
-                }}
-              >
-                Schedule Demo
-              </button>
+                  className="text-sm text-black font-medium px-4 sm:px-5 py-2 rounded-md bg-white hover:bg-gray-100 transition-all whitespace-nowrap"
+                  style={{
+                    fontFamily:
+                      '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
+                  }}
+                >
+                  Schedule Demo
+                </button>
+              </div>
             </div>
           </div>
-        </div>
-      </nav>
+        </nav>
 
         {/* Hero Content */}
         <section className="relative z-20 min-h-screen flex items-center justify-center">
-        <div className="px-4 sm:px-6 lg:px-8 text-center w-full safe-area-inset">
-          {/* Made in America Badge */}
-          <div className="mb-3 sm:mb-4 flex justify-center">
-            <div className="inline-flex items-center gap-2 bg-gray-600/80 backdrop-blur-sm px-4 py-2 rounded-full">
-              <span
-                className="text-white text-sm font-medium"
-                style={{
-                  fontFamily:
-                    '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
-                }}
-              >
-                Made in America
-              </span>
-              <span className="text-lg">🇺🇸</span>
+          <div className="px-4 sm:px-6 lg:px-8 text-center w-full safe-area-inset">
+            {/* Made in America Badge */}
+            <div className="mb-3 sm:mb-4 flex justify-center">
+              <div className="inline-flex items-center gap-2 bg-gray-600/80 backdrop-blur-sm px-4 py-2 rounded-full">
+                <span
+                  className="text-white text-sm font-medium"
+                  style={{
+                    fontFamily:
+                      '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
+                  }}
+                >
+                  Made in America
+                </span>
+                <span className="text-lg">🇺🇸</span>
+              </div>
             </div>
-          </div>
-          <h1
-            className="text-white mb-4 sm:mb-6 leading-tight tracking-tight"
-            style={{
-              fontFamily:
-                '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
-              fontWeight: 400,
-              fontSize: "clamp(28px, 7vw, 58px)",
-              lineHeight: "1.04",
-            }}
-          >
-            Manufacturing Simplified
-          </h1>
-          <p
-            className="text-sm sm:text-base md:text-lg lg:text-xl text-white/95 mb-6 sm:mb-8 md:mb-10 max-w-3xl mx-auto leading-relaxed"
-            style={{
-              fontFamily:
-                '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
-            }}
-          >
-            <span className="font-bold">Automate</span> component evaluation and
-            scoring.
-            <br />
-            <span className="font-bold">Streamline</span> manufacturing
-            pipelines.
-            <br />
-            <span className="font-bold">Faster</span> data-driven decisions.
-          </p>
+            <h1
+              className="text-white mb-4 sm:mb-6 leading-tight tracking-tight"
+              style={{
+                fontFamily:
+                  '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
+                fontWeight: 400,
+                fontSize: "clamp(28px, 7vw, 58px)",
+                lineHeight: "1.04",
+              }}
+            >
+              Manufacturing Simplified
+            </h1>
+            <p
+              className="text-sm sm:text-base md:text-lg lg:text-xl text-white/95 mb-6 sm:mb-8 md:mb-10 max-w-3xl mx-auto leading-relaxed"
+              style={{
+                fontFamily:
+                  '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
+              }}
+            >
+              <span className="font-bold">Automate</span> component evaluation
+              and scoring.
+              <br />
+              <span className="font-bold">Streamline</span> manufacturing
+              pipelines.
+              <br />
+              <span className="font-bold">Faster</span> data-driven decisions.
+            </p>
 
-          {/* Email Form - Typeform style */}
-          <div className="max-w-2xl mx-auto">
-            <form onSubmit={handleJoinWaitlist} className="max-w-md mx-auto">
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
-                <div className="flex-1 w-full">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Email address"
-                    className="email-input-white w-full bg-transparent border-0 border-b-2 border-white/70 text-white placeholder-white/60 focus:outline-none focus:border-white/90 focus:placeholder-white/80 pb-2 text-base sm:text-lg transition-colors text-center sm:text-left"
+            {/* Email Form - Typeform style */}
+            <div className="max-w-2xl mx-auto">
+              <form onSubmit={handleJoinWaitlist} className="max-w-md mx-auto">
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 sm:gap-4">
+                  <div className="flex-1 w-full">
+                    <input
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="Email address"
+                      className="email-input-white w-full bg-transparent border-0 border-b-2 border-white/70 text-white placeholder-white/60 focus:outline-none focus:border-white/90 focus:placeholder-white/80 pb-2 text-base sm:text-lg transition-colors text-center sm:text-left"
+                      style={{
+                        fontFamily:
+                          '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
+                      }}
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    className="text-white/90 hover:text-white text-base sm:text-lg font-medium flex items-center gap-2 pb-2 border-b-2 border-transparent hover:border-white/50 transition-all whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
                     style={{
                       fontFamily:
                         '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
                     }}
-                    required
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="text-white/90 hover:text-white text-base sm:text-lg font-medium flex items-center gap-2 pb-2 border-b-2 border-transparent hover:border-white/50 transition-all whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
-                  style={{
-                    fontFamily:
-                      '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
-                  }}
-                  disabled={isSubmitting}
-                >
-                  Join waitlist
-                  <svg
-                    className="w-4 h-4 sm:w-5 sm:h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
+                    disabled={isSubmitting}
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 5l7 7-7 7"
-                    />
-                  </svg>
-                </button>
-              </div>
-              {submissionMessage && (
-                <p
-                  className="mt-4 text-sm sm:text-base text-white/90 font-medium"
-                  style={{
-                    fontFamily:
-                      '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
-                  }}
-                >
-                  {submissionMessage}
-                </p>
-              )}
-            </form>
+                    Join waitlist
+                    <svg
+                      className="w-4 h-4 sm:w-5 sm:h-5"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 5l7 7-7 7"
+                      />
+                    </svg>
+                  </button>
+                </div>
+                {submissionMessage && (
+                  <p
+                    className="mt-4 text-sm sm:text-base text-white/90 font-medium"
+                    style={{
+                      fontFamily:
+                        '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
+                    }}
+                  >
+                    {submissionMessage}
+                  </p>
+                )}
+              </form>
+            </div>
           </div>
-        </div>
         </section>
       </div>
 
