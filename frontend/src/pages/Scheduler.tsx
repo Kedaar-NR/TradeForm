@@ -193,8 +193,7 @@ const Scheduler: React.FC = () => {
         <h1 className="text-3xl font-bold text-gray-900 mb-2">Scheduler</h1>
         <p className="text-gray-600">
           Upload a CAD file to estimate procurement and build time per
-          component. We read the first sheet of your Excel/CSV and highlight the
-          slowest items.
+          component.
         </p>
       </div>
 

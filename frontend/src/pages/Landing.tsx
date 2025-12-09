@@ -218,7 +218,7 @@ const Landing: React.FC = () => {
             style={{
               fontFamily:
                 '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
-              fontWeight: 800,
+              fontWeight: 400,
               fontSize: "clamp(28px, 7vw, 58px)",
               lineHeight: "1.04",
             }}

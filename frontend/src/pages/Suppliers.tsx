@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { suppliersApi, Supplier, SupplierCreate } from "../services/api";
-import { Send, ChevronDown, ChevronUp } from "lucide-react";
+import { Send, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
 
 const formatDuration = (start?: string, end?: string) => {
   if (!start || !end) return "—";
@@ -233,6 +233,21 @@ const Suppliers: React.FC = () => {
     } catch (err: any) {
       console.error("Failed to generate share link:", err);
       setError("Failed to generate share link. Please try again.");
+    }
+  };
+
+  const handleDelete = async (supplierId: string) => {
+    if (!window.confirm("Are you sure you want to delete this supplier?")) {
+      return;
+    }
+
+    try {
+      await suppliersApi.delete(supplierId);
+      setSuppliers((prev) => prev.filter((s) => s.id !== supplierId));
+      setError(null);
+    } catch (err: any) {
+      console.error("Failed to delete supplier:", err);
+      setError("Failed to delete supplier. Please try again.");
     }
   };
 
@@ -523,6 +538,13 @@ const Suppliers: React.FC = () => {
                     >
                       <Send size={16} />
                       Share
+                    </button>
+                    <button
+                      onClick={() => handleDelete(supplier.id)}
+                      className="text-red-600 hover:text-red-700 transition-colors p-2"
+                      title="Delete supplier"
+                    >
+                      <Trash2 size={18} />
                     </button>
                   </div>
                 </div>

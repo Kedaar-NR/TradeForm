@@ -79,7 +79,7 @@ const Careers: React.FC = () => {
       </nav>
 
       {/* Content */}
-      <div className="min-h-[calc(100vh-4rem)] py-12 px-4">
+      <div className="min-h-[calc(100vh-4rem)] py-4 px-4">
         <div className="w-full max-w-4xl mx-auto">
           {/* Header */}
           <div className="text-center mb-6">

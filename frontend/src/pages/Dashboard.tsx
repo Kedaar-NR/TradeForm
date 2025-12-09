@@ -251,27 +251,16 @@ const Dashboard: React.FC = () => {
         project.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  // Filter ungrouped studies (for the "Recent Studies" section at the bottom)
-  // Show all recently accessed studies, regardless of whether they're in a project group
+  // Filter studies from recently accessed project groups
+  // Show trade studies from project groups the user has clicked into
+  const recentlyAccessedGroupIds = projectGroups
+    .filter((group) => hasAccessRecord(RECENT_GROUP_PREFIX, group.id))
+    .map((group) => group.id);
+
   const filteredStudies = projects
     .filter((p) => {
-      // Only include studies that were recently accessed
-      if (!hasAccessRecord(RECENT_STUDY_PREFIX, p.id)) return false;
-
-      const isUngrouped = !p.projectGroupId;
-      const markedGrouped =
-        typeof window !== "undefined"
-          ? localStorage.getItem(`template_project_${p.id}`) === "grouped"
-          : false;
-      const markedDirect =
-        typeof window !== "undefined"
-          ? localStorage.getItem(`direct_study_${p.id}`) === "true"
-          : false;
-      return (
-        isUngrouped &&
-        !markedGrouped &&
-        (markedDirect || !p.createdViaTemplateGroup)
-      );
+      // Include projects that belong to recently accessed project groups
+      return p.projectGroupId && recentlyAccessedGroupIds.includes(p.projectGroupId);
     })
     .filter(
       (p) =>
