@@ -79,24 +79,21 @@ const Careers: React.FC = () => {
       </nav>
 
       {/* Content */}
-      <div className="py-8 px-4 flex-1">
+      <div className="flex-1 px-4 pt-16 sm:pt-20 lg:pt-24 pb-12">
         <div className="w-full max-w-4xl mx-auto">
           {/* Header */}
           <div className="flex flex-col items-center mb-6">
             <h1
-              className="text-gray-900 mb-3 text-center"
+              className="text-3xl sm:text-4xl lg:text-5xl font-bold text-gray-900 mb-4 sm:mb-6 text-center"
               style={{
                 fontFamily:
                   '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
-                fontWeight: 800,
-                fontSize: "clamp(28px, 7vw, 58px)",
-                lineHeight: "1.04",
               }}
             >
               We're hiring for every role
             </h1>
             <p
-              className="text-base sm:text-lg text-gray-700 text-center max-w-2xl"
+              className="text-base sm:text-lg text-gray-700 text-center w-full whitespace-nowrap"
               style={{
                 fontFamily:
                   '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',

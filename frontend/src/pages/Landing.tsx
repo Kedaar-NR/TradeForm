@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Logo from "../components/Logo";
 import CompanyLogoSlider from "../components/sections/CompanyLogoSlider";
+import Footer from "../components/Footer";
 
 const Landing: React.FC = () => {
   const navigate = useNavigate();
@@ -254,7 +255,7 @@ const Landing: React.FC = () => {
                       '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
                   }}
                 >
-                  Made in America
+                  Made in California
                 </span>
                 <span className="text-lg">🇺🇸</span>
               </div>
@@ -351,6 +352,7 @@ const Landing: React.FC = () => {
       <div className="relative z-20 bg-white">
         <CompanyLogoSlider />
       </div>
+      <Footer />
     </div>
   );
 };
