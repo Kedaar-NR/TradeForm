@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 
 const FeaturesInteractiveSection: React.FC = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const preloadRefs = useRef<HTMLVideoElement[]>([]);
 
   const features = [
     {
@@ -30,6 +31,23 @@ const FeaturesInteractiveSection: React.FC = () => {
     },
   ];
 
+  useEffect(() => {
+    preloadRefs.current.forEach((video) => {
+      if (!video) return;
+      video.preload = "auto";
+      video.muted = true;
+      video.playsInline = true;
+      // Force buffering early so swapping feels immediate
+      if (video.readyState < 2) {
+        try {
+          video.load();
+        } catch {
+          // Ignore preload failures; main player will fetch on demand
+        }
+      }
+    });
+  }, []);
+
   const selectedFeature = features[selectedIndex];
 
   return (
@@ -48,6 +66,21 @@ const FeaturesInteractiveSection: React.FC = () => {
 
         {/* Two Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-[1fr,0.9fr] gap-1 lg:gap-2 items-start">
+          {/* Hidden preloaders to warm caches for all feature videos */}
+          <div className="hidden" aria-hidden="true">
+            {features.map((feature, index) => (
+              <video
+                key={feature.videoSrc}
+                ref={(el) => {
+                  if (el) preloadRefs.current[index] = el;
+                }}
+                src={feature.videoSrc}
+                preload="auto"
+                muted
+                playsInline
+              />
+            ))}
+          </div>
           {/* Left Column - Feature List */}
           <div className="flex flex-col gap-6">
             {features.map((feature, index) => {
@@ -87,6 +120,7 @@ const FeaturesInteractiveSection: React.FC = () => {
               <video
                 className="absolute inset-0 w-full h-full object-cover"
                 src={selectedFeature.videoSrc}
+                preload="auto"
                 autoPlay
                 loop
                 muted

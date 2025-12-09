@@ -270,6 +270,7 @@ const CompanyLogoSlider: React.FC = () => {
 
 const FeaturesInteractiveSection: React.FC = () => {
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const preloadRefs = useRef<HTMLVideoElement[]>([]);
 
   const features = [
     {
@@ -298,10 +299,43 @@ const FeaturesInteractiveSection: React.FC = () => {
     },
   ];
 
+  useEffect(() => {
+    preloadRefs.current.forEach((video) => {
+      if (!video) return;
+      video.preload = "auto";
+      video.muted = true;
+      video.playsInline = true;
+      // Kick off buffering so switching tabs feels instant
+      if (video.readyState < 2) {
+        try {
+          video.load();
+        } catch {
+          // Ignore preload failures; main player will still request on demand
+        }
+      }
+    });
+  }, []);
+
   const selectedFeature = features[selectedIndex];
 
   return (
     <div className="max-w-5xl mx-auto mt-6 px-6 pb-10">
+      {/* Hidden preloaders to warm video cache for instant tab switches */}
+      <div className="hidden" aria-hidden="true">
+        {features.map((feature, index) => (
+          <video
+            key={feature.videoSrc}
+            ref={(el) => {
+              if (el) preloadRefs.current[index] = el;
+            }}
+            src={feature.videoSrc}
+            preload="auto"
+            muted
+            playsInline
+          />
+        ))}
+      </div>
+
       {/* Two Column Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-[0.85fr,1fr] gap-1 lg:gap-4 items-center justify-center">
         {/* Left Column - Feature List */}
@@ -353,6 +387,7 @@ const FeaturesInteractiveSection: React.FC = () => {
             <video
               className="absolute inset-0 w-full h-full object-cover"
               src={selectedFeature.videoSrc}
+              preload="auto"
               autoPlay
               loop
               muted
