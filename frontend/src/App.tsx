@@ -2,6 +2,11 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import type { ReactNode } from "react";
 import Layout from "./components/Layout";
 import Landing from "./pages/Landing";
+import About from "./pages/About";
+import Blog from "./pages/Blog";
+import Careers from "./pages/Careers";
+import TermsOfService from "./pages/TermsOfService";
+import PrivacyPolicy from "./pages/PrivacyPolicy";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Pricing from "./pages/Pricing";
@@ -42,10 +47,18 @@ function App() {
       <Routes>
         {/* Public routes */}
         <Route path="/" element={<Landing />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/blog" element={<Blog />} />
+        <Route path="/careers" element={<Careers />} />
+        <Route path="/terms-of-service" element={<TermsOfService />} />
+        <Route path="/privacy-policy" element={<PrivacyPolicy />} />
         <Route path="/pricing" element={<Pricing />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        <Route path="/suppliers/shared/:shareToken" element={<SharedSupplier />} />
+        <Route
+          path="/suppliers/shared/:shareToken"
+          element={<SharedSupplier />}
+        />
 
         {/* Onboarding routes - protected */}
         <Route
