@@ -39,7 +39,9 @@ const Suppliers: React.FC = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expandedSuppliers, setExpandedSuppliers] = useState<Set<string>>(new Set());
+  const [expandedSuppliers, setExpandedSuppliers] = useState<Set<string>>(
+    new Set()
+  );
   const [form, setForm] = useState({
     name: "",
     contact_name: "",
@@ -68,9 +70,13 @@ const Suppliers: React.FC = () => {
 
   const handleAddSupplier = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.name.trim()) return;
+    if (!form.name.trim()) {
+      setError("Supplier name cannot be empty.");
+      return;
+    }
 
     try {
+      setError(null);
       const supplierData: SupplierCreate = {
         name: form.name.trim(),
         contact_name: form.contact_name.trim() || undefined,
@@ -80,7 +86,8 @@ const Suppliers: React.FC = () => {
       };
 
       const response = await suppliersApi.create(supplierData);
-      setSuppliers((prev) => [response.data, ...prev]);
+      // Reload suppliers to get the latest data from the server
+      await loadSuppliers();
       setShowAddForm(false);
       setForm({
         name: "",
@@ -91,10 +98,17 @@ const Suppliers: React.FC = () => {
       });
       setError(null);
       // Auto-expand the newly added supplier
-      setExpandedSuppliers((prev) => new Set(prev).add(response.data.id));
+      const newSupplierId = response.data?.id;
+      if (newSupplierId) {
+        setExpandedSuppliers((prev) => new Set(prev).add(newSupplierId));
+      }
     } catch (err: any) {
       console.error("Failed to create supplier:", err);
-      // Silently fail - no error message to user
+      setError(
+        err?.response?.data?.detail ||
+          err?.message ||
+          "Failed to create supplier. Please try again."
+      );
     }
   };
 
@@ -142,7 +156,12 @@ const Suppliers: React.FC = () => {
               };
             }
             // Start the next step if current was completed
-            if (completed && idx === stepIndex + 1 && !st.started_at && !st.completed) {
+            if (
+              completed &&
+              idx === stepIndex + 1 &&
+              !st.started_at &&
+              !st.completed
+            ) {
               return { ...st, started_at: now };
             }
             // Clear future steps if uncompleting
@@ -206,7 +225,9 @@ const Suppliers: React.FC = () => {
       // Update local state with share_token
       setSuppliers((prev) =>
         prev.map((s) =>
-          s.id === supplierId ? { ...s, share_token: response.data.share_token } : s
+          s.id === supplierId
+            ? { ...s, share_token: response.data.share_token }
+            : s
         )
       );
     } catch (err: any) {
@@ -288,31 +309,44 @@ const Suppliers: React.FC = () => {
           <p className="text-2xl font-semibold">
             {suppliers.filter((s) => s.grade && s.grade !== "Pending").length}
           </p>
-          <p className="text-xs text-gray-500">Use the Grade button on each card.</p>
+          <p className="text-xs text-gray-500">
+            Use the Grade button on each card.
+          </p>
         </div>
       </div>
 
       {showAddForm && (
         <div className="card p-6 space-y-4">
           <div className="flex items-center justify-between">
-            <h3 className="text-lg font-semibold text-gray-900">New supplier</h3>
+            <h3 className="text-lg font-semibold text-gray-900">
+              New supplier
+            </h3>
             <span className="text-xs text-gray-500">
               We'll start timing from when you save.
             </span>
           </div>
-          <form onSubmit={handleAddSupplier} className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <form
+            onSubmit={handleAddSupplier}
+            className="grid grid-cols-1 md:grid-cols-2 gap-4"
+          >
             <label className="space-y-1">
-              <span className="text-sm font-medium text-gray-700">Supplier name</span>
+              <span className="text-sm font-medium text-gray-700">
+                Supplier name
+              </span>
               <input
                 required
                 value={form.name}
-                onChange={(e) => setForm((f) => ({ ...f, name: e.target.value }))}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, name: e.target.value }))
+                }
                 className="input"
                 placeholder="e.g. Stellar Circuits"
               />
             </label>
             <label className="space-y-1">
-              <span className="text-sm font-medium text-gray-700">Point of contact</span>
+              <span className="text-sm font-medium text-gray-700">
+                Point of contact
+              </span>
               <input
                 value={form.contact_name}
                 onChange={(e) =>
@@ -323,7 +357,9 @@ const Suppliers: React.FC = () => {
               />
             </label>
             <label className="space-y-1">
-              <span className="text-sm font-medium text-gray-700">Contact email</span>
+              <span className="text-sm font-medium text-gray-700">
+                Contact email
+              </span>
               <input
                 type="email"
                 value={form.contact_email}
@@ -366,17 +402,27 @@ const Suppliers: React.FC = () => {
                 placeholder="Add any risk notes, packaging asks, or approvals."
               />
             </label>
-            <div className="md:col-span-2 flex justify-end gap-2">
-              <button
-                type="button"
-                onClick={() => setShowAddForm(false)}
-                className="btn-secondary"
-              >
-                Cancel
-              </button>
-              <button type="submit" className="btn-primary">
-                Save supplier
-              </button>
+            <div className="md:col-span-2 flex flex-col gap-3">
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-700">{error}</p>
+                </div>
+              )}
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowAddForm(false);
+                    setError(null);
+                  }}
+                  className="btn-secondary"
+                >
+                  Cancel
+                </button>
+                <button type="submit" className="btn-primary">
+                  Save supplier
+                </button>
+              </div>
             </div>
           </form>
         </div>
@@ -388,8 +434,8 @@ const Suppliers: React.FC = () => {
             No suppliers yet
           </h3>
           <p className="text-sm text-gray-600 max-w-xl mx-auto mb-4">
-            Add suppliers to start timing NDA returns, security reviews, pilot runs,
-            and more. All data is securely stored in your account.
+            Add suppliers to start timing NDA returns, security reviews, pilot
+            runs, and more. All data is securely stored in your account.
           </p>
           <button onClick={() => setShowAddForm(true)} className="btn-primary">
             Add your first supplier
@@ -460,7 +506,9 @@ const Suppliers: React.FC = () => {
                       </span>
                     </div>
                     <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                      {supplier.grade ? `Grade: ${supplier.grade}` : "Not graded"}
+                      {supplier.grade
+                        ? `Grade: ${supplier.grade}`
+                        : "Not graded"}
                     </span>
                     <button
                       onClick={() => handleGrade(supplier.id)}
@@ -510,8 +558,8 @@ const Suppliers: React.FC = () => {
                                     step.completed_at
                                   )}`
                                 : step.started_at
-                                  ? `Started ${formatDate(step.started_at)}`
-                                  : "Not started"}
+                                ? `Started ${formatDate(step.started_at)}`
+                                : "Not started"}
                             </span>
                           </div>
                           <p className="text-sm text-gray-600">
