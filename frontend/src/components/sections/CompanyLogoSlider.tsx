@@ -170,8 +170,8 @@ const CompanyLogoSlider: React.FC = () => {
               '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
           }}
         >
-          Keep production moving with automated evaluation, scoring, and
-          reporting so teams can test and iterate without slowing the line.
+          Automate evaluation, scoring, and reporting so teams can iterate
+          without slowing the line.
         </p>
       </div>
 
