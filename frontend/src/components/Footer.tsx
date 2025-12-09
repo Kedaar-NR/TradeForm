@@ -21,6 +21,7 @@ const Footer: React.FC = () => {
             <p className="text-sm text-gray-600">
               © {new Date().getFullYear()}, TradeForm
             </p>
+            <p className="text-sm text-gray-600">Berkeley, CA</p>
           </div>
 
           {/* Right side - Navigation Links and Legal */}
