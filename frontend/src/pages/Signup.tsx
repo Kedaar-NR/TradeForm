@@ -1,20 +1,20 @@
-import React, { useState } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
-import Logo from '../components/Logo';
-import api from '../services/api';
+import React, { useState } from "react";
+import { useNavigate, useLocation } from "react-router-dom";
+import Logo from "../components/Logo";
+import api from "../services/api";
 
 const Signup: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const emailFromLanding = (location.state as any)?.email || '';
+  const emailFromLanding = (location.state as any)?.email || "";
 
   const [formData, setFormData] = useState({
-    name: '',
+    name: "",
     email: emailFromLanding,
-    password: '',
+    password: "",
   });
-  const [emailError, setEmailError] = useState('');
-  const [formError, setFormError] = useState('');
+  const [emailError, setEmailError] = useState("");
+  const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const validateEmail = (email: string): boolean => {
@@ -27,58 +27,67 @@ const Signup: React.FC = () => {
     setFormData({ ...formData, email });
 
     if (email && !validateEmail(email)) {
-      setEmailError('Please enter a valid email address');
+      setEmailError("Please enter a valid email address");
     } else {
-      setEmailError('');
+      setEmailError("");
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError('');
+    setFormError("");
 
     // Validate email before submitting
     if (!validateEmail(formData.email)) {
-      setEmailError('Please enter a valid email address');
+      setEmailError("Please enter a valid email address");
       return;
     }
 
     try {
       setIsSubmitting(true);
-      const response = await api.post('/api/auth/register', {
+      const response = await api.post("/api/auth/register", {
         name: formData.name,
         email: formData.email,
         password: formData.password,
       });
 
       const data = response.data;
-      localStorage.setItem('isAuthenticated', 'true');
-      localStorage.setItem('authToken', data.access_token);
-      localStorage.setItem('currentUser', JSON.stringify(data.user));
-      
+      localStorage.setItem("isAuthenticated", "true");
+      localStorage.setItem("authToken", data.access_token);
+      localStorage.setItem("currentUser", JSON.stringify(data.user));
+
       // Check onboarding status and redirect appropriately
-      const onboardingStatus = data.user.onboarding_status || data.user.onboardingStatus;
-      if (onboardingStatus === 'not_started' || onboardingStatus === 'in_progress') {
-        navigate('/onboarding');
+      const onboardingStatus =
+        data.user.onboarding_status || data.user.onboardingStatus;
+      if (
+        onboardingStatus === "not_started" ||
+        onboardingStatus === "in_progress"
+      ) {
+        navigate("/onboarding");
       } else {
-        navigate('/dashboard');
+        navigate("/dashboard");
       }
     } catch (error: any) {
-      console.error('Signup failed:', error);
+      console.error("Signup failed:", error);
       // TODO: TEMPORARILY BYPASSED FOR DEVELOPMENT - Re-enable when fixing auth
       // Instead of blocking user, bypass auth and continue to dashboard
-      console.warn('Auth bypassed - proceeding to dashboard without authentication');
-      localStorage.setItem('isAuthenticated', 'true');
-      localStorage.setItem('authToken', 'dev-bypass-token');
-      localStorage.setItem('currentUser', JSON.stringify({
-        id: 'dev-user',
-        email: formData.email,
-        name: formData.name || 'Development User',
-        onboarding_status: 'completed',
-        onboardingStatus: 'completed'
-      }));
-      navigate('/dashboard');
-      
+      console.warn(
+        "Auth bypassed - proceeding to dashboard without authentication"
+      );
+      localStorage.setItem("isAuthenticated", "true");
+      localStorage.setItem("authToken", "dev-bypass-token");
+      localStorage.setItem(
+        "currentUser",
+        JSON.stringify({
+          id: "dev-user",
+          email: formData.email,
+          name: formData.name || "Development User",
+          onboarding_status: "completed",
+          onboardingStatus: "completed",
+        })
+      );
+      navigate("/dashboard");
+
       // Original error handling (commented out for development):
       // const message =
       //   error?.response?.data?.detail ||
@@ -108,9 +117,7 @@ const Signup: React.FC = () => {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
               Create your account
             </h1>
-            <p className="text-gray-600">
-              Start running trade studies
-            </p>
+            <p className="text-gray-600">Start running trade studies</p>
           </div>
 
           <div className="bg-white rounded-lg border border-gray-200 p-8">
@@ -135,7 +142,9 @@ const Signup: React.FC = () => {
                   type="email"
                   value={formData.email}
                   onChange={handleEmailChange}
-                  className={`input-field ${emailError ? 'border-red-500' : ''}`}
+                  className={`input-field ${
+                    emailError ? "border-red-500" : ""
+                  }`}
                   placeholder="you@example.com"
                   required
                 />
@@ -168,12 +177,20 @@ const Signup: React.FC = () => {
                   required
                 />
                 <label className="ml-2 text-sm text-gray-600">
-                  I agree to the{' '}
-                  <button type="button" className="text-black hover:text-gray-900">
+                  I agree to the{" "}
+                  <button
+                    type="button"
+                    onClick={() => navigate("/terms-of-service")}
+                    className="text-black hover:text-gray-900 underline"
+                  >
                     Terms of Service
-                  </button>{' '}
-                  and{' '}
-                  <button type="button" className="text-black hover:text-gray-900">
+                  </button>{" "}
+                  and{" "}
+                  <button
+                    type="button"
+                    onClick={() => navigate("/privacy-policy")}
+                    className="text-black hover:text-gray-900 underline"
+                  >
                     Privacy Policy
                   </button>
                 </label>
@@ -184,19 +201,21 @@ const Signup: React.FC = () => {
                 className="w-full btn-primary disabled:opacity-50"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Creating account...' : 'Create account'}
+                {isSubmitting ? "Creating account..." : "Create account"}
               </button>
             </form>
 
             {formError && (
-              <p className="mt-4 text-sm text-red-600 text-center">{formError}</p>
+              <p className="mt-4 text-sm text-red-600 text-center">
+                {formError}
+              </p>
             )}
 
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
-                Already have an account?{' '}
+                Already have an account?{" "}
                 <button
-                  onClick={() => navigate('/login')}
+                  onClick={() => navigate("/login")}
                   className="text-black hover:text-gray-900 font-medium"
                 >
                   Log in
