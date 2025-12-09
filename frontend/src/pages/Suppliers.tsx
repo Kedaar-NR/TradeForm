@@ -34,6 +34,34 @@ const durationInDays = (start: string, end: string) => {
   return diffMs / (1000 * 60 * 60 * 24);
 };
 
+// Calculate automatic speed grade (1-10, 10=fastest)
+const calculateSpeedGrade = (supplier: Supplier): number | null => {
+  const completedSteps = supplier.steps.filter((s) => s.completed && s.started_at && s.completed_at);
+
+  if (completedSteps.length === 0) return null; // N/A
+
+  // Calculate average days per step
+  const totalDays = completedSteps.reduce((sum, step) => {
+    const days = durationInDays(step.started_at!, step.completed_at!);
+    return sum + days;
+  }, 0);
+
+  const avgDays = totalDays / completedSteps.length;
+
+  // Grade based on speed (faster = higher grade)
+  // < 1 day = 10, 1-2 days = 9, 2-3 days = 8, etc.
+  if (avgDays < 1) return 10;
+  if (avgDays < 2) return 9;
+  if (avgDays < 3) return 8;
+  if (avgDays < 4) return 7;
+  if (avgDays < 5) return 6;
+  if (avgDays < 7) return 5;
+  if (avgDays < 10) return 4;
+  if (avgDays < 14) return 3;
+  if (avgDays < 21) return 2;
+  return 1;
+};
+
 const Suppliers: React.FC = () => {
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -176,40 +204,6 @@ const Suppliers: React.FC = () => {
     } catch (err: any) {
       console.error("Failed to toggle step:", err);
       setError("Failed to update step. Please try again.");
-    }
-  };
-
-  const handleGrade = async (supplierId: string) => {
-    const supplier = suppliers.find((s) => s.id === supplierId);
-    if (!supplier) return;
-
-    const completedSteps = supplier.steps.filter(
-      (step) => step.completed && step.started_at && step.completed_at
-    );
-
-    let grade = "Pending";
-    if (completedSteps.length > 0) {
-      const avgDays =
-        completedSteps.reduce(
-          (sum, step) =>
-            sum + durationInDays(step.started_at!, step.completed_at!),
-          0
-        ) / completedSteps.length;
-
-      if (avgDays < 2) grade = "A";
-      else if (avgDays < 5) grade = "B";
-      else if (avgDays < 9) grade = "C";
-      else grade = "D";
-    }
-
-    try {
-      await suppliersApi.update(supplierId, { grade });
-      setSuppliers((prev) =>
-        prev.map((s) => (s.id === supplierId ? { ...s, grade } : s))
-      );
-    } catch (err: any) {
-      console.error("Failed to update grade:", err);
-      setError("Failed to update grade. Please try again.");
     }
   };
 
@@ -458,7 +452,13 @@ const Suppliers: React.FC = () => {
         </div>
       ) : (
         <div className="space-y-4">
-          {suppliers.map((supplier) => {
+          {suppliers
+            .sort((a, b) => {
+              const gradeA = calculateSpeedGrade(a) ?? -1;
+              const gradeB = calculateSpeedGrade(b) ?? -1;
+              return gradeB - gradeA; // Highest grade first
+            })
+            .map((supplier) => {
             const completedCount = supplier.steps.filter(
               (step) => step.completed
             ).length;
@@ -520,17 +520,12 @@ const Suppliers: React.FC = () => {
                         {completedCount}/{supplier.steps.length} done
                       </span>
                     </div>
-                    <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                      {supplier.grade
-                        ? `Grade: ${supplier.grade}`
-                        : "Not graded"}
+                    <span className="px-3 py-1.5 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                      {(() => {
+                        const grade = calculateSpeedGrade(supplier);
+                        return grade !== null ? `${grade}/10` : "N/A";
+                      })()}
                     </span>
-                    <button
-                      onClick={() => handleGrade(supplier.id)}
-                      className="btn-secondary text-sm"
-                    >
-                      Grade speed
-                    </button>
                     <button
                       onClick={() => handleGenerateShareLink(supplier.id)}
                       className="btn-secondary text-sm flex items-center gap-1"
