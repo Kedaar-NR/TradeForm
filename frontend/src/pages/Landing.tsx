@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import Logo from "../components/Logo";
-import FeaturesScrollSection from "../components/sections/FeaturesScrollSection";
 import CompanyLogoSlider from "../components/sections/CompanyLogoSlider";
 
 const Landing: React.FC = () => {
@@ -15,36 +14,15 @@ const Landing: React.FC = () => {
   const [submissionMessage, setSubmissionMessage] = useState<string | null>(
     null
   );
-  const heroContentRef = useRef<HTMLDivElement | null>(null);
-  const [videoOpacity, setVideoOpacity] = useState(1);
-  const [heroOpacity, setHeroOpacity] = useState(1);
-  const [showLoadscreen, setShowLoadscreen] = useState(true);
-  const [loadscreenFadingOut, setLoadscreenFadingOut] = useState(false);
+
+  useEffect(() => {
+    document.title = "TradeForm";
+  }, []);
 
   const videos = useMemo(
-    () => [
-      "/videos/vid.mp4",
-      "/videos/vid2.mp4",
-      "/videos/vid3.mp4",
-    ],
+    () => ["/media/vid.mp4", "/media/vid2.mp4", "/media/vid3.mp4"],
     []
   );
-
-  // Handle loadscreen fade-out
-  useEffect(() => {
-    const fadeOutTimer = setTimeout(() => {
-      setLoadscreenFadingOut(true);
-    }, 1500); // Show loadscreen for 1.5 seconds
-
-    const removeTimer = setTimeout(() => {
-      setShowLoadscreen(false);
-    }, 2500); // Remove loadscreen after fade completes (1s fade)
-
-    return () => {
-      clearTimeout(fadeOutTimer);
-      clearTimeout(removeTimer);
-    };
-  }, []);
 
   // Preload next video for instant switching
   useEffect(() => {
@@ -56,6 +34,7 @@ const Landing: React.FC = () => {
     [active, hidden].forEach((v) => {
       v.muted = true;
       v.playsInline = true as any;
+      v.preload = "auto";
     });
 
     const nextIndex = (currentVideoIndex + 1) % videos.length;
@@ -67,7 +46,7 @@ const Landing: React.FC = () => {
     hidden.load();
 
     const onEnded = async () => {
-      // Start playing hidden video first, then switch
+      // Ensure next video is ready and playing before switching
       if (hidden.readyState < 3) {
         hidden.load();
         await new Promise((resolve) => {
@@ -75,16 +54,20 @@ const Landing: React.FC = () => {
         });
       }
 
-      // Start next video playing
+      // Start playing the next video
       await hidden.play().catch(() => {});
 
-      // Now instantly switch visibility
+      // Smooth transition between videos
+      active.style.transition = "opacity 0.3s ease-in-out";
+      hidden.style.transition = "opacity 0.3s ease-in-out";
       active.style.opacity = "0";
       hidden.style.opacity = "1";
 
-      // Swap roles and index
-      setUseA((prev) => !prev);
-      setCurrentVideoIndex(nextIndex);
+      // Swap roles and index after a brief delay to ensure smooth transition
+      setTimeout(() => {
+        setUseA((prev) => !prev);
+        setCurrentVideoIndex(nextIndex);
+      }, 100);
     };
 
     active.addEventListener("ended", onEnded);
@@ -94,33 +77,7 @@ const Landing: React.FC = () => {
   }, [useA, currentVideoIndex, videos]);
   // No source swapping inside the element anymore — handled by refs & .src
 
-  // Handle scroll for video fade-out and hero parallax
-  useEffect(() => {
-    const handleScroll = () => {
-      const scrollY = window.scrollY;
-      const fadeStart = 0;
-      const fadeEnd = 800; // Fade out over 800px of scroll
-
-      // Calculate opacity (1 to 0) based on scroll position
-      const opacity = Math.max(
-        0,
-        Math.min(1, 1 - (scrollY - fadeStart) / (fadeEnd - fadeStart))
-      );
-
-      setVideoOpacity(opacity);
-      setHeroOpacity(opacity);
-
-      // Move hero content up slightly as user scrolls (only when still visible)
-      if (heroContentRef.current && opacity > 0) {
-        const maxScroll = window.innerHeight;
-        const translateY = Math.min(scrollY * 0.3, maxScroll * 0.3);
-        heroContentRef.current.style.transform = `translateY(-${translateY}px)`;
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
+  // No scroll handler needed - content stays visible, just scroll normally
 
   const handleJoinWaitlist = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,29 +110,9 @@ const Landing: React.FC = () => {
   };
 
   return (
-    <div className="min-h-[200vh] relative overflow-x-hidden">
-      {/* Loadscreen Image */}
-      {showLoadscreen && (
-        <div
-          className="fixed inset-0 w-full h-full z-50 bg-black transition-opacity duration-1000"
-          style={{ opacity: loadscreenFadingOut ? 0 : 1 }}
-        >
-          <img
-            src="/videos/loadscreen.jpg"
-            alt="Loading"
-            className="absolute inset-0 w-full h-full object-cover"
-          />
-        </div>
-      )}
-
-      {/* Full Page Video Background */}
-      <div
-        className="fixed inset-0 w-full h-full z-0 bg-black transition-all duration-1000"
-        style={{
-          opacity: videoOpacity,
-          transform: showLoadscreen ? 'translateY(-100%)' : 'translateY(0)',
-        }}
-      >
+    <div className="relative overflow-x-hidden bg-black">
+      {/* Full Page Video Background - Fixed */}
+      <div className="fixed inset-0 w-full h-full z-10">
         <video
           ref={videoARef}
           autoPlay
@@ -199,14 +136,55 @@ const Landing: React.FC = () => {
       </div>
 
       {/* Navigation */}
-      <nav className="z-50 sticky top-0 font-['Inter',sans-serif] safe-area-top">
-        <div className="max-w-7xl mx-auto pl-1 sm:pl-2 lg:pl-3 pr-4 sm:pr-6 lg:pr-8">
+      <nav className="z-50 fixed top-0 left-0 right-0 safe-area-top bg-transparent">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-14 sm:h-16 min-h-[44px]">
-            <div className="-ml-1 sm:-ml-0.5">
-              <Logo textColor="white" size="lg" />
+            {/* Logo on left */}
+            <Logo textColor="white" size="md" />
+
+            {/* Navigation Links in center */}
+            <div className="hidden md:flex items-center gap-6 lg:gap-8 absolute left-1/2 transform -translate-x-1/2">
+              <button
+                onClick={() => navigate("/")}
+                className="text-sm text-white/90 hover:text-white transition-colors font-medium"
+              >
+                Home
+              </button>
+              <button
+                onClick={() => navigate("/about")}
+                className="text-sm text-white/90 hover:text-white transition-colors font-medium"
+              >
+                About
+              </button>
+              <button
+                onClick={() => navigate("/careers")}
+                className="text-sm text-white/90 hover:text-white transition-colors font-medium"
+              >
+                Careers
+              </button>
+              <button
+                onClick={() => navigate("/blog")}
+                className="text-sm text-white/90 hover:text-white transition-colors font-medium"
+              >
+                Blog
+              </button>
             </div>
 
-            <div className="flex items-center gap-2 sm:gap-3 flex-shrink-0">
+            {/* Right side: Sign in text + Button */}
+            <div className="flex items-center gap-4 sm:gap-6 flex-shrink-0 ml-auto">
+              <button
+                onClick={() => {
+                  const token = localStorage.getItem("token");
+                  if (token) {
+                    navigate("/dashboard");
+                  } else {
+                    navigate("/login");
+                  }
+                }}
+                className="text-sm text-white/90 hover:text-white transition-colors font-medium"
+              >
+                Sign in
+              </button>
               <button
                 onClick={() =>
                   window.open(
@@ -214,138 +192,89 @@ const Landing: React.FC = () => {
                     "_blank"
                   )
                 }
-                className="text-xs sm:text-[13px] text-white font-medium px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 rounded-md bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm whitespace-nowrap min-h-[32px] flex items-center justify-center font-['Inter',sans-serif] gap-1.5 sm:gap-2"
+                className="text-sm text-black font-medium px-4 sm:px-5 py-2 rounded-md bg-white hover:bg-gray-100 transition-all whitespace-nowrap"
               >
-                <span className="hidden sm:inline">Schedule Demo</span>
-                <span className="sm:hidden">Demo</span>
-                <svg
-                  className="w-3 h-3 sm:w-3.5 sm:h-3.5 flex-shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-                  />
-                </svg>
-              </button>
-              <button
-                onClick={() => navigate("/login")}
-                className="hidden md:inline-flex text-xs sm:text-[13px] text-white font-medium px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 rounded-md bg-white/10 hover:bg-white/20 transition-all backdrop-blur-sm whitespace-nowrap min-h-[32px] items-center justify-center font-['Inter',sans-serif]"
-              >
-                Log In
+                Schedule Demo
               </button>
             </div>
           </div>
         </div>
       </nav>
 
-      {/* Hero Section */}
-      <section
-        className="fixed inset-0 z-10 pointer-events-none"
-        style={{
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          willChange: "transform",
-          position: "fixed",
-          opacity: heroOpacity,
-        }}
-      >
-        <div
-          ref={heroContentRef}
-          className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center w-full pointer-events-auto safe-area-inset"
-        >
+      {/* Hero Section - Scrollable over video */}
+      <section className="relative z-20 min-h-screen flex items-end pb-24 sm:pb-28 lg:pb-32">
+        <div className="px-4 sm:px-6 lg:px-8 text-left w-full safe-area-inset">
+          {/* Made in America Badge */}
+          <div className="mb-3 sm:mb-4 px-2 sm:px-4">
+            <div className="inline-flex items-center gap-2 bg-gray-600/80 backdrop-blur-sm px-4 py-2 rounded-full">
+              <span className="text-white text-sm font-medium">
+                Made in America
+              </span>
+              <span className="text-lg">🇺🇸</span>
+            </div>
+          </div>
           <h1
             className="text-white mb-4 sm:mb-6 leading-tight tracking-tight px-2 sm:px-4"
             style={{
-              fontFamily: "Inter, sans-serif",
+              fontFamily:
+                '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
               fontWeight: 800,
               fontSize: "clamp(28px, 7vw, 58px)",
               lineHeight: "1.04",
-              marginTop: "clamp(20px, 5vh, 40px)",
             }}
           >
-            Manufacturing{" "}
-            <span
-              style={{
-                borderBottom: "4px solid currentColor",
-                paddingBottom: "4px",
-              }}
-            >
-              Simplified
-            </span>
+            Manufacturing Simplified
           </h1>
-          <p className="text-sm sm:text-base md:text-lg lg:text-xl text-white/95 mb-6 sm:mb-8 md:mb-10 max-w-3xl mx-auto leading-relaxed px-2 sm:px-4 font-['Inter',sans-serif]">
+          <p className="text-sm sm:text-base md:text-lg lg:text-xl text-white/95 mb-6 sm:mb-8 md:mb-10 max-w-3xl leading-relaxed px-2 sm:px-4">
             <span className="font-bold">Automate</span> component evaluation and
             scoring.
             <br />
-            <span className="font-bold">Streamline</span> manufacturing pipelines.
+            <span className="font-bold">Streamline</span> manufacturing
+            pipelines.
             <br />
             <span className="font-bold">Faster</span> data-driven decisions.
           </p>
 
-          {/* CTA Buttons and Email Form */}
-          <div className="max-w-2xl mx-auto space-y-4 sm:space-y-5">
-            {/* Button */}
-            <div className="flex justify-center -mt-4 sm:-mt-6 mb-3 sm:mb-4 px-2 sm:px-4">
-              <button
-                onClick={() =>
-                  window.open(
-                    "https://calendly.com/team-trade-form/30min",
-                    "_blank"
-                  )
-                }
-                className="text-xs sm:text-sm md:text-base text-white font-bold px-5 sm:px-6 md:px-8 py-2.5 sm:py-3 rounded-lg bg-white/15 hover:bg-white/25 active:bg-white/30 transition-all backdrop-blur-sm whitespace-nowrap min-h-[44px] font-['Inter',sans-serif] flex items-center justify-center gap-2"
-              >
-                Schedule Demo
-                <svg
-                  className="w-4 h-4 sm:w-5 sm:h-5 flex-shrink-0"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"
-                  />
-                </svg>
-              </button>
-            </div>
-
-            {/* Email Form */}
+          {/* Email Form - Typeform style */}
+          <div className="max-w-2xl">
             <form
               onSubmit={handleJoinWaitlist}
-              className="max-w-md mx-auto px-2 sm:px-4"
+              className="max-w-md px-2 sm:px-4"
             >
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-2 bg-white/95 backdrop-blur-sm rounded-lg shadow-lg px-2.5 sm:px-3 py-1.5 sm:py-2">
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="Enter your email"
-                  className="flex-1 px-3 sm:px-3 py-1.5 sm:py-2 rounded-md border-0 focus:ring-0 outline-none text-gray-900 placeholder-gray-500 bg-transparent text-xs sm:text-sm min-h-[36px]"
-                  required
-                />
+              <div className="flex flex-col sm:flex-row items-end gap-3 sm:gap-4">
+                <div className="flex-1 w-full">
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder="Email address"
+                    className="email-input-white w-full bg-transparent border-0 border-b-2 border-white/70 text-white placeholder-white/60 focus:outline-none focus:border-white/90 focus:placeholder-white/80 pb-2 text-base sm:text-lg transition-colors"
+                    required
+                  />
+                </div>
                 <button
                   type="submit"
-                  className="bg-black hover:bg-black/90 active:bg-black/80 text-white px-4 sm:px-5 md:px-7 py-1.5 sm:py-2 rounded-md font-semibold transition-colors whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed text-xs sm:text-sm min-h-[36px] flex items-center justify-center"
+                  className="text-white/90 hover:text-white text-base sm:text-lg font-medium flex items-center gap-2 pb-2 border-b-2 border-transparent hover:border-white/50 transition-all whitespace-nowrap disabled:opacity-60 disabled:cursor-not-allowed"
                   disabled={isSubmitting}
                 >
-                  Join Waitlist
+                  Join waitlist
+                  <svg
+                    className="w-4 h-4 sm:w-5 sm:h-5"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M9 5l7 7-7 7"
+                    />
+                  </svg>
                 </button>
               </div>
               {submissionMessage && (
-                <p className="mt-2 sm:mt-3 text-xs sm:text-sm text-white/80 text-center px-2">
+                <p className="mt-4 text-sm sm:text-base text-white/90 px-2 font-medium">
                   {submissionMessage}
                 </p>
               )}
@@ -354,9 +283,8 @@ const Landing: React.FC = () => {
         </div>
       </section>
 
-      {/* Features Section - Scrollable Content */}
-      <div className="relative z-20" style={{ marginTop: "100vh" }}>
-        <FeaturesScrollSection />
+      {/* Scrollable Content - appears after scrolling past video */}
+      <div className="relative z-20 bg-white">
         <CompanyLogoSlider />
       </div>
     </div>
