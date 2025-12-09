@@ -33,6 +33,12 @@ openpyxl==3.1.2
 pandas>=2.0.0
 python-docx>=1.1.0
 
+# 3D Model Processing
+trimesh>=4.0.0
+numpy>=1.24.0
+scipy>=1.11.0
+pillow>=10.0.0
+
 # Utilities
 python-dateutil==2.8.2
 email-validator>=2.0.0
