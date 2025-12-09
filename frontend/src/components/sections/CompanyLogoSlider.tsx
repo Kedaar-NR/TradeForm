@@ -9,10 +9,12 @@ const CompanyLogoSlider: React.FC = () => {
 
   useEffect(() => {
     if (!scrollTrackRef.current) return;
-    
+
     // Check for prefers-reduced-motion accessibility preference
-    const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
-    
+    const prefersReducedMotion = window.matchMedia(
+      "(prefers-reduced-motion: reduce)"
+    );
+
     // Prevent multiple animation loops from starting
     if (isAnimatingRef.current) return;
     isAnimatingRef.current = true;
@@ -77,7 +79,7 @@ const CompanyLogoSlider: React.FC = () => {
         }
         // Reset to static position
         if (scrollTrackRef.current) {
-          scrollTrackRef.current.style.transform = 'translate3d(0, 0, 0)';
+          scrollTrackRef.current.style.transform = "translate3d(0, 0, 0)";
         }
       } else {
         // User disabled reduced motion - start animation if not already running
@@ -91,17 +93,23 @@ const CompanyLogoSlider: React.FC = () => {
     };
 
     // Add listener for motion preference changes BEFORE early return
-    prefersReducedMotion.addEventListener('change', handleMotionPreferenceChange);
+    prefersReducedMotion.addEventListener(
+      "change",
+      handleMotionPreferenceChange
+    );
 
     // If user currently prefers reduced motion, don't start animation
     if (prefersReducedMotion.matches) {
       // Keep logos static at initial position for accessibility
       if (scrollTrackRef.current) {
-        scrollTrackRef.current.style.transform = 'translate3d(0, 0, 0)';
+        scrollTrackRef.current.style.transform = "translate3d(0, 0, 0)";
       }
       // Early return but listener is already registered for future changes
       return () => {
-        prefersReducedMotion.removeEventListener('change', handleMotionPreferenceChange);
+        prefersReducedMotion.removeEventListener(
+          "change",
+          handleMotionPreferenceChange
+        );
       };
     }
 
@@ -120,7 +128,10 @@ const CompanyLogoSlider: React.FC = () => {
       }
       clearTimeout(startTimeout);
       lastTimeRef.current = 0;
-      prefersReducedMotion.removeEventListener('change', handleMotionPreferenceChange);
+      prefersReducedMotion.removeEventListener(
+        "change",
+        handleMotionPreferenceChange
+      );
     };
   }, []);
 
@@ -144,7 +155,13 @@ const CompanyLogoSlider: React.FC = () => {
       <div className="max-w-7xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
-          <h3 className="text-2xl sm:text-3xl lg:text-4xl font-bold text-gray-900 tracking-tight">
+          <h3
+            className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 tracking-tight"
+            style={{
+              fontFamily:
+                '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
+            }}
+          >
             Built by engineers from
           </h3>
         </div>
@@ -157,14 +174,14 @@ const CompanyLogoSlider: React.FC = () => {
 
           {/* Scrolling container */}
           <div className="overflow-hidden py-8">
-            <div 
-              ref={scrollTrackRef} 
+            <div
+              ref={scrollTrackRef}
               className="flex items-center"
-              style={{ 
-                willChange: 'transform',
-                backfaceVisibility: 'hidden',
-                perspective: '1000px',
-                transform: 'translateZ(0)'
+              style={{
+                willChange: "transform",
+                backfaceVisibility: "hidden",
+                perspective: "1000px",
+                transform: "translateZ(0)",
               }}
             >
               {/* First set of logos */}
@@ -172,9 +189,9 @@ const CompanyLogoSlider: React.FC = () => {
                 <div
                   key={`${company.name}-1-${index}`}
                   className="flex-shrink-0 logo-hover-effect"
-                  style={{ 
-                    width: '160px',
-                    marginRight: '80px'
+                  style={{
+                    width: "160px",
+                    marginRight: "80px",
                   }}
                 >
                   <img
@@ -189,9 +206,9 @@ const CompanyLogoSlider: React.FC = () => {
                 <div
                   key={`${company.name}-2-${index}`}
                   className="flex-shrink-0 logo-hover-effect"
-                  style={{ 
-                    width: '160px',
-                    marginRight: '80px'
+                  style={{
+                    width: "160px",
+                    marginRight: "80px",
                   }}
                 >
                   <img
@@ -207,8 +224,15 @@ const CompanyLogoSlider: React.FC = () => {
 
         {/* Optional subtitle */}
         <div className="text-center mt-8">
-          <p className="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto">
-            Trusted by engineers at leading aerospace, defense, and technology companies
+          <p
+            className="text-sm sm:text-base text-gray-600 max-w-2xl mx-auto"
+            style={{
+              fontFamily:
+                '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
+            }}
+          >
+            Trusted by engineers at leading aerospace, defense, and technology
+            companies
           </p>
         </div>
       </div>
