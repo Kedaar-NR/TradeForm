@@ -180,9 +180,9 @@ const CompanyLogoSlider: React.FC = () => {
         <FeaturesInteractiveSection />
       </div>
 
-      <div className="max-w-7xl mx-auto mt-16 sm:mt-20 lg:mt-24 bg-white">
+      <div className="max-w-7xl mx-auto mt-16 sm:mt-20 lg:mt-24 bg-white pb-12">
         {/* Header */}
-        <div className="text-center mb-8">
+        <div className="text-center mb-6">
           <h3
             className="text-xl sm:text-2xl lg:text-3xl font-normal text-gray-900 tracking-tight"
             style={{
