@@ -150,10 +150,10 @@ const CompanyLogoSlider: React.FC = () => {
   ];
 
   return (
-    <section className="relative bg-white py-16 px-6 overflow-hidden">
+    <section className="relative bg-white py-10 px-6 overflow-hidden">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-8">
           <h3
             className="text-lg sm:text-xl lg:text-2xl font-bold text-gray-900 tracking-tight"
             style={{

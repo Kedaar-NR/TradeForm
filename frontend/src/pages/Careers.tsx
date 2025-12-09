@@ -82,9 +82,9 @@ const Careers: React.FC = () => {
       <div className="py-8 px-4 flex-1">
         <div className="w-full max-w-4xl mx-auto">
           {/* Header */}
-          <div className="text-center mb-6">
+          <div className="flex flex-col items-center mb-6">
             <h1
-              className="text-gray-900 mb-3"
+              className="text-gray-900 mb-3 text-center"
               style={{
                 fontFamily:
                   '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
@@ -95,14 +95,14 @@ const Careers: React.FC = () => {
             >
               We're hiring for every role
             </h1>
-            <p className="text-base sm:text-lg text-gray-700 max-w-2xl mx-auto whitespace-nowrap">
+            <p className="text-base sm:text-lg text-gray-700 text-center max-w-2xl">
               Fill this form out, we'll ask identifying information, your best
               technical work, and what you want to work on.
             </p>
           </div>
 
           {/* Typeform */}
-          <div className="mt-8">
+          <div className="mt-8 flex justify-center">
             <iframe
               id="typeform-full"
               width="100%"
@@ -111,7 +111,7 @@ const Careers: React.FC = () => {
               allow="camera; microphone; autoplay; encrypted-media;"
               src="https://form.typeform.com/to/d9Z2sM9U"
               className="rounded-lg shadow-lg"
-              style={{ minHeight: "600px" }}
+              style={{ minHeight: "600px", maxWidth: "1200px" }}
             ></iframe>
           </div>
         </div>
