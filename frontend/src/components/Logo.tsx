@@ -18,7 +18,7 @@ const Logo = ({
   const sizes: Record<"sm" | "md" | "lg", { icon: string; text: string }> = {
     sm: { icon: "w-6 h-6", text: "text-base" },
     md: { icon: "w-8 h-8", text: "text-xl" },
-    lg: { icon: "w-12 h-12", text: "text-2xl" },
+    lg: { icon: "w-16 h-16", text: "text-3xl" },
   };
 
   const { icon, text } = sizes[size];
