@@ -297,7 +297,9 @@ def toggle_step(
 
     step.completed = toggle_data.completed
     step.completed_at = toggle_data.completed_at
-    if toggle_data.started_at:
+
+    # Always update started_at if provided (even if it's being set for the first time)
+    if toggle_data.started_at is not None:
         step.started_at = toggle_data.started_at
 
     db.commit()

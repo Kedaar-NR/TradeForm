@@ -111,29 +111,31 @@ const Landing: React.FC = () => {
 
   return (
     <div className="relative overflow-x-hidden bg-black">
-      {/* Full Page Video Background - Fixed */}
-      <div className="fixed inset-0 w-full h-full z-10">
-        <video
-          ref={videoARef}
-          autoPlay
-          muted
-          playsInline
-          loop={false}
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ opacity: useA ? 1 : 0 }}
-        />
-        <video
-          ref={videoBRef}
-          autoPlay
-          muted
-          playsInline
-          loop={false}
-          className="absolute inset-0 w-full h-full object-cover"
-          style={{ opacity: useA ? 0 : 1 }}
-        />
-        {/* Overlay for better text readability */}
-        <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/45 to-black/60"></div>
-      </div>
+      {/* Hero Section with Video Background */}
+      <div className="relative min-h-screen">
+        {/* Full Page Video Background - Absolute within hero section */}
+        <div className="absolute inset-0 w-full h-full z-10">
+          <video
+            ref={videoARef}
+            autoPlay
+            muted
+            playsInline
+            loop={false}
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ opacity: useA ? 1 : 0 }}
+          />
+          <video
+            ref={videoBRef}
+            autoPlay
+            muted
+            playsInline
+            loop={false}
+            className="absolute inset-0 w-full h-full object-cover"
+            style={{ opacity: useA ? 0 : 1 }}
+          />
+          {/* Overlay for better text readability */}
+          <div className="absolute inset-0 bg-gradient-to-b from-black/55 via-black/45 to-black/60"></div>
+        </div>
 
       {/* Navigation */}
       <nav className="z-50 fixed top-0 left-0 right-0 safe-area-top bg-transparent">
@@ -225,8 +227,8 @@ const Landing: React.FC = () => {
         </div>
       </nav>
 
-      {/* Hero Section - Scrollable over video */}
-      <section className="relative z-20 min-h-screen flex items-center justify-center">
+        {/* Hero Content */}
+        <section className="relative z-20 min-h-screen flex items-center justify-center">
         <div className="px-4 sm:px-6 lg:px-8 text-center w-full safe-area-inset">
           {/* Made in America Badge */}
           <div className="mb-3 sm:mb-4 flex justify-center">
@@ -328,7 +330,8 @@ const Landing: React.FC = () => {
             </form>
           </div>
         </div>
-      </section>
+        </section>
+      </div>
 
       {/* Scrollable Content - appears after scrolling past video */}
       <div className="relative z-20 bg-white">
