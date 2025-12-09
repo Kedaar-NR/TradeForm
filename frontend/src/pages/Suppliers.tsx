@@ -520,7 +520,7 @@ const Suppliers: React.FC = () => {
                         {completedCount}/{supplier.steps.length} done
                       </span>
                     </div>
-                    <span className="px-3 py-1.5 rounded-full text-sm font-semibold bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+                    <span className="px-3 py-1.5 rounded-full text-sm font-semibold bg-blue-600 text-white">
                       {(() => {
                         const grade = calculateSpeedGrade(supplier);
                         return grade !== null ? `${grade}/10` : "N/A";
