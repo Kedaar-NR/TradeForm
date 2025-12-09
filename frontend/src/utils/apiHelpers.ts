@@ -3,14 +3,15 @@ const envUrl =
     import.meta.env.REACT_APP_API_URL?.trim();
 
 // In development, use empty string to leverage Vite proxy
-// In production, use the provided URL or fallback to localhost:8000
+// In production, use the provided URL or empty string (for Vercel proxy)
+// Empty string means relative paths, which will go through Vercel's /api/proxy
 const isDevelopment = import.meta.env.DEV;
-const resolvedUrl = envUrl || (isDevelopment ? "" : "http://localhost:8000");
+const resolvedUrl = envUrl || "";
 
 if (!envUrl && !isDevelopment && typeof window !== "undefined") {
     console.warn(
-        "API URL not set. Falling back to http://localhost:8000. " +
-            "Set VITE_API_URL in your environment for production deployments."
+        "API URL not set. Using relative paths (will use Vercel proxy if configured). " +
+        "Set VITE_API_URL in your environment for direct backend connection, or configure BACKEND_API_URL for proxy."
     );
 } else if (
     !import.meta.env.VITE_API_URL &&
