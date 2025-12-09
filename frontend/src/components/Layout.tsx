@@ -229,58 +229,6 @@ const Layout = ({ children }: LayoutProps) => {
               </button>
             ))}
           </nav>
-
-          {/* Footer - Always visible at bottom */}
-          <div className="px-2 py-2 border-t border-gray-200 space-y-2 flex-shrink-0">
-            <button
-              onClick={() => setShowCreateProjectModal(true)}
-              className={`w-full btn-primary ${isCollapsed ? "px-2" : ""}`}
-              title={isCollapsed ? "Start New Project" : undefined}
-            >
-              {isCollapsed ? (
-                <svg
-                  className="w-5 h-5 mx-auto"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M12 4v16m8-8H4"
-                  />
-                </svg>
-              ) : (
-                "Start New Project"
-              )}
-            </button>
-            <button
-              onClick={handleLogout}
-              className={`w-full text-sm text-gray-600 hover:text-gray-900 py-2 ${
-                isCollapsed ? "px-2" : ""
-              }`}
-              title={isCollapsed ? "Log out" : undefined}
-            >
-              {isCollapsed ? (
-                <svg
-                  className="w-5 h-5 mx-auto"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"
-                  />
-                </svg>
-              ) : (
-                "Log out"
-              )}
-            </button>
-          </div>
         </div>
       </aside>
 
@@ -359,6 +307,12 @@ const Layout = ({ children }: LayoutProps) => {
                   </div>
                 )}
               </div>
+              <button
+                onClick={handleLogout}
+                className="text-sm text-gray-600 hover:text-gray-900 whitespace-nowrap"
+              >
+                Log out
+              </button>
             </div>
           </div>
         </header>
