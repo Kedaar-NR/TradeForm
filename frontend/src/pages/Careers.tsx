@@ -11,7 +11,7 @@ const Careers: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white flex flex-col">
       {/* Navigation */}
       <nav className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -79,7 +79,7 @@ const Careers: React.FC = () => {
       </nav>
 
       {/* Content */}
-      <div className="py-8 px-4">
+      <div className="py-8 px-4 flex-1">
         <div className="w-full max-w-4xl mx-auto">
           {/* Header */}
           <div className="text-center mb-6">

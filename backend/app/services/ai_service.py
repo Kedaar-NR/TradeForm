@@ -307,10 +307,10 @@ class AIService:
     def chat(self, question: str) -> str:
         """
         General chat about trade studies.
-        
+
         Args:
             question: User's question
-            
+
         Returns:
             Response text
         """
@@ -318,6 +318,25 @@ class AIService:
             system=CHAT_SYSTEM_PROMPT,
             user=question,
             max_tokens=2048
+        )
+
+    def generate_text(self, prompt: str, system: Optional[str] = None, max_tokens: Optional[int] = None) -> str:
+        """
+        Generate text from a prompt using AI.
+
+        Args:
+            prompt: The user prompt
+            system: Optional system prompt (defaults to generic assistant)
+            max_tokens: Optional max tokens override
+
+        Returns:
+            Generated text response
+        """
+        system_prompt = system or "You are a helpful AI assistant that provides accurate, concise responses."
+        return self._call_claude(
+            system=system_prompt,
+            user=prompt,
+            max_tokens=max_tokens or self.MAX_TOKENS
         )
     
     def _format_criteria_text(self, criteria: List[Dict[str, Any]]) -> str:

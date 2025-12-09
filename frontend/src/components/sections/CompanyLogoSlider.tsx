@@ -23,7 +23,7 @@ const CompanyLogoSlider: React.FC = () => {
     const LOGO_WIDTH = 160; // px
     const LOGO_MARGIN = 80; // px
     const LOGO_TOTAL_WIDTH = LOGO_WIDTH + LOGO_MARGIN; // 240px
-    const LOGO_COUNT = 12;
+    const LOGO_COUNT = 11;
     const ONE_SET_WIDTH = LOGO_TOTAL_WIDTH * LOGO_COUNT; // 2,880px
     const SPEED_PER_SECOND = 72; // pixels per second (constant speed regardless of frame rate)
 
@@ -143,7 +143,6 @@ const CompanyLogoSlider: React.FC = () => {
     { name: "Blue Origin", logo: "/logos/blue origin logo.png" },
     { name: "BAIR", logo: "/logos/BAIR logo.png" },
     { name: "Mercor", logo: "/logos/mercor logo.png" },
-    { name: "NFX", logo: "/logos/nfx logo.png" },
     { name: "McLaren F1", logo: "/logos/mclaren f1 logo.png" },
     { name: "Cisco", logo: "/logos/cisco logo.png" },
     { name: "Stanford Medicine", logo: "/logos/stanford medicine logo.png" },

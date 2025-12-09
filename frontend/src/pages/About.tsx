@@ -22,7 +22,7 @@ const About: React.FC = () => {
   }, []);
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white flex flex-col">
       {/* Navigation */}
       <nav
         className={`z-50 fixed top-0 left-0 right-0 safe-area-top transition-all duration-300 ${
@@ -96,7 +96,7 @@ const About: React.FC = () => {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative pt-16 sm:pt-20 bg-white">
+      <section className="relative pt-16 sm:pt-20 bg-white flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
           {/* Title */}
           <div className="text-center mb-12 sm:mb-16">
