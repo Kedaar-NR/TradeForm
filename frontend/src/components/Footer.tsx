@@ -4,6 +4,12 @@ import { useNavigate } from "react-router-dom";
 const Footer: React.FC = () => {
   const navigate = useNavigate();
 
+  const handleNavigate = (path: string) => {
+    navigate(path);
+    // Ensure we land at the top of the destination page
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  };
+
   return (
     <footer className="bg-gray-100">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 py-12 sm:py-16">
@@ -29,25 +35,25 @@ const Footer: React.FC = () => {
             {/* Navigation Links - Horizontal */}
             <div className="flex flex-row items-center gap-4 md:gap-6">
               <button
-                onClick={() => navigate("/")}
+                onClick={() => handleNavigate("/")}
                 className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
               >
                 Home
               </button>
               <button
-                onClick={() => navigate("/about")}
+                onClick={() => handleNavigate("/about")}
                 className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
               >
                 About
               </button>
               <button
-                onClick={() => navigate("/careers")}
+                onClick={() => handleNavigate("/careers")}
                 className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
               >
                 Careers
               </button>
               <button
-                onClick={() => navigate("/blog")}
+                onClick={() => handleNavigate("/blog")}
                 className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
               >
                 Blog
@@ -57,13 +63,13 @@ const Footer: React.FC = () => {
             {/* Legal Links - Bottom Right */}
             <div className="flex flex-row items-center gap-4 md:gap-6">
               <button
-                onClick={() => navigate("/terms-of-service")}
+                onClick={() => handleNavigate("/terms-of-service")}
                 className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
               >
                 Terms of Service
               </button>
               <button
-                onClick={() => navigate("/privacy-policy")}
+                onClick={() => handleNavigate("/privacy-policy")}
                 className="text-sm text-gray-600 hover:text-gray-900 transition-colors"
               >
                 Privacy Policy
