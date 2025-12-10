@@ -43,12 +43,26 @@ const DatasheetAssistantPanel: React.FC<DatasheetAssistantPanelProps> = ({
   const [suggestions, setSuggestions] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [suggestionsLoading, setSuggestionsLoading] = useState(false);
   const [hasSeededQuestion, setHasSeededQuestion] = useState(false);
+  const suggestionRetryTimeout = React.useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (suggestionRetryTimeout.current) {
+        clearTimeout(suggestionRetryTimeout.current);
+      }
+    };
+  }, []);
 
   // Load suggestions when datasheet is parsed
   useEffect(() => {
     if (datasheetParsed) {
       loadSuggestions();
+    } else {
+      // Clear stale suggestions when a new file is uploading/processing
+      setSuggestions([]);
+      setSuggestionsLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [datasheetParsed, testComponentId]);
@@ -60,6 +74,12 @@ const DatasheetAssistantPanel: React.FC<DatasheetAssistantPanelProps> = ({
     setError(null);
     setQaHistory([]);
     setHasSeededQuestion(false);
+    setSuggestions([]);
+    // Clear any pending retries when switching components
+    if (suggestionRetryTimeout.current) {
+      clearTimeout(suggestionRetryTimeout.current);
+      suggestionRetryTimeout.current = null;
+    }
   }, [testComponentId]);
 
   useEffect(() => {
@@ -75,7 +95,9 @@ const DatasheetAssistantPanel: React.FC<DatasheetAssistantPanelProps> = ({
     }
   }, [datasheetParsed, suggestions, hasSeededQuestion]);
 
-  const loadSuggestions = async () => {
+  const loadSuggestions = async (attempt: number = 0) => {
+    if (!datasheetParsed) return;
+    setSuggestionsLoading(true);
     try {
       const response = await fetch(
         getApiUrl(`/api/components/${testComponentId}/datasheet/suggestions`),
@@ -89,9 +111,23 @@ const DatasheetAssistantPanel: React.FC<DatasheetAssistantPanelProps> = ({
       if (response.ok) {
         const data = await response.json();
         setSuggestions(data.suggestions || []);
+        if ((data.suggestions?.length || 0) > 0) {
+          setSuggestionsLoading(false);
+        } else if (attempt < 5) {
+          // Poll a few times quickly after upload so questions appear promptly
+          suggestionRetryTimeout.current = setTimeout(
+            () => loadSuggestions(attempt + 1),
+            1500
+          );
+        } else {
+          setSuggestionsLoading(false);
+        }
+      } else {
+        setSuggestionsLoading(false);
       }
     } catch (err) {
       console.error("Failed to load suggestions:", err);
+      setSuggestionsLoading(false);
     }
   };
 
@@ -239,6 +275,38 @@ const DatasheetAssistantPanel: React.FC<DatasheetAssistantPanelProps> = ({
                     >
                       {suggestion}
                     </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
+          {suggestions.length === 0 && suggestionsLoading && (
+            <div className="flex-shrink-0 mb-6 pb-4 border-b border-gray-200">
+              <div className="max-w-2xl mx-auto w-full">
+                <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center">
+                  <svg
+                    className="w-5 h-5 mr-2 text-indigo-600 animate-spin"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.356-2m15.356 2H15"
+                    />
+                  </svg>
+                  Generating questions from your PDF…
+                </h3>
+                <div className="flex flex-wrap gap-2">
+                  {Array.from({ length: 4 }).map((_, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex px-3 py-2 text-sm rounded-lg bg-indigo-50 text-indigo-600 border border-indigo-100 animate-pulse"
+                    >
+                      Pulling details…
+                    </span>
                   ))}
                 </div>
               </div>

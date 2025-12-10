@@ -332,7 +332,7 @@ const Layout = ({ children }: LayoutProps) => {
               </div>
               <button
                 onClick={handleLogout}
-                className="text-sm text-gray-600 hover:text-gray-900 whitespace-nowrap"
+                className="text-sm font-semibold text-gray-900 bg-white border border-gray-300 rounded-md px-4 py-2 shadow-sm hover:bg-gray-100 hover:border-gray-400 transition-colors whitespace-nowrap"
               >
                 Log out
               </button>

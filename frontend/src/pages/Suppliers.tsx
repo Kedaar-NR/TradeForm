@@ -917,11 +917,11 @@ const Suppliers: React.FC = () => {
       {/* Task Materials Modal */}
       {selectedStep && selectedSupplier && (
         <div
-          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4 sm:p-6"
           onClick={closeStepModal}
         >
           <div
-          className="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto"
+          className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[96vh] min-h-[70vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
@@ -1019,11 +1019,11 @@ const Suppliers: React.FC = () => {
                       ref={previewContainerRef}
                     >
                       {previewLoading ? (
-                        <div className="w-full h-[420px] flex items-center justify-center text-sm text-gray-600">
+                        <div className="w-full h-[560px] flex items-center justify-center text-sm text-gray-600">
                           Loading preview...
                         </div>
                       ) : previewError ? (
-                        <div className="w-full h-[420px] flex items-center justify-center text-sm text-red-600">
+                        <div className="w-full h-[560px] flex items-center justify-center text-sm text-red-600">
                           {previewError}
                         </div>
                       ) : (
@@ -1031,7 +1031,7 @@ const Suppliers: React.FC = () => {
                           key={materialVersion}
                           src={`${previewUrl || materialUrl}#toolbar=0&navpanes=0`}
                           title="Task material preview"
-                          className={`w-full h-[420px] ${isSigning ? "pointer-events-none" : ""}`}
+                          className={`w-full h-[560px] ${isSigning ? "pointer-events-none" : ""}`}
                         />
                       )}
                       {isSigning && (

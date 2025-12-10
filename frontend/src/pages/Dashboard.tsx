@@ -221,26 +221,9 @@ const Dashboard: React.FC = () => {
   }, []);
 
   // Update active section based on scroll position
+  // Keep Projects as the default tab; no automatic switching on scroll
   useEffect(() => {
-    const handleScroll = () => {
-      if (!projectsSectionRef.current || !studiesSectionRef.current) return;
-
-      const projectsTop =
-        projectsSectionRef.current.getBoundingClientRect().top;
-      const studiesTop = studiesSectionRef.current.getBoundingClientRect().top;
-      const viewportMiddle = window.innerHeight / 2;
-
-      // Determine which section is more visible in the viewport
-      if (studiesTop < viewportMiddle && studiesTop > -200) {
-        setActiveSection("studies");
-      } else if (projectsTop < viewportMiddle) {
-        setActiveSection("projects");
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    handleScroll(); // Check initial position
-    return () => window.removeEventListener("scroll", handleScroll);
+    setActiveSection("projects");
   }, []);
 
   // Filter project groups by search
@@ -255,6 +238,7 @@ const Dashboard: React.FC = () => {
   // Never show untouched projects here.
   const filteredStudies = projects
     .filter((p) => hasAccessRecord(RECENT_STUDY_PREFIX, p.id))
+    .filter((p) => Boolean(p.projectGroupId)) // only studies that live inside a project
     .filter(
       (p) =>
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -398,6 +382,7 @@ const Dashboard: React.FC = () => {
       setDeletingProjectId(projectId);
       await projectGroupsApi.delete(projectId);
       await loadProjectGroups();
+      setActiveSection("projects");
     } catch (error) {
       console.error("Failed to delete project:", error);
       alert(`Failed to delete project: ${extractErrorMessage(error)}`);
@@ -413,6 +398,7 @@ const Dashboard: React.FC = () => {
       setDeletingProjectId(studyId);
       await projectsApi.delete(studyId);
       await loadProjects();
+      setActiveSection("projects");
     } catch (error) {
       console.error("Failed to delete study:", error);
       alert(`Failed to delete study: ${extractErrorMessage(error)}`);

@@ -151,19 +151,25 @@ const Landing: React.FC = () => {
         {/* Navigation */}
         <nav
           className={`z-50 fixed top-0 left-0 right-0 safe-area-top transition-colors duration-300 ${
-            navScrolled ? "bg-white/15 backdrop-blur-md" : "bg-transparent"
+            navScrolled
+              ? "bg-white/90 backdrop-blur-md shadow-sm"
+              : "bg-transparent"
           }`}
         >
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-14 sm:h-16 min-h-[44px]">
               {/* Logo on left */}
-              <Logo textColor="white" size="md" />
+              <Logo textColor={navScrolled ? "dark" : "white"} size="md" />
 
               {/* Navigation Links in center */}
               <div className="hidden md:flex items-center gap-6 lg:gap-8 absolute left-1/2 transform -translate-x-1/2">
                 <button
                   onClick={() => navigate("/")}
-                  className="text-sm text-white/90 hover:text-white transition-colors font-medium"
+                  className={`text-sm transition-colors font-medium ${
+                    navScrolled
+                      ? "text-gray-900 hover:text-black"
+                      : "text-white/90 hover:text-white"
+                  }`}
                   style={{
                     fontFamily:
                       '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
@@ -173,7 +179,11 @@ const Landing: React.FC = () => {
                 </button>
                 <button
                   onClick={() => navigate("/about")}
-                  className="text-sm text-white/90 hover:text-white transition-colors font-medium"
+                  className={`text-sm transition-colors font-medium ${
+                    navScrolled
+                      ? "text-gray-900 hover:text-black"
+                      : "text-white/90 hover:text-white"
+                  }`}
                   style={{
                     fontFamily:
                       '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
@@ -183,7 +193,11 @@ const Landing: React.FC = () => {
                 </button>
                 <button
                   onClick={() => navigate("/careers")}
-                  className="text-sm text-white/90 hover:text-white transition-colors font-medium"
+                  className={`text-sm transition-colors font-medium ${
+                    navScrolled
+                      ? "text-gray-900 hover:text-black"
+                      : "text-white/90 hover:text-white"
+                  }`}
                   style={{
                     fontFamily:
                       '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
@@ -193,7 +207,11 @@ const Landing: React.FC = () => {
                 </button>
                 <button
                   onClick={() => navigate("/blog")}
-                  className="text-sm text-white/90 hover:text-white transition-colors font-medium"
+                  className={`text-sm transition-colors font-medium ${
+                    navScrolled
+                      ? "text-gray-900 hover:text-black"
+                      : "text-white/90 hover:text-white"
+                  }`}
                   style={{
                     fontFamily:
                       '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
@@ -214,7 +232,11 @@ const Landing: React.FC = () => {
                       navigate("/login");
                     }
                   }}
-                  className="text-sm text-white/90 hover:text-white transition-colors font-medium"
+                  className={`text-sm transition-colors font-medium ${
+                    navScrolled
+                      ? "text-gray-900 hover:text-black"
+                      : "text-white/90 hover:text-white"
+                  }`}
                   style={{
                     fontFamily:
                       '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
