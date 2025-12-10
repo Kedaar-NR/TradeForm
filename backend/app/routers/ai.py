@@ -1,6 +1,6 @@
 """AI-powered endpoints for optimization, discovery, scoring, chat, and PDF proxy."""
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from uuid import UUID
@@ -236,10 +236,7 @@ async def score_all_components(project_id: UUID, db: Session = Depends(get_db)):
     if not criteria:
         raise HTTPException(status_code=400, detail="No criteria found for this project")
     
-    # Build criterion name to ID mapping
     criterion_map = {c.name: c for c in criteria}
-    
-    # Pre-fetch existing scores
     component_ids = [c.id for c in components]
     criterion_ids = [c.id for c in criteria]
     existing_scores = {
@@ -252,22 +249,24 @@ async def score_all_components(project_id: UUID, db: Session = Depends(get_db)):
     
     scores_created = 0
     scores_updated = 0
-    errors = []
-    
+    errors: list[str] = []
+
     try:
-        ai_service = get_ai_service()
+        try:
+            ai_service = get_ai_service()
+        except Exception as exc:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail=f"AI scoring unavailable: {exc}"
+            ) from exc
         
-        # Create batch scoring tasks - one per component (scores ALL criteria at once)
-        # Process in smaller batches to avoid API overload
         logger.info(f"Starting batch scoring for {len(components)} components with {len(criteria)} criteria")
 
-        # Create scoring tasks for each component
         scoring_tasks = [
             _score_component_batch(ai_service, component, criteria, timeout_seconds=60)
             for component in components
         ]
 
-        # Run with low concurrency to avoid API rate limits (2 at a time)
         semaphore = asyncio.Semaphore(2)
 
         async def bounded_score(task):
@@ -287,13 +286,11 @@ async def score_all_components(project_id: UUID, db: Session = Depends(get_db)):
                 errors.append(str(error))
                 continue
             
-            # Process each score from the batch
             for score_data in scores_list:
                 criterion_name = score_data.get("criterion_name", "")
                 criterion = criterion_map.get(criterion_name)
                 
                 if not criterion:
-                    # Try fuzzy match
                     for crit_name, crit in criterion_map.items():
                         if crit_name.lower() in criterion_name.lower() or criterion_name.lower() in crit_name.lower():
                             criterion = crit
@@ -340,14 +337,19 @@ async def score_all_components(project_id: UUID, db: Session = Depends(get_db)):
         }
         
         if errors:
-            response["errors_count"] = len(errors)
             response["warning"] = f"Some scores failed to generate ({len(errors)} errors)"
+            response["errors"] = errors[:5]
         
         return response
+    
+    except HTTPException:
+        raise
     except Exception as e:
-        db.rollback()
-        raise HTTPException(status_code=500, detail=f"AI scoring failed: {str(e)}")
-
+        logger.exception(f"Error scoring components for project {project_id}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Scoring failed: {str(e)}"
+        )
 
 @router.post("/api/ai/optimize-project")
 async def optimize_project_with_ai(request: dict):
