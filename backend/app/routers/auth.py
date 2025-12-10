@@ -21,18 +21,23 @@ GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
 FRONTEND_REDIRECT_URL = os.getenv("FRONTEND_URL") or "/"
 ACCESS_COOKIE_NAME = "access_token"
 STATE_PURPOSE = "google_oauth_state"
+COOKIE_DOMAIN = os.getenv("COOKIE_DOMAIN")  # Set to ".trade-form.com" in production
 
 
 def _set_auth_cookie(response: Response, token: str):
-    response.set_cookie(
-        ACCESS_COOKIE_NAME,
-        token,
-        max_age=60 * 60 * 24 * 30,
-        httponly=True,
-        secure=True,
-        samesite="lax",
-        path="/",
-    )
+    cookie_params = {
+        "key": ACCESS_COOKIE_NAME,
+        "value": token,
+        "max_age": 60 * 60 * 24 * 30,
+        "httponly": True,
+        "secure": True,
+        "samesite": "lax",
+        "path": "/",
+    }
+    # Only set domain if explicitly configured (for production cross-subdomain support)
+    if COOKIE_DOMAIN:
+        cookie_params["domain"] = COOKIE_DOMAIN
+    response.set_cookie(**cookie_params)
 
 
 def _build_state_token() -> str:
