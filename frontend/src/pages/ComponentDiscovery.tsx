@@ -141,14 +141,14 @@ const ComponentDiscovery: React.FC = () => {
         await loadComponents();
 
         const newComponents = data.components || [];
-        const normalizedComponents = newComponents.map(
-          (comp: { id: string; datasheet_url?: string }) => ({
-            id: comp.id,
-            datasheetUrl: comp.datasheet_url,
-          })
-        );
-
         // Auto-import feature disabled - commented out unused variable
+        // const normalizedComponents = newComponents.map(
+        //   (comp: { id: string; datasheet_url?: string }) => ({
+        //     id: comp.id,
+        //     datasheetUrl: comp.datasheet_url,
+        //   })
+        // );
+
         // const hasDatasheetUrls = normalizedComponents.some((comp) =>
         //   Boolean(comp.datasheetUrl)
         // );
