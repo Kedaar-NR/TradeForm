@@ -6,35 +6,26 @@ from sqlalchemy.orm import Session, selectinload
 from typing import List
 from uuid import UUID
 
-from app import models, schemas
+from app import models, schemas, auth
 from app.database import get_db
 
 router = APIRouter(prefix="/api/project-groups", tags=["project-groups"])
 
 
 @router.post("", response_model=schemas.ProjectGroup, status_code=status.HTTP_201_CREATED)
-def create_project_group(project_group: schemas.ProjectGroupCreate, db: Session = Depends(get_db)):
+def create_project_group(
+    project_group: schemas.ProjectGroupCreate, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user_required)
+):
     """Create a new project group"""
     try:
-        # Get first user or create a default one if none exists
-        user = db.query(models.User).first()
-        if not user:
-            from app.auth import get_password_hash
-            user = models.User(
-                email="default@tradeform.com",
-                name="Default User",
-                password_hash=get_password_hash("default")
-            )
-            db.add(user)
-            db.commit()
-            db.refresh(user)
-
         db_project_group = models.ProjectGroup(
             name=project_group.name,
             description=project_group.description,
             icon=project_group.icon,
             color=project_group.color,
-            created_by=user.id
+            created_by=current_user.id
         )
 
         db.add(db_project_group)
@@ -47,9 +38,16 @@ def create_project_group(project_group: schemas.ProjectGroupCreate, db: Session 
 
 
 @router.get("", response_model=List[schemas.ProjectGroup])
-def list_project_groups(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    """List all project groups"""
-    project_groups = db.query(models.ProjectGroup).offset(skip).limit(limit).all()
+def list_project_groups(
+    skip: int = 0, 
+    limit: int = 100, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user_required)
+):
+    """List all project groups for the current user"""
+    project_groups = db.query(models.ProjectGroup).filter(
+        models.ProjectGroup.created_by == current_user.id
+    ).offset(skip).limit(limit).all()
     return project_groups
 
 

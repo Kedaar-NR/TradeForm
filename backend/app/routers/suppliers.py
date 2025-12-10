@@ -232,11 +232,11 @@ def _build_material_response(step: SupplierStep) -> FileResponse:
 @router.post("", response_model=SupplierResponse)
 def create_supplier(
     supplier_data: SupplierCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user_required)
 ):
     """Create a new supplier with default onboarding steps"""
-    # Get or create dev user (similar pattern to onboarding router)
-    user = _get_or_create_dev_user(db)
+    user = current_user
 
     supplier = Supplier(
         user_id=user.id,
@@ -259,11 +259,11 @@ def create_supplier(
 
 @router.get("", response_model=List[SupplierResponse])
 def list_suppliers(
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user_required)
 ):
     """List all suppliers for the current user"""
-    # Get or create dev user (must match create_supplier)
-    user = _get_or_create_dev_user(db)
+    user = current_user
 
     suppliers = db.query(Supplier).filter(Supplier.user_id == user.id).order_by(Supplier.created_at.desc()).all()
     return [_attach_material_metadata(s) for s in suppliers]
@@ -272,11 +272,11 @@ def list_suppliers(
 @router.get("/{supplier_id}", response_model=SupplierResponse)
 def get_supplier(
     supplier_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user_required)
 ):
     """Get a specific supplier by ID"""
-    # Get or create dev user (must match create_supplier)
-    user = _get_or_create_dev_user(db)
+    user = current_user
 
     supplier = _get_supplier_for_user(db, supplier_id, user.id)
     return _attach_material_metadata(supplier)
@@ -286,11 +286,11 @@ def get_supplier(
 def update_supplier(
     supplier_id: UUID,
     supplier_data: SupplierUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user_required)
 ):
     """Update a supplier"""
-    # Get or create dev user (must match create_supplier)
-    user = _get_or_create_dev_user(db)
+    user = current_user
 
     supplier = _get_supplier_for_user(db, supplier_id, user.id)
 
@@ -305,11 +305,11 @@ def update_supplier(
 @router.delete("/{supplier_id}")
 def delete_supplier(
     supplier_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user_required)
 ):
     """Delete a supplier"""
-    # Get or create dev user (must match create_supplier)
-    user = _get_or_create_dev_user(db)
+    user = current_user
 
     supplier = _get_supplier_for_user(db, supplier_id, user.id)
 
@@ -354,9 +354,10 @@ async def upload_step_material(
     name: Optional[str] = Form(None),
     description: Optional[str] = Form(None),
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user_required)
 ):
     """Upload or replace a task material (e.g., PDF) for a supplier step."""
-    user = _get_or_create_dev_user(db)
+    user = current_user
     supplier = _get_supplier_for_user(db, supplier_id, user.id)
     step = _get_step_for_supplier(db, supplier_id, step_id)
 
@@ -422,9 +423,10 @@ def download_step_material(
     supplier_id: UUID,
     step_id: UUID,
     db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user_required)
 ):
     """Download a step's uploaded material (internal view)."""
-    user = _get_or_create_dev_user(db)
+    user = current_user
     _get_supplier_for_user(db, supplier_id, user.id)
     step = _get_step_for_supplier(db, supplier_id, step_id)
     return _build_material_response(step)
@@ -433,11 +435,11 @@ def download_step_material(
 @router.post("/{supplier_id}/share", response_model=ShareLinkResponse)
 def generate_share_link(
     supplier_id: UUID,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user_required)
 ):
     """Generate a shareable link for a supplier"""
-    # Get or create dev user (must match create_supplier)
-    user = _get_or_create_dev_user(db)
+    user = current_user
 
     supplier = db.query(Supplier).filter(
         Supplier.id == supplier_id,

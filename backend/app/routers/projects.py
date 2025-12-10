@@ -6,7 +6,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from uuid import UUID
 
-from app import models, schemas
+from app import models, schemas, auth
 from app.database import get_db, run_sql_migrations, ensure_project_group_schema
 from app.services.change_logger import log_project_change
 
@@ -14,24 +14,15 @@ router = APIRouter(prefix="/api/projects", tags=["projects"])
 
 
 @router.post("", response_model=schemas.Project, status_code=status.HTTP_201_CREATED)
-def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)):
+def create_project(
+    project: schemas.ProjectCreate, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user_required)
+):
     """Create a new trade study project"""
     # Retry once if the database is missing the project_group_id column (migration not applied yet)
     for attempt in range(2):
         try:
-            # Get first user or create a default one if none exists
-            user = db.query(models.User).first()
-            if not user:
-                from app.auth import get_password_hash
-                user = models.User(
-                    email="default@tradeform.com",
-                    name="Default User",
-                    password_hash=get_password_hash("default")
-                )
-                db.add(user)
-                db.commit()
-                db.refresh(user)
-
             # Persist project with group and status so it shows up under the correct template
             status_value = models.ProjectStatus(project.status.value) if project.status else models.ProjectStatus.DRAFT
             db_project = models.Project(
@@ -40,7 +31,7 @@ def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)
                 description=project.description,
                 status=status_value,
                 project_group_id=project.project_group_id,
-                created_by=user.id,
+                created_by=current_user.id,
             )
             
             db.add(db_project)
@@ -82,12 +73,19 @@ def create_project(project: schemas.ProjectCreate, db: Session = Depends(get_db)
 
 
 @router.get("", response_model=List[schemas.Project])
-def list_projects(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
-    """List all trade study projects, sorted by most recently updated"""
+def list_projects(
+    skip: int = 0, 
+    limit: int = 100, 
+    db: Session = Depends(get_db),
+    current_user: models.User = Depends(auth.get_current_user_required)
+):
+    """List all trade study projects for the current user, sorted by most recently updated"""
     # Retry once if the database is missing the project_group_id column (migration not applied yet)
     for attempt in range(2):
         try:
-            projects = db.query(models.Project).order_by(models.Project.updated_at.desc()).offset(skip).limit(limit).all()
+            projects = db.query(models.Project).filter(
+                models.Project.created_by == current_user.id
+            ).order_by(models.Project.updated_at.desc()).offset(skip).limit(limit).all()
             return projects
         except ProgrammingError as exc:
             db.rollback()
