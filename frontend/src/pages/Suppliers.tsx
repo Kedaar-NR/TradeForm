@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { suppliersApi, Supplier, SupplierCreate } from "../services/api";
-import { Send, ChevronDown, ChevronUp, Trash2 } from "lucide-react";
+import { suppliersApi, Supplier, SupplierCreate, SupplierStep } from "../services/api";
+import { Send, ChevronDown, ChevronUp, Trash2, X } from "lucide-react";
 
 const formatDuration = (start?: string, end?: string) => {
   if (!start || !end) return "—";
@@ -77,6 +77,7 @@ const Suppliers: React.FC = () => {
     color: "#0ea5e9",
     notes: "",
   });
+  const [selectedStep, setSelectedStep] = useState<SupplierStep | null>(null);
 
   useEffect(() => {
     loadSuppliers();
@@ -553,17 +554,23 @@ const Suppliers: React.FC = () => {
                 {isExpanded && (
                   <div className="mt-5 space-y-2">
                     {supplier.steps.map((step, index) => (
-                      <label
+                      <div
                         key={step.id}
-                        className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-300 transition-colors cursor-pointer"
+                        className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-300 transition-colors"
                       >
                         <input
                           type="checkbox"
                           checked={step.completed}
-                          onChange={() => toggleStep(supplier.id, step.id)}
-                          className="mt-1 h-4 w-4 rounded border-gray-300 text-black focus:ring-black"
+                          onChange={(e) => {
+                            e.stopPropagation();
+                            toggleStep(supplier.id, step.id);
+                          }}
+                          className="mt-1 h-4 w-4 rounded border-gray-300 text-black focus:ring-black cursor-pointer"
                         />
-                        <div className="flex-1 min-w-0">
+                        <div
+                          className="flex-1 min-w-0 cursor-pointer"
+                          onClick={() => setSelectedStep(step)}
+                        >
                           <div className="flex items-center gap-2">
                             <p className="font-medium text-gray-900">
                               {index + 1}. {step.title}
@@ -583,13 +590,141 @@ const Suppliers: React.FC = () => {
                             {step.description}
                           </p>
                         </div>
-                      </label>
+                      </div>
                     ))}
                   </div>
                 )}
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Task Materials Modal */}
+      {selectedStep && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
+          onClick={() => setSelectedStep(null)}
+        >
+          <div
+            className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
+              <h2 className="text-xl font-semibold text-gray-900">
+                {selectedStep.title}
+              </h2>
+              <button
+                onClick={() => setSelectedStep(null)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="p-6">
+              <p className="text-sm text-gray-600 mb-6">
+                {selectedStep.description}
+              </p>
+
+              <div className="space-y-4">
+                <h3 className="font-semibold text-gray-900">Task Materials</h3>
+
+                {selectedStep.step_id === 'nda' && (
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-600">
+                      Download and review the mutual NDA template:
+                    </p>
+                    <a
+                      href="#"
+                      className="block p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-red-100 rounded flex items-center justify-center">
+                          <span className="text-red-600 font-semibold text-xs">PDF</span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">Mutual NDA Template</p>
+                          <p className="text-xs text-gray-500">Standard mutual non-disclosure agreement</p>
+                        </div>
+                      </div>
+                    </a>
+                  </div>
+                )}
+
+                {selectedStep.step_id === 'security' && (
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-600">
+                      Security and compliance documentation:
+                    </p>
+                    <a
+                      href="#"
+                      className="block p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-blue-100 rounded flex items-center justify-center">
+                          <span className="text-blue-600 font-semibold text-xs">PDF</span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">Security Questionnaire</p>
+                          <p className="text-xs text-gray-500">Standard security assessment form</p>
+                        </div>
+                      </div>
+                    </a>
+                  </div>
+                )}
+
+                {selectedStep.step_id === 'quality' && (
+                  <div className="space-y-3">
+                    <p className="text-sm text-gray-600">
+                      Quality management documentation:
+                    </p>
+                    <a
+                      href="#"
+                      className="block p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-green-100 rounded flex items-center justify-center">
+                          <span className="text-green-600 font-semibold text-xs">PDF</span>
+                        </div>
+                        <div>
+                          <p className="font-medium text-gray-900">Quality Requirements</p>
+                          <p className="text-xs text-gray-500">Process controls and certifications</p>
+                        </div>
+                      </div>
+                    </a>
+                  </div>
+                )}
+
+                {!['nda', 'security', 'quality'].includes(selectedStep.step_id) && (
+                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <p className="text-sm text-gray-600">
+                      No materials available for this step yet. Materials can be added as needed.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-6 pt-6 border-t border-gray-200">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-gray-500">
+                    Status: {selectedStep.completed ? (
+                      <span className="text-green-600 font-medium">Completed</span>
+                    ) : selectedStep.started_at ? (
+                      <span className="text-blue-600 font-medium">In Progress</span>
+                    ) : (
+                      <span className="text-gray-600 font-medium">Not Started</span>
+                    )}
+                  </span>
+                  {selectedStep.completed && (
+                    <span className="text-gray-500">
+                      Finished in {formatDuration(selectedStep.started_at, selectedStep.completed_at)}
+                    </span>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </div>
