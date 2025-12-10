@@ -1,5 +1,16 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { suppliersApi, Supplier, SupplierCreate, SupplierStep } from "../services/api";
+import React, {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  useCallback,
+} from "react";
+import {
+  suppliersApi,
+  Supplier,
+  SupplierCreate,
+  SupplierStep,
+} from "../services/api";
 import { Send, ChevronDown, ChevronUp, Trash2, X } from "lucide-react";
 import { PDFViewerModal } from "../components/PDFViewerModal";
 import { PDFDocument } from "pdf-lib";
@@ -39,7 +50,9 @@ const durationInDays = (start: string, end: string) => {
 
 // Calculate automatic speed grade (1-10, 10=fastest)
 const calculateSpeedGrade = (supplier: Supplier): number | null => {
-  const completedSteps = supplier.steps.filter((s) => s.completed && s.started_at && s.completed_at);
+  const completedSteps = supplier.steps.filter(
+    (s) => s.completed && s.started_at && s.completed_at
+  );
 
   if (completedSteps.length === 0) return null; // N/A
 
@@ -103,13 +116,31 @@ const Suppliers: React.FC = () => {
   const selectedStep = selectedStepContext?.step || null;
   const selectedSupplier = selectedStepContext?.supplier || null;
   const TEMPLATE_MAP: Record<string, { path: string; filename: string }> = {
-    nda: { path: "/templates/nda-template.pdf", filename: "Mutual_NDA_Template.pdf" },
-    security: { path: "/templates/security-template.pdf", filename: "Security_Questionnaire.pdf" },
-    quality: { path: "/templates/quality-template.pdf", filename: "Quality_Package.pdf" },
-    sample: { path: "/templates/sample-template.pdf", filename: "Sample_Build.pdf" },
-    commercial: { path: "/templates/commercial-template.pdf", filename: "Commercial_Terms.pdf" },
+    nda: {
+      path: "/templates/nda-template.pdf",
+      filename: "Mutual_NDA_Template.pdf",
+    },
+    security: {
+      path: "/templates/security-template.pdf",
+      filename: "Security_Questionnaire.pdf",
+    },
+    quality: {
+      path: "/templates/quality-template.pdf",
+      filename: "Quality_Package.pdf",
+    },
+    sample: {
+      path: "/templates/sample-template.pdf",
+      filename: "Sample_Build.pdf",
+    },
+    commercial: {
+      path: "/templates/commercial-template.pdf",
+      filename: "Commercial_Terms.pdf",
+    },
     pilot: { path: "/templates/pilot-template.pdf", filename: "Pilot_Run.pdf" },
-    production: { path: "/templates/production-template.pdf", filename: "Production_Slot.pdf" },
+    production: {
+      path: "/templates/production-template.pdf",
+      filename: "Production_Slot.pdf",
+    },
   };
   const DEFAULT_TEMPLATE = {
     path: "/templates/generic-template.pdf",
@@ -151,7 +182,10 @@ const Suppliers: React.FC = () => {
         if (token) {
           headers.Authorization = `Bearer ${token}`;
         }
-        const response = await fetch(materialUrl, { headers, credentials: 'include' });
+        const response = await fetch(materialUrl, {
+          headers,
+          credentials: "include",
+        });
         if (!response.ok) {
           throw new Error(`Failed to load preview: ${response.statusText}`);
         }
@@ -199,7 +233,12 @@ const Suppliers: React.FC = () => {
     setSuppliers((prev) =>
       prev.map((s) =>
         s.id === supplierId
-          ? { ...s, steps: s.steps.map((st) => (st.id === updatedStep.id ? updatedStep : st)) }
+          ? {
+              ...s,
+              steps: s.steps.map((st) =>
+                st.id === updatedStep.id ? updatedStep : st
+              ),
+            }
           : s
       )
     );
@@ -240,7 +279,11 @@ const Suppliers: React.FC = () => {
       if (token) {
         headers.Authorization = `Bearer ${token}`;
       }
-      const pdfBytes = new Uint8Array(await (await fetch(materialUrl, { headers, credentials: 'include' })).arrayBuffer());
+      const pdfBytes = new Uint8Array(
+        await (
+          await fetch(materialUrl, { headers, credentials: "include" })
+        ).arrayBuffer()
+      );
       const pdfDoc = await PDFDocument.load(pdfBytes);
       const pngImage = await pdfDoc.embedPng(sigBytes);
       const page = pdfDoc.getPage(0);
@@ -259,7 +302,9 @@ const Suppliers: React.FC = () => {
         `${selectedStep?.title || "task"}-signed.pdf`;
       const arrayBuffer = new ArrayBuffer(updatedPdf.length);
       new Uint8Array(arrayBuffer).set(updatedPdf);
-      const file = new File([arrayBuffer], filename, { type: "application/pdf" });
+      const file = new File([arrayBuffer], filename, {
+        type: "application/pdf",
+      });
       const response = await suppliersApi.uploadStepMaterial(
         selectedStepContext.supplier.id,
         selectedStepContext.step.id,
@@ -348,7 +393,8 @@ const Suppliers: React.FC = () => {
         const blob = await res.blob();
         const file = new File(
           [blob],
-          templateForStep.filename || `${selectedStep?.title || "template"}.pdf`,
+          templateForStep.filename ||
+            `${selectedStep?.title || "template"}.pdf`,
           { type: blob.type || "application/pdf" }
         );
         await uploadMaterialFile(file);
@@ -364,7 +410,12 @@ const Suppliers: React.FC = () => {
   }, [selectedStepContext, selectedStep, selectedSupplier, templateForStep]);
 
   useEffect(() => {
-    if (!isSigning || !signatureCanvasRef.current || !previewContainerRef.current) return;
+    if (
+      !isSigning ||
+      !signatureCanvasRef.current ||
+      !previewContainerRef.current
+    )
+      return;
     const canvas = signatureCanvasRef.current;
     const rect = previewContainerRef.current.getBoundingClientRect();
     canvas.width = rect.width;
@@ -786,156 +837,156 @@ const Suppliers: React.FC = () => {
               return gradeB - gradeA; // Highest grade first
             })
             .map((supplier) => {
-            const completedCount = supplier.steps.filter(
-              (step) => step.completed
-            ).length;
-            const progress = Math.round(
-              (completedCount / supplier.steps.length) * 100
-            );
-            const isExpanded = expandedSuppliers.has(supplier.id);
+              const completedCount = supplier.steps.filter(
+                (step) => step.completed
+              ).length;
+              const progress = Math.round(
+                (completedCount / supplier.steps.length) * 100
+              );
+              const isExpanded = expandedSuppliers.has(supplier.id);
 
-            return (
-              <div key={supplier.id} className="card p-5">
-                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-                  <div className="flex items-center gap-3 min-w-0 flex-1">
-                    <span
-                      className="h-12 w-1.5 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: supplier.color }}
-                      aria-hidden
-                    />
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-center gap-2">
-                        <h3 className="text-lg font-semibold text-gray-900 truncate">
-                          {supplier.name}
-                        </h3>
+              return (
+                <div key={supplier.id} className="card p-5">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <span
+                        className="h-12 w-1.5 rounded-full flex-shrink-0"
+                        style={{ backgroundColor: supplier.color }}
+                        aria-hidden
+                      />
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-lg font-semibold text-gray-900 truncate">
+                            {supplier.name}
+                          </h3>
+                          <span className="text-xs text-gray-500">
+                            Added {formatDate(supplier.created_at)}
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 truncate">
+                          {supplier.contact_name || "Unnamed contact"} ·{" "}
+                          {supplier.contact_email || "No email yet"}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => toggleSupplierExpanded(supplier.id)}
+                        className="btn-secondary text-sm flex items-center gap-1"
+                        title={isExpanded ? "Collapse" : "Expand"}
+                      >
+                        {isExpanded ? (
+                          <>
+                            <ChevronUp size={16} />
+                            Collapse
+                          </>
+                        ) : (
+                          <>
+                            <ChevronDown size={16} />
+                            Expand
+                          </>
+                        )}
+                      </button>
+                    </div>
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <div className="flex items-center gap-2 text-sm text-gray-700">
+                        <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-gray-900 rounded-full"
+                            style={{ width: `${progress}%` }}
+                          />
+                        </div>
                         <span className="text-xs text-gray-500">
-                          Added {formatDate(supplier.created_at)}
+                          {completedCount}/{supplier.steps.length} done
                         </span>
                       </div>
-                      <p className="text-sm text-gray-600 truncate">
-                        {supplier.contact_name || "Unnamed contact"} ·{" "}
-                        {supplier.contact_email || "No email yet"}
-                      </p>
-                    </div>
-                    <button
-                      onClick={() => toggleSupplierExpanded(supplier.id)}
-                      className="btn-secondary text-sm flex items-center gap-1"
-                      title={isExpanded ? "Collapse" : "Expand"}
-                    >
-                      {isExpanded ? (
-                        <>
-                          <ChevronUp size={16} />
-                          Collapse
-                        </>
-                      ) : (
-                        <>
-                          <ChevronDown size={16} />
-                          Expand
-                        </>
-                      )}
-                    </button>
-                  </div>
-                  <div className="flex items-center gap-3 flex-wrap">
-                    <div className="flex items-center gap-2 text-sm text-gray-700">
-                      <div className="w-24 h-2 bg-gray-100 rounded-full overflow-hidden">
-                        <div
-                          className="h-full bg-gray-900 rounded-full"
-                          style={{ width: `${progress}%` }}
-                        />
-                      </div>
-                      <span className="text-xs text-gray-500">
-                        {completedCount}/{supplier.steps.length} done
+                      <span className="px-3 py-1.5 rounded-full text-sm font-semibold bg-blue-600 text-white">
+                        {(() => {
+                          const grade = calculateSpeedGrade(supplier);
+                          return grade !== null ? `${grade}/10` : "N/A";
+                        })()}
                       </span>
-                    </div>
-                    <span className="px-3 py-1.5 rounded-full text-sm font-semibold bg-blue-600 text-white">
-                      {(() => {
-                        const grade = calculateSpeedGrade(supplier);
-                        return grade !== null ? `${grade}/10` : "N/A";
-                      })()}
-                    </span>
-                    <button
-                      onClick={() => handleGenerateShareLink(supplier.id)}
-                      className="btn-secondary text-sm flex items-center gap-1"
-                      title="Generate shareable link"
-                    >
-                      <Send size={16} />
-                      Share
-                    </button>
-                    <button
-                      onClick={() => handleDelete(supplier.id)}
-                      className="text-red-600 hover:text-red-700 transition-colors p-2"
-                      title="Delete supplier"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </div>
-
-                {supplier.notes && (
-                  <div className="mt-3 text-sm text-gray-600 bg-gray-50 border border-gray-100 rounded-lg p-3">
-                    {supplier.notes}
-                  </div>
-                )}
-
-                {isExpanded && (
-                  <div className="mt-5 space-y-2">
-                    {supplier.steps.map((step, index) => (
-                      <div
-                        key={step.id}
-                        className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-300 transition-colors"
+                      <button
+                        onClick={() => handleGenerateShareLink(supplier.id)}
+                        className="btn-secondary text-sm flex items-center gap-1"
+                        title="Generate shareable link"
                       >
-                        <input
-                          type="checkbox"
-                          checked={step.completed}
-                          onChange={(e) => {
-                            e.stopPropagation();
-                            toggleStep(supplier.id, step.id);
-                          }}
-                          className="mt-1 h-4 w-4 rounded border-gray-300 text-black focus:ring-black cursor-pointer"
-                        />
-                        <div
-                          className="flex-1 min-w-0 cursor-pointer"
-                          onClick={() =>
-                            setSelectedStepContext({ step, supplier })
-                          }
-                        >
-                          <div className="flex items-center gap-2">
-                            <p className="font-medium text-gray-900">
-                              {index + 1}. {step.title}
-                            </p>
-                            <span className="text-[11px] text-gray-500">
-                              {step.completed
-                                ? `Finished in ${formatDuration(
-                                    step.started_at,
-                                    step.completed_at
-                                  )}`
-                                : step.started_at
-                                ? `Started ${formatDate(step.started_at)}`
-                                : "Not started"}
-                            </span>
-                          </div>
-                          <p className="text-sm text-gray-600">
-                            {step.description}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
+                        <Send size={16} />
+                        Share
+                      </button>
+                      <button
+                        onClick={() => handleDelete(supplier.id)}
+                        className="text-red-600 hover:text-red-700 transition-colors p-2"
+                        title="Delete supplier"
+                      >
+                        <Trash2 size={18} />
+                      </button>
+                    </div>
                   </div>
-                )}
-              </div>
-            );
-          })}
+
+                  {supplier.notes && (
+                    <div className="mt-3 text-sm text-gray-600 bg-gray-50 border border-gray-100 rounded-lg p-3">
+                      {supplier.notes}
+                    </div>
+                  )}
+
+                  {isExpanded && (
+                    <div className="mt-5 space-y-2">
+                      {supplier.steps.map((step, index) => (
+                        <div
+                          key={step.id}
+                          className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-300 transition-colors"
+                        >
+                          <input
+                            type="checkbox"
+                            checked={step.completed}
+                            onChange={(e) => {
+                              e.stopPropagation();
+                              toggleStep(supplier.id, step.id);
+                            }}
+                            className="mt-1 h-4 w-4 rounded border-gray-300 text-black focus:ring-black cursor-pointer"
+                          />
+                          <div
+                            className="flex-1 min-w-0 cursor-pointer"
+                            onClick={() =>
+                              setSelectedStepContext({ step, supplier })
+                            }
+                          >
+                            <div className="flex items-center gap-2">
+                              <p className="font-medium text-gray-900">
+                                {index + 1}. {step.title}
+                              </p>
+                              <span className="text-[11px] text-gray-500">
+                                {step.completed
+                                  ? `Finished in ${formatDuration(
+                                      step.started_at,
+                                      step.completed_at
+                                    )}`
+                                  : step.started_at
+                                  ? `Started ${formatDate(step.started_at)}`
+                                  : "Not started"}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-600">
+                              {step.description}
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
         </div>
       )}
 
       {/* Task Materials Modal */}
       {selectedStep && selectedSupplier && (
         <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-center justify-center z-50 p-4 sm:p-6"
+          className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-center justify-center z-[9999] p-4 sm:p-6"
           onClick={closeStepModal}
         >
           <div
-          className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[96vh] min-h-[70vh] overflow-y-auto"
+            className="bg-white rounded-xl shadow-2xl max-w-6xl w-full max-h-[96vh] min-h-[70vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
@@ -956,32 +1007,37 @@ const Suppliers: React.FC = () => {
             </div>
 
             <div className="p-6 space-y-6">
-              <p className="text-sm text-gray-600">{selectedStep.description}</p>
+              <p className="text-sm text-gray-600">
+                {selectedStep.description}
+              </p>
 
               <div className="space-y-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
-                    <div>
-                      <h3 className="font-semibold text-gray-900">Task Materials</h3>
-                      <p className="text-sm text-gray-600">
-                        Preview, replace, or sign the file shown to both your team and the shared supplier link.
-                      </p>
-                    </div>
-                    <div className="flex flex-wrap items-center gap-2">
-                      <label className="cursor-pointer px-3 py-2 text-sm font-semibold border border-gray-300 rounded-lg hover:bg-gray-100">
-                        {isUploadingMaterial
-                          ? "Uploading..."
-                          : selectedStep.has_material
-                          ? "Replace file"
-                          : "Upload file"}
-                        <input
-                          type="file"
-                          className="hidden"
-                          accept=".pdf,.doc,.docx"
-                          onChange={handleUploadMaterial}
-                          disabled={isUploadingMaterial}
-                          onClick={(e) => e.stopPropagation()}
-                        />
-                      </label>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="font-semibold text-gray-900">
+                      Task Materials
+                    </h3>
+                    <p className="text-sm text-gray-600">
+                      Preview, replace, or sign the file shown to both your team
+                      and the shared supplier link.
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="cursor-pointer px-3 py-2 text-sm font-semibold border border-gray-300 rounded-lg hover:bg-gray-100">
+                      {isUploadingMaterial
+                        ? "Uploading..."
+                        : selectedStep.has_material
+                        ? "Replace file"
+                        : "Upload file"}
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,.doc,.docx"
+                        onChange={handleUploadMaterial}
+                        disabled={isUploadingMaterial}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </label>
                     {materialUrl && (
                       <>
                         <button
@@ -993,7 +1049,11 @@ const Suppliers: React.FC = () => {
                         {isPdfMaterial && (
                           <>
                             <button
-                              className={`px-3 py-2 text-sm font-semibold rounded-lg ${isSigning ? "bg-black text-white" : "border border-gray-300 hover:bg-gray-100"}`}
+                              className={`px-3 py-2 text-sm font-semibold rounded-lg ${
+                                isSigning
+                                  ? "bg-black text-white"
+                                  : "border border-gray-300 hover:bg-gray-100"
+                              }`}
                               onClick={async () => {
                                 if (isSigning) {
                                   // Turning off - save signature first
@@ -1003,7 +1063,11 @@ const Suppliers: React.FC = () => {
                               }}
                               disabled={isSavingSignature}
                             >
-                              {isSavingSignature ? "Saving..." : isSigning ? "Done signing" : "Sign"}
+                              {isSavingSignature
+                                ? "Saving..."
+                                : isSigning
+                                ? "Done signing"
+                                : "Sign"}
                             </button>
                             {isSigning && (
                               <button
@@ -1049,9 +1113,13 @@ const Suppliers: React.FC = () => {
                       ) : (
                         <iframe
                           key={materialVersion}
-                          src={`${previewUrl || materialUrl}#toolbar=0&navpanes=0`}
+                          src={`${
+                            previewUrl || materialUrl
+                          }#toolbar=0&navpanes=0`}
                           title="Task material preview"
-                          className={`w-full h-[560px] ${isSigning ? "pointer-events-none" : ""}`}
+                          className={`w-full h-[560px] ${
+                            isSigning ? "pointer-events-none" : ""
+                          }`}
                         />
                       )}
                       {isSigning && (
@@ -1079,8 +1147,8 @@ const Suppliers: React.FC = () => {
                             "Task material"}
                         </p>
                         <p className="text-xs text-gray-600">
-                          Preview not available. Download to view or upload a PDF
-                          to preview inline.
+                          Preview not available. Download to view or upload a
+                          PDF to preview inline.
                         </p>
                       </div>
                       <button
@@ -1100,7 +1168,8 @@ const Suppliers: React.FC = () => {
                           No file uploaded yet
                         </p>
                         <p className="text-sm text-gray-600">
-                          Upload a PDF or DOCX to share it directly in this step.
+                          Upload a PDF or DOCX to share it directly in this
+                          step.
                         </p>
                       </div>
                     </div>
@@ -1108,7 +1177,9 @@ const Suppliers: React.FC = () => {
                   {selectedStep.material_updated_at && (
                     <p className="text-xs text-gray-500 mt-2">
                       Last updated{" "}
-                      {new Date(selectedStep.material_updated_at).toLocaleString()}
+                      {new Date(
+                        selectedStep.material_updated_at
+                      ).toLocaleString()}
                     </p>
                   )}
                 </div>
@@ -1117,22 +1188,35 @@ const Suppliers: React.FC = () => {
               <div className="mt-6 pt-6 border-t border-gray-200">
                 <div className="flex items-center justify-between text-sm">
                   <span className="text-gray-500">
-                    Status: {selectedStep.completed ? (
-                      <span className="text-green-600 font-medium">Completed</span>
+                    Status:{" "}
+                    {selectedStep.completed ? (
+                      <span className="text-green-600 font-medium">
+                        Completed
+                      </span>
                     ) : selectedStep.started_at ? (
-                      <span className="text-blue-600 font-medium">In Progress</span>
+                      <span className="text-blue-600 font-medium">
+                        In Progress
+                      </span>
                     ) : (
-                      <span className="text-gray-600 font-medium">Not Started</span>
+                      <span className="text-gray-600 font-medium">
+                        Not Started
+                      </span>
                     )}
                   </span>
                   {selectedStep.completed && (
                     <span className="text-gray-500">
-                      Finished in {formatDuration(selectedStep.started_at, selectedStep.completed_at)}
+                      Finished in{" "}
+                      {formatDuration(
+                        selectedStep.started_at,
+                        selectedStep.completed_at
+                      )}
                     </span>
                   )}
                 </div>
                 {isSavingSignature && (
-                  <p className="mt-2 text-xs text-gray-500">Saving signature...</p>
+                  <p className="mt-2 text-xs text-gray-500">
+                    Saving signature...
+                  </p>
                 )}
               </div>
             </div>
