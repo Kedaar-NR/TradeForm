@@ -171,15 +171,19 @@ def google_login(request: Request):
         raise HTTPException(status_code=500, detail="Google OAuth is not configured")
 
     # Use dynamic redirect URI based on the request host
-    # This handles both www.trade-form.com and trade-form.com
-    host = request.headers.get("host", "")
-    if host:
-        # Build the redirect URI from the current host
+    # Check for original host from proxy headers (Vercel sets x-forwarded-host)
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host", "")
+    
+    if host and not host.endswith(".railway.app"):
+        # Build the redirect URI from the current host (not Railway internal host)
         scheme = "https" if request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https" else "http"
         redirect_uri = f"{scheme}://{host}/api/auth/google/callback"
     else:
-        # Fallback to env var if no host header
+        # Fallback to env var if no host header or if it's Railway internal
         redirect_uri = GOOGLE_REDIRECT_URI
+
+    # Log for debugging
+    print(f"[GOOGLE LOGIN] Host: {host}, X-Forwarded-Host: {request.headers.get('x-forwarded-host')}, Redirect URI: {redirect_uri}")
 
     state = _build_state_token()
     params = {
@@ -206,8 +210,10 @@ async def google_callback(request: Request, code: str, state: str, db: Session =
     _verify_state_token(state)
 
     # Use dynamic redirect URI based on the request host (must match what was sent to Google)
-    host = request.headers.get("host", "")
-    if host:
+    # Check for original host from proxy headers
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host", "")
+    
+    if host and not host.endswith(".railway.app"):
         scheme = "https" if request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https" else "http"
         redirect_uri = f"{scheme}://{host}/api/auth/google/callback"
     else:
@@ -277,8 +283,10 @@ async def google_callback(request: Request, code: str, state: str, db: Session =
     )
 
     # Redirect to the frontend, preserving the same host (www or non-www)
-    host = request.headers.get("host", "")
-    if host and not FRONTEND_REDIRECT_URL:
+    # Check for original host from proxy headers
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host", "")
+    
+    if host and not FRONTEND_REDIRECT_URL and not host.endswith(".railway.app"):
         # Build redirect URL with same host as request
         scheme = "https" if request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https" else "http"
         frontend_url = f"{scheme}://{host}/dashboard"
