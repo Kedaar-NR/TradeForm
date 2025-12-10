@@ -139,40 +139,7 @@ const ComponentDiscovery: React.FC = () => {
       if (data.discovered_count > 0) {
         // Reload components - this adds to existing, doesn't replace
         await loadComponents();
-
-        // Auto-import feature disabled - commented out unused variables
-        // const newComponents = data.components || [];
-        // const normalizedComponents = newComponents.map(
-        //   (comp: { id: string; datasheet_url?: string }) => ({
-        //     id: comp.id,
-        //     datasheetUrl: comp.datasheet_url,
-        //   })
-        // );
-
-        // const hasDatasheetUrls = normalizedComponents.some((comp) =>
-        //   Boolean(comp.datasheetUrl)
-        // );
-
-        // Auto-import feature disabled - commented out unused datasheet status
-        // let datasheetStatus = "";
-        // if (hasDatasheetUrls) {
-        //   try {
-        //     const { successCount, skippedCount, failedDetails } =
-        //       await uploadMultipleDatasheets(normalizedComponents);
-        //     await loadComponents();
-
-        //     const failedCount = failedDetails?.length || 0;
-        //     datasheetStatus = `\n• Datasheets uploaded: ${successCount}\n• Failed: ${failedCount}\n• Skipped (not PDFs): ${skippedCount}`;
-        //   } catch (err) {
-        //     console.error("Automatic datasheet uploads failed:", err);
-        //     datasheetStatus = "\n• Datasheets: Auto-upload failed, upload manually from component details";
-        //   }
-        // }
-
-        // Show single notification at the end - DISABLED per user request
-        // alert(
-        //   `✓ Successfully discovered ${data.discovered_count} components!${datasheetStatus}`
-        // );
+        // Auto-import of datasheets is intentionally disabled; rely on manual uploads.
       } else {
         alert(
           "No new components discovered. Try refining your project description or criteria."
