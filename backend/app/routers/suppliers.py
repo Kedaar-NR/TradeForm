@@ -182,10 +182,8 @@ def list_suppliers(
     db: Session = Depends(get_db)
 ):
     """List all suppliers for the current user"""
-    # Get first user (similar pattern to other routers)
-    user = db.query(models.User).first()
-    if not user:
-        return []
+    # Get or create dev user (must match create_supplier)
+    user = _get_or_create_dev_user(db)
 
     suppliers = db.query(Supplier).filter(Supplier.user_id == user.id).order_by(Supplier.created_at.desc()).all()
     return suppliers
@@ -197,10 +195,8 @@ def get_supplier(
     db: Session = Depends(get_db)
 ):
     """Get a specific supplier by ID"""
-    # Get first user (similar pattern to other routers)
-    user = db.query(models.User).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="No user found")
+    # Get or create dev user (must match create_supplier)
+    user = _get_or_create_dev_user(db)
 
     supplier = db.query(Supplier).filter(
         Supplier.id == supplier_id,
@@ -220,10 +216,8 @@ def update_supplier(
     db: Session = Depends(get_db)
 ):
     """Update a supplier"""
-    # Get first user (similar pattern to other routers)
-    user = db.query(models.User).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="No user found")
+    # Get or create dev user (must match create_supplier)
+    user = _get_or_create_dev_user(db)
 
     supplier = db.query(Supplier).filter(
         Supplier.id == supplier_id,
@@ -247,10 +241,8 @@ def delete_supplier(
     db: Session = Depends(get_db)
 ):
     """Delete a supplier"""
-    # Get first user (similar pattern to other routers)
-    user = db.query(models.User).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="No user found")
+    # Get or create dev user (must match create_supplier)
+    user = _get_or_create_dev_user(db)
 
     supplier = db.query(Supplier).filter(
         Supplier.id == supplier_id,
@@ -273,10 +265,8 @@ def toggle_step(
     db: Session = Depends(get_db)
 ):
     """Toggle a step's completion status"""
-    # Get first user (similar pattern to other routers)
-    user = db.query(models.User).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="No user found")
+    # Get or create dev user (must match create_supplier)
+    user = _get_or_create_dev_user(db)
 
     # Verify supplier ownership
     supplier = db.query(Supplier).filter(
@@ -313,10 +303,8 @@ def generate_share_link(
     db: Session = Depends(get_db)
 ):
     """Generate a shareable link for a supplier"""
-    # Get first user (similar pattern to other routers)
-    user = db.query(models.User).first()
-    if not user:
-        raise HTTPException(status_code=404, detail="No user found")
+    # Get or create dev user (must match create_supplier)
+    user = _get_or_create_dev_user(db)
 
     supplier = db.query(Supplier).filter(
         Supplier.id == supplier_id,
