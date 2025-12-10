@@ -6,7 +6,7 @@
   "rewrites": [
     {
       "source": "/api/:path*",
-            "destination": "/api/proxy/:path*"
+            "destination": "https://tradeform-production.up.railway.app/api/:path*"
         },
         {
             "source": "/(.*)",
