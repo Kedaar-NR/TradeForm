@@ -170,8 +170,8 @@ def google_login(request: Request):
     if not (GOOGLE_CLIENT_ID and GOOGLE_REDIRECT_URI):
         raise HTTPException(status_code=500, detail="Google OAuth is not configured")
 
-    # Use trade-form.com (no www) - this is the original registered URI
-    redirect_uri = "https://trade-form.com/api/auth/google/callback"
+    # Use the env var GOOGLE_REDIRECT_URI from Railway
+    redirect_uri = GOOGLE_REDIRECT_URI
     
     # Log for debugging
     print(f"[GOOGLE LOGIN] Using redirect URI: {redirect_uri}")
@@ -200,8 +200,8 @@ async def google_callback(request: Request, code: str, state: str, db: Session =
 
     _verify_state_token(state)
 
-    # Use the same redirect URI as in the login flow
-    redirect_uri = "https://trade-form.com/api/auth/google/callback"
+    # Use the same redirect URI as in the login flow (from env var)
+    redirect_uri = GOOGLE_REDIRECT_URI
 
     # Exchange code for tokens
     token_url = "https://oauth2.googleapis.com/token"
@@ -270,11 +270,16 @@ async def google_callback(request: Request, code: str, state: str, db: Session =
     )
 
     # Redirect based on whether this is a new signup or existing user login
+    # Extract base domain from GOOGLE_REDIRECT_URI (e.g., https://trade-form.com)
+    from urllib.parse import urlparse
+    parsed = urlparse(GOOGLE_REDIRECT_URI)
+    base_domain = f"{parsed.scheme}://{parsed.netloc}"
+    
     # NEW users → onboarding, EXISTING users → dashboard
     if is_new_user:
-        base_url = "https://trade-form.com/onboarding"
+        base_url = f"{base_domain}/onboarding"
     else:
-        base_url = "https://trade-form.com/dashboard"
+        base_url = f"{base_domain}/dashboard"
     
     # Pass token via URL fragment (hash) so frontend can store it
     # Using fragment (#) keeps token out of server logs
