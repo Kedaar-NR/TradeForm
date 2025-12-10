@@ -242,7 +242,10 @@ async def google_callback(request: Request, code: str, state: str, db: Session =
 
     # Upsert user
     user = auth.get_user_by_email(db, email)
+    is_new_user = False
+    
     if not user:
+        is_new_user = True
         random_password = secrets.token_urlsafe(16)
         hashed_password = auth.get_password_hash(random_password)
         user = models.User(email=email, name=name, password_hash=hashed_password)
@@ -267,8 +270,12 @@ async def google_callback(request: Request, code: str, state: str, db: Session =
         expires_delta=timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
-    # Always redirect to www.trade-form.com for consistency
-    frontend_url = "https://www.trade-form.com/dashboard"
+    # Check onboarding status and redirect accordingly
+    profile = db.query(models.UserProfile).filter(models.UserProfile.user_id == user.id).first()
+    if profile and profile.onboarding_status in [models.OnboardingStatus.NOT_STARTED, models.OnboardingStatus.IN_PROGRESS]:
+        frontend_url = "https://www.trade-form.com/onboarding"
+    else:
+        frontend_url = "https://www.trade-form.com/dashboard"
     
     response = RedirectResponse(frontend_url)
     _set_auth_cookie(response, access_token)
