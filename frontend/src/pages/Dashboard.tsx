@@ -251,17 +251,10 @@ const Dashboard: React.FC = () => {
         project.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  // Filter studies from recently accessed project groups
-  // Show trade studies from project groups the user has clicked into
-  const recentlyAccessedGroupIds = projectGroups
-    .filter((group) => hasAccessRecord(RECENT_GROUP_PREFIX, group.id))
-    .map((group) => group.id);
-
+  // Filter studies: only show projects the user has actually opened (study access)
+  // Never show untouched projects here.
   const filteredStudies = projects
-    .filter((p) => {
-      // Include projects that belong to recently accessed project groups
-      return p.projectGroupId && recentlyAccessedGroupIds.includes(p.projectGroupId);
-    })
+    .filter((p) => hasAccessRecord(RECENT_STUDY_PREFIX, p.id))
     .filter(
       (p) =>
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -269,29 +262,6 @@ const Dashboard: React.FC = () => {
           p.description.toLowerCase().includes(searchTerm.toLowerCase()))
     )
     .filter((p) => !p.createdViaTemplateGroup);
-
-  // Update active section based on scroll position (after filtered variables are defined)
-  useEffect(() => {
-    const handleScroll = () => {
-      if (!projectsSectionRef.current || !studiesSectionRef.current) return;
-
-      const projectsTop =
-        projectsSectionRef.current.getBoundingClientRect().top;
-      const studiesTop = studiesSectionRef.current.getBoundingClientRect().top;
-      const viewportMiddle = window.innerHeight / 2;
-
-      // Determine which section is more visible in the viewport
-      if (studiesTop < viewportMiddle && studiesTop > -200) {
-        setActiveSection("studies");
-      } else if (projectsTop < viewportMiddle) {
-        setActiveSection("projects");
-      }
-    };
-
-    window.addEventListener("scroll", handleScroll);
-    handleScroll(); // Check initial position
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, [filteredProjects.length, filteredStudies.length]);
 
   // Navigation Tabs
   const NavigationTabs = () => (
