@@ -3,6 +3,7 @@ import { suppliersApi, Supplier, SupplierCreate, SupplierStep } from "../service
 import { Send, ChevronDown, ChevronUp, Trash2, X } from "lucide-react";
 import { PDFViewerModal } from "../components/PDFViewerModal";
 import { PDFDocument } from "pdf-lib";
+import { getAuthToken } from "../utils/apiHelpers";
 
 const formatDuration = (start?: string, end?: string) => {
   if (!start || !end) return "—";
@@ -145,7 +146,15 @@ const Suppliers: React.FC = () => {
       try {
         setPreviewLoading(true);
         setPreviewError(null);
-        const response = await fetch(materialUrl);
+        const token = getAuthToken();
+        const headers: HeadersInit = {};
+        if (token) {
+          headers.Authorization = `Bearer ${token}`;
+        }
+        const response = await fetch(materialUrl, { headers, credentials: 'include' });
+        if (!response.ok) {
+          throw new Error(`Failed to load preview: ${response.statusText}`);
+        }
         const blob = await response.blob();
         const objectUrl = URL.createObjectURL(blob);
         revokeUrl = objectUrl;
@@ -226,7 +235,12 @@ const Suppliers: React.FC = () => {
       const base64 = dataUrl.split(",")[1];
       const sigBytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
 
-      const pdfBytes = new Uint8Array(await (await fetch(materialUrl)).arrayBuffer());
+      const token = getAuthToken();
+      const headers: HeadersInit = {};
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      const pdfBytes = new Uint8Array(await (await fetch(materialUrl, { headers, credentials: 'include' })).arrayBuffer());
       const pdfDoc = await PDFDocument.load(pdfBytes);
       const pngImage = await pdfDoc.embedPng(sigBytes);
       const page = pdfDoc.getPage(0);
@@ -917,7 +931,7 @@ const Suppliers: React.FC = () => {
       {/* Task Materials Modal */}
       {selectedStep && selectedSupplier && (
         <div
-          className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50 p-4 sm:p-6"
+          className="fixed inset-0 bg-black/60 backdrop-blur-xl flex items-center justify-center z-50 p-4 sm:p-6"
           onClick={closeStepModal}
         >
           <div
@@ -989,7 +1003,7 @@ const Suppliers: React.FC = () => {
                               }}
                               disabled={isSavingSignature}
                             >
-                              {isSavingSignature ? "Saving..." : isSigning ? "Done signing" : "Sign document"}
+                              {isSavingSignature ? "Saving..." : isSigning ? "Done signing" : "Sign"}
                             </button>
                             {isSigning && (
                               <button
