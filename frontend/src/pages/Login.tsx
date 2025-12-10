@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import Logo from '../components/Logo';
 import api from '../services/api';
+import { API_BASE_URL } from '../utils/apiHelpers';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -64,27 +65,11 @@ const Login: React.FC = () => {
         navigate('/dashboard');
       }
     } catch (error: any) {
-      console.error('Login failed:', error);
-      // TODO: TEMPORARILY BYPASSED FOR DEVELOPMENT - Re-enable when fixing auth
-      // Instead of blocking user, bypass auth and continue to dashboard
-      console.warn('Auth bypassed - proceeding to dashboard without authentication');
-      localStorage.setItem('isAuthenticated', 'true');
-      localStorage.setItem('authToken', 'dev-bypass-token');
-      localStorage.setItem('currentUser', JSON.stringify({
-        id: 'dev-user',
-        email: formData.email,
-        name: 'Development User',
-        onboarding_status: 'completed',
-        onboardingStatus: 'completed'
-      }));
-      navigate('/dashboard');
-      
-      // Original error handling (commented out for development):
-      // const message =
-      //   error?.response?.data?.detail ||
-      //   error?.message ||
-      //   'Failed to log in. Please try again.';
-      // setFormError(message);
+      const message =
+        error?.response?.data?.detail ||
+        error?.message ||
+        'Failed to log in. Please try again.';
+      setFormError(message);
     } finally {
       setIsSubmitting(false);
     }
@@ -118,8 +103,9 @@ const Login: React.FC = () => {
             <button
               type="button"
               onClick={() => {
-                // TODO: Implement Google OAuth login
-                console.log('Google login clicked');
+                const target =
+                  (API_BASE_URL || "") + "/api/auth/google/login";
+                window.location.href = target;
               }}
               className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-md bg-white hover:bg-gray-50 transition-colors mb-6"
             >

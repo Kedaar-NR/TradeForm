@@ -8,9 +8,10 @@ from sqlalchemy.orm import Session
 from app import models
 from app.database import get_db
 import os
+from fastapi import Request
 
 # Security configurations
-SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-here-change-in-production")
+SECRET_KEY = os.getenv("JWT_SECRET") or os.getenv("SECRET_KEY", "your-secret-key-here-change-in-production")
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30 * 24 * 60  # 30 days
 
@@ -67,13 +68,13 @@ def authenticate_user(db: Session, email: str, password: str) -> Optional[models
     return user
 
 def get_current_user(
+    request: Request,
     token: str = Depends(oauth2_scheme),
     db: Session = Depends(get_db)
 ) -> Optional[models.User]:
-    """Get the current authenticated user from JWT token"""
-    # If no token provided, return None (allows optional auth)
+    """Get the current authenticated user from JWT token (header or cookie)"""
     if not token:
-        return None
+        token = request.cookies.get("access_token")
 
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,

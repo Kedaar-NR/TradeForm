@@ -69,31 +69,11 @@ const Signup: React.FC = () => {
       }
     } catch (error: any) {
       console.error("Signup failed:", error);
-      // TODO: TEMPORARILY BYPASSED FOR DEVELOPMENT - Re-enable when fixing auth
-      // Instead of blocking user, bypass auth and continue to dashboard
-      console.warn(
-        "Auth bypassed - proceeding to dashboard without authentication"
-      );
-      localStorage.setItem("isAuthenticated", "true");
-      localStorage.setItem("authToken", "dev-bypass-token");
-      localStorage.setItem(
-        "currentUser",
-        JSON.stringify({
-          id: "dev-user",
-          email: formData.email,
-          name: formData.name || "Development User",
-          onboarding_status: "completed",
-          onboardingStatus: "completed",
-        })
-      );
-      navigate("/dashboard");
-
-      // Original error handling (commented out for development):
-      // const message =
-      //   error?.response?.data?.detail ||
-      //   error?.message ||
-      //   'Failed to create account. Please try again.';
-      // setFormError(message);
+      const message =
+        error?.response?.data?.detail ||
+        error?.message ||
+        "Failed to create account. Please try again.";
+      setFormError(message);
     } finally {
       setIsSubmitting(false);
     }

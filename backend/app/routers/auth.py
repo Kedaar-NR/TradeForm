@@ -1,18 +1,59 @@
 """Authentication endpoints for user registration and login."""
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Response
+from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
-from datetime import timedelta
+from datetime import timedelta, datetime
+import os
+import secrets
+import httpx
+from jose import jwt, JWTError
 
 from app import models, schemas, auth
 from app.database import get_db
 
 router = APIRouter(prefix="/api/auth", tags=["authentication"])
 
+GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
+GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI")
+FRONTEND_REDIRECT_URL = os.getenv("FRONTEND_URL") or "/"
+ACCESS_COOKIE_NAME = "access_token"
+STATE_PURPOSE = "google_oauth_state"
+
+
+def _set_auth_cookie(response: Response, token: str):
+    response.set_cookie(
+        ACCESS_COOKIE_NAME,
+        token,
+        max_age=60 * 60 * 24 * 30,
+        httponly=True,
+        secure=True,
+        samesite="lax",
+        path="/",
+    )
+
+
+def _build_state_token() -> str:
+    """Create a short-lived signed state token for OAuth."""
+    exp_minutes = 15
+    expire = datetime.utcnow() + timedelta(minutes=exp_minutes)
+    payload = {"purpose": STATE_PURPOSE, "exp": expire, "nonce": secrets.token_urlsafe(8)}
+    return jwt.encode(payload, auth.SECRET_KEY, algorithm=auth.ALGORITHM)
+
+
+def _verify_state_token(token: str):
+    try:
+        data = jwt.decode(token, auth.SECRET_KEY, algorithms=[auth.ALGORITHM])
+        if data.get("purpose") != STATE_PURPOSE:
+            raise JWTError("Invalid purpose")
+    except JWTError as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid state") from exc
+
 
 @router.post("/register", response_model=schemas.AuthResponse, status_code=status.HTTP_201_CREATED)
-def register(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
+def register(user_data: schemas.UserCreate, response: Response, db: Session = Depends(get_db)):
     """Register a new user"""
     # Check if user already exists
     existing_user = auth.get_user_by_email(db, user_data.email)
@@ -47,6 +88,8 @@ def register(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
         expires_delta=timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
+    _set_auth_cookie(response, access_token)
+
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -61,7 +104,11 @@ def register(user_data: schemas.UserCreate, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=schemas.AuthResponse)
-def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+def login(
+    response: Response,
+    form_data: OAuth2PasswordRequestForm = Depends(),
+    db: Session = Depends(get_db)
+):
     """Login with email and password"""
     user = auth.authenticate_user(db, form_data.username, form_data.password)
     if not user:
@@ -91,6 +138,8 @@ def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depend
         expires_delta=timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
+    _set_auth_cookie(response, access_token)
+
     return {
         "access_token": access_token,
         "token_type": "bearer",
@@ -109,3 +158,100 @@ def get_current_user_info(current_user: models.User = Depends(auth.get_current_u
     """Get current user information"""
     return current_user
 
+
+@router.get("/google/login")
+def google_login():
+    """Start Google OAuth login flow"""
+    if not (GOOGLE_CLIENT_ID and GOOGLE_REDIRECT_URI):
+        raise HTTPException(status_code=500, detail="Google OAuth is not configured")
+
+    state = _build_state_token()
+    params = {
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "access_type": "offline",
+        "state": state,
+        "prompt": "consent",
+    }
+    from urllib.parse import urlencode
+
+    url = f"https://accounts.google.com/o/oauth2/v2/auth?{urlencode(params)}"
+    return RedirectResponse(url)
+
+
+@router.get("/google/callback")
+async def google_callback(code: str, state: str, db: Session = Depends(get_db)):
+    """Handle Google OAuth callback, issue JWT, and set session cookie."""
+    if not (GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET and GOOGLE_REDIRECT_URI):
+        raise HTTPException(status_code=500, detail="Google OAuth is not configured")
+
+    _verify_state_token(state)
+
+    # Exchange code for tokens
+    token_url = "https://oauth2.googleapis.com/token"
+    data = {
+        "code": code,
+        "client_id": GOOGLE_CLIENT_ID,
+        "client_secret": GOOGLE_CLIENT_SECRET,
+        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "grant_type": "authorization_code",
+    }
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        token_resp = await client.post(token_url, data=data, headers={"Content-Type": "application/x-www-form-urlencoded"})
+        if token_resp.status_code != 200:
+            raise HTTPException(status_code=400, detail="Failed to exchange Google code")
+        token_data = token_resp.json()
+        id_token = token_data.get("id_token")
+        if not id_token:
+            raise HTTPException(status_code=400, detail="Missing id_token from Google")
+
+        # Validate id_token via tokeninfo
+        verify_resp = await client.get("https://oauth2.googleapis.com/tokeninfo", params={"id_token": id_token})
+        if verify_resp.status_code != 200:
+            raise HTTPException(status_code=400, detail="Invalid Google token")
+        id_info = verify_resp.json()
+
+    aud = id_info.get("aud")
+    iss = id_info.get("iss")
+    email = id_info.get("email")
+    email_verified = id_info.get("email_verified")
+    name = id_info.get("name") or email
+
+    if aud != GOOGLE_CLIENT_ID or iss not in {"accounts.google.com", "https://accounts.google.com"}:
+        raise HTTPException(status_code=400, detail="Invalid Google token payload")
+    if not email or str(email_verified).lower() != "true":
+        raise HTTPException(status_code=400, detail="Google account must have a verified email")
+
+    # Upsert user
+    user = auth.get_user_by_email(db, email)
+    if not user:
+        random_password = secrets.token_urlsafe(16)
+        hashed_password = auth.get_password_hash(random_password)
+        user = models.User(email=email, name=name, password_hash=hashed_password)
+        db.add(user)
+        db.commit()
+        db.refresh(user)
+
+        profile = models.UserProfile(
+            user_id=user.id,
+            onboarding_status=models.OnboardingStatus.NOT_STARTED
+        )
+        db.add(profile)
+        db.commit()
+    else:
+        # Update display name if missing
+        if not user.name and name:
+            user.name = name
+            db.commit()
+
+    access_token = auth.create_access_token(
+        data={"sub": str(user.id)},
+        expires_delta=timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
+    )
+
+    response = RedirectResponse(FRONTEND_REDIRECT_URL or "/")
+    _set_auth_cookie(response, access_token)
+    return response
