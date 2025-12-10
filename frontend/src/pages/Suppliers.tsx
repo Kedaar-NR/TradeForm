@@ -94,6 +94,7 @@ const Suppliers: React.FC = () => {
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewLoading, setPreviewLoading] = useState(false);
   const [previewError, setPreviewError] = useState<string | null>(null);
+  const [isPrefilling, setIsPrefilling] = useState(false);
   const signatureCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const previewContainerRef = useRef<HTMLDivElement | null>(null);
   const prefillAttemptedRef = useRef<Set<string>>(new Set());
@@ -104,11 +105,19 @@ const Suppliers: React.FC = () => {
     nda: { path: "/templates/nda-template.pdf", filename: "Mutual_NDA_Template.pdf" },
     security: { path: "/templates/security-template.pdf", filename: "Security_Questionnaire.pdf" },
     quality: { path: "/templates/quality-template.pdf", filename: "Quality_Package.pdf" },
+    sample: { path: "/templates/sample-template.pdf", filename: "Sample_Build.pdf" },
+    commercial: { path: "/templates/commercial-template.pdf", filename: "Commercial_Terms.pdf" },
+    pilot: { path: "/templates/pilot-template.pdf", filename: "Pilot_Run.pdf" },
+    production: { path: "/templates/production-template.pdf", filename: "Production_Slot.pdf" },
+  };
+  const DEFAULT_TEMPLATE = {
+    path: "/templates/generic-template.pdf",
+    filename: "Task_Material.pdf",
   };
   const templateForStep =
     selectedStep?.step_id && TEMPLATE_MAP[selectedStep.step_id]
       ? TEMPLATE_MAP[selectedStep.step_id]
-      : null;
+      : DEFAULT_TEMPLATE;
   const materialUrl =
     selectedStep && selectedSupplier && selectedStep.has_material
       ? `${suppliersApi.getStepMaterialUrl(
@@ -128,7 +137,7 @@ const Suppliers: React.FC = () => {
   useEffect(() => {
     let revokeUrl: string | null = null;
     const loadPreview = async () => {
-      if (!materialUrl || !isPdfMaterial) {
+      if (!materialUrl || !isPdfMaterial || isPrefilling) {
         setPreviewUrl(null);
         setPreviewError(null);
         return;
@@ -309,9 +318,9 @@ const Suppliers: React.FC = () => {
   };
 
   useEffect(() => {
-    // Pre-fill default template PDFs when a known step has no materials
+    // Pre-fill default template PDFs when a step has no materials
     const prefill = async () => {
-      if (!selectedStepContext || !templateForStep || selectedStep?.has_material) {
+      if (!selectedStepContext || selectedStep?.has_material) {
         return;
       }
       const cacheKey = `${selectedSupplier?.id || ""}-${selectedStep?.id}`;
@@ -319,6 +328,7 @@ const Suppliers: React.FC = () => {
       prefillAttemptedRef.current.add(cacheKey);
 
       try {
+        setIsPrefilling(true);
         setIsUploadingMaterial(true);
         const res = await fetch(templateForStep.path);
         const blob = await res.blob();
@@ -332,6 +342,7 @@ const Suppliers: React.FC = () => {
         console.error("Failed to prefill template:", err);
       } finally {
         setIsUploadingMaterial(false);
+        setIsPrefilling(false);
       }
     };
 
