@@ -1,6 +1,7 @@
 -- Migration to add suppliers and supplier_steps tables
+-- This migration handles the case where tables might already exist
 
--- Create SupplierOnboardingStep enum if it doesn't exist
+-- Step 1: Create SupplierOnboardingStep enum if it doesn't exist
 DO $$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'supplieronboardingstep') THEN
@@ -16,8 +17,12 @@ BEGIN
     END IF;
 END$$;
 
--- Create suppliers table
-CREATE TABLE IF NOT EXISTS suppliers (
+-- Step 2: Drop existing tables if they exist (to start fresh)
+DROP TABLE IF EXISTS supplier_steps CASCADE;
+DROP TABLE IF EXISTS suppliers CASCADE;
+
+-- Step 3: Create suppliers table with all required columns
+CREATE TABLE suppliers (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     name VARCHAR NOT NULL,
@@ -31,11 +36,11 @@ CREATE TABLE IF NOT EXISTS suppliers (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Create index on user_id for faster queries
-CREATE INDEX IF NOT EXISTS idx_suppliers_user_id ON suppliers(user_id);
+-- Step 4: Create index on user_id for faster queries
+CREATE INDEX idx_suppliers_user_id ON suppliers(user_id);
 
--- Create supplier_steps table
-CREATE TABLE IF NOT EXISTS supplier_steps (
+-- Step 5: Create supplier_steps table
+CREATE TABLE supplier_steps (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     supplier_id UUID NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
     step_id SupplierOnboardingStep NOT NULL,
@@ -47,27 +52,20 @@ CREATE TABLE IF NOT EXISTS supplier_steps (
     completed_at TIMESTAMP WITH TIME ZONE
 );
 
--- Create index on supplier_id for faster queries
-CREATE INDEX IF NOT EXISTS idx_supplier_steps_supplier_id ON supplier_steps(supplier_id);
+-- Step 6: Create index on supplier_id for faster queries
+CREATE INDEX idx_supplier_steps_supplier_id ON supplier_steps(supplier_id);
 
--- Create trigger to update updated_at on suppliers table
-CREATE OR REPLACE FUNCTION update_updated_at_column()
+-- Step 7: Create trigger function for updated_at
+CREATE OR REPLACE FUNCTION update_suppliers_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
     NEW.updated_at = NOW();
     RETURN NEW;
 END;
-$$ language 'plpgsql';
+$$ LANGUAGE plpgsql;
 
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1 FROM pg_trigger
-        WHERE tgname = 'update_suppliers_updated_at'
-    ) THEN
-        CREATE TRIGGER update_suppliers_updated_at
-            BEFORE UPDATE ON suppliers
-            FOR EACH ROW
-            EXECUTE FUNCTION update_updated_at_column();
-    END IF;
-END$$;
+-- Step 8: Create trigger
+CREATE TRIGGER update_suppliers_updated_at
+    BEFORE UPDATE ON suppliers
+    FOR EACH ROW
+    EXECUTE FUNCTION update_suppliers_updated_at();
