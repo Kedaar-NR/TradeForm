@@ -170,9 +170,8 @@ def google_login(request: Request):
     if not (GOOGLE_CLIENT_ID and GOOGLE_REDIRECT_URI):
         raise HTTPException(status_code=500, detail="Google OAuth is not configured")
 
-    # Always use www.trade-form.com since both are registered in Google Console
-    # This is simpler and more reliable than dynamic host detection
-    redirect_uri = "https://www.trade-form.com/api/auth/google/callback"
+    # Use trade-form.com (no www) - this is the original registered URI
+    redirect_uri = "https://trade-form.com/api/auth/google/callback"
     
     # Log for debugging
     print(f"[GOOGLE LOGIN] Using redirect URI: {redirect_uri}")
@@ -202,7 +201,7 @@ async def google_callback(request: Request, code: str, state: str, db: Session =
     _verify_state_token(state)
 
     # Use the same redirect URI as in the login flow
-    redirect_uri = "https://www.trade-form.com/api/auth/google/callback"
+    redirect_uri = "https://trade-form.com/api/auth/google/callback"
 
     # Exchange code for tokens
     token_url = "https://oauth2.googleapis.com/token"
@@ -271,11 +270,12 @@ async def google_callback(request: Request, code: str, state: str, db: Session =
     )
 
     # Check onboarding status and redirect accordingly
+    # Use trade-form.com (no www) to match OAuth callback domain
     profile = db.query(models.UserProfile).filter(models.UserProfile.user_id == user.id).first()
     if profile and profile.onboarding_status in [models.OnboardingStatus.NOT_STARTED, models.OnboardingStatus.IN_PROGRESS]:
-        base_url = "https://www.trade-form.com/onboarding"
+        base_url = "https://trade-form.com/onboarding"
     else:
-        base_url = "https://www.trade-form.com/dashboard"
+        base_url = "https://trade-form.com/dashboard"
     
     # Pass token via URL fragment (hash) so frontend can store it
     # Using fragment (#) keeps token out of server logs
