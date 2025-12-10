@@ -36,7 +36,21 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let mounted = true;
+    
     const checkAuth = async () => {
+      // FIRST: Check for OAuth token in URL hash (from Google login redirect)
+      const hash = window.location.hash;
+      if (hash && hash.includes("token=")) {
+        const token = hash.split("token=")[1]?.split("&")[0];
+        if (token) {
+          localStorage.setItem("authToken", token);
+          localStorage.setItem("isAuthenticated", "true");
+          // Clean up URL hash
+          window.history.replaceState(null, "", window.location.pathname + window.location.search);
+        }
+      }
+      
+      // NOW check auth with the token
       try {
         await api.get("/api/auth/me");
         if (mounted) setStatus("authed");
@@ -44,6 +58,7 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
         if (mounted) setStatus("unauth");
       }
     };
+    
     checkAuth();
     return () => {
       mounted = false;

@@ -269,10 +269,9 @@ async def google_callback(request: Request, code: str, state: str, db: Session =
         expires_delta=timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
-    # Check onboarding status and redirect accordingly
-    # Use trade-form.com (no www) to match OAuth callback domain
-    profile = db.query(models.UserProfile).filter(models.UserProfile.user_id == user.id).first()
-    if profile and profile.onboarding_status in [models.OnboardingStatus.NOT_STARTED, models.OnboardingStatus.IN_PROGRESS]:
+    # Redirect based on whether this is a new signup or existing user login
+    # NEW users → onboarding, EXISTING users → dashboard
+    if is_new_user:
         base_url = "https://trade-form.com/onboarding"
     else:
         base_url = "https://trade-form.com/dashboard"
