@@ -357,7 +357,7 @@ class SupplierStep(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     supplier_id = Column(UUID(as_uuid=True), ForeignKey("suppliers.id"), nullable=False)
-    step_id = Column(Enum(SupplierOnboardingStep), nullable=False)
+    step_id = Column(Enum(SupplierOnboardingStep, name='supplieronboardingstep', native_enum=True, create_constraint=True, values_callable=lambda x: [e.value for e in x]), nullable=False)
     step_order = Column(Integer, nullable=False)
     title = Column(String, nullable=False)
     description = Column(Text)
