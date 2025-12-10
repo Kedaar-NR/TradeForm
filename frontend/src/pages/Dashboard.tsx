@@ -102,6 +102,20 @@ const Dashboard: React.FC = () => {
   const projectsSectionRef = useRef<HTMLDivElement>(null);
   const studiesSectionRef = useRef<HTMLDivElement>(null);
 
+  // Handle OAuth token from URL hash (Google login redirect)
+  useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.includes("token=")) {
+      const token = hash.split("token=")[1]?.split("&")[0];
+      if (token) {
+        localStorage.setItem("authToken", token);
+        localStorage.setItem("isAuthenticated", "true");
+        // Clean up URL hash
+        window.history.replaceState(null, "", window.location.pathname);
+      }
+    }
+  }, []);
+
   const loadProjectGroups = useCallback(async () => {
     try {
       const response = await projectGroupsApi.getAll();

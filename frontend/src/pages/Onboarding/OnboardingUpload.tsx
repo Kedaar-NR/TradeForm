@@ -70,6 +70,20 @@ const OnboardingUpload: React.FC = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = React.useState(false);
 
+  // Handle OAuth token from URL hash (Google login redirect)
+  React.useEffect(() => {
+    const hash = window.location.hash;
+    if (hash && hash.includes("token=")) {
+      const token = hash.split("token=")[1]?.split("&")[0];
+      if (token) {
+        localStorage.setItem("authToken", token);
+        localStorage.setItem("isAuthenticated", "true");
+        // Clean up URL hash
+        window.history.replaceState(null, "", window.location.pathname);
+      }
+    }
+  }, []);
+
   const handleContinue = async () => {
     try {
       setLoading(true);

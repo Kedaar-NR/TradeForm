@@ -273,10 +273,14 @@ async def google_callback(request: Request, code: str, state: str, db: Session =
     # Check onboarding status and redirect accordingly
     profile = db.query(models.UserProfile).filter(models.UserProfile.user_id == user.id).first()
     if profile and profile.onboarding_status in [models.OnboardingStatus.NOT_STARTED, models.OnboardingStatus.IN_PROGRESS]:
-        frontend_url = "https://www.trade-form.com/onboarding"
+        base_url = "https://www.trade-form.com/onboarding"
     else:
-        frontend_url = "https://www.trade-form.com/dashboard"
+        base_url = "https://www.trade-form.com/dashboard"
+    
+    # Pass token via URL fragment (hash) so frontend can store it
+    # Using fragment (#) keeps token out of server logs
+    frontend_url = f"{base_url}#token={access_token}"
     
     response = RedirectResponse(frontend_url)
-    _set_auth_cookie(response, access_token)
+    _set_auth_cookie(response, access_token)  # Also set cookie as backup
     return response
