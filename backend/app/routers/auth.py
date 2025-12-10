@@ -170,25 +170,12 @@ def google_login(request: Request):
     if not (GOOGLE_CLIENT_ID and GOOGLE_REDIRECT_URI):
         raise HTTPException(status_code=500, detail="Google OAuth is not configured")
 
-    # Log ALL headers for debugging
-    print(f"[GOOGLE LOGIN] All headers: {dict(request.headers)}")
+    # Always use www.trade-form.com since both are registered in Google Console
+    # This is simpler and more reliable than dynamic host detection
+    redirect_uri = "https://www.trade-form.com/api/auth/google/callback"
     
-    # Use dynamic redirect URI based on the request host
-    # Check for original host from proxy headers (Vercel sets x-forwarded-host)
-    x_forwarded_host = request.headers.get("x-forwarded-host")
-    regular_host = request.headers.get("host", "")
-    host = x_forwarded_host or regular_host
-    
-    if host and not host.endswith(".railway.app"):
-        # Build the redirect URI from the current host (not Railway internal host)
-        scheme = "https" if request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https" else "http"
-        redirect_uri = f"{scheme}://{host}/api/auth/google/callback"
-    else:
-        # Fallback to env var if no host header or if it's Railway internal
-        redirect_uri = GOOGLE_REDIRECT_URI
-
     # Log for debugging
-    print(f"[GOOGLE LOGIN] X-Forwarded-Host: '{x_forwarded_host}', Host: '{regular_host}', Final host: '{host}', Redirect URI: {redirect_uri}")
+    print(f"[GOOGLE LOGIN] Using redirect URI: {redirect_uri}")
 
     state = _build_state_token()
     params = {
@@ -214,15 +201,8 @@ async def google_callback(request: Request, code: str, state: str, db: Session =
 
     _verify_state_token(state)
 
-    # Use dynamic redirect URI based on the request host (must match what was sent to Google)
-    # Check for original host from proxy headers
-    host = request.headers.get("x-forwarded-host") or request.headers.get("host", "")
-    
-    if host and not host.endswith(".railway.app"):
-        scheme = "https" if request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https" else "http"
-        redirect_uri = f"{scheme}://{host}/api/auth/google/callback"
-    else:
-        redirect_uri = GOOGLE_REDIRECT_URI
+    # Use the same redirect URI as in the login flow
+    redirect_uri = "https://www.trade-form.com/api/auth/google/callback"
 
     # Exchange code for tokens
     token_url = "https://oauth2.googleapis.com/token"
@@ -287,16 +267,8 @@ async def google_callback(request: Request, code: str, state: str, db: Session =
         expires_delta=timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
-    # Redirect to the frontend, preserving the same host (www or non-www)
-    # Check for original host from proxy headers
-    host = request.headers.get("x-forwarded-host") or request.headers.get("host", "")
-    
-    if host and not FRONTEND_REDIRECT_URL and not host.endswith(".railway.app"):
-        # Build redirect URL with same host as request
-        scheme = "https" if request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https" else "http"
-        frontend_url = f"{scheme}://{host}/dashboard"
-    else:
-        frontend_url = FRONTEND_REDIRECT_URL or "/dashboard"
+    # Always redirect to www.trade-form.com for consistency
+    frontend_url = "https://www.trade-form.com/dashboard"
     
     response = RedirectResponse(frontend_url)
     _set_auth_cookie(response, access_token)
