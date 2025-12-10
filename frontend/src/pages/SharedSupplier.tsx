@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { suppliersApi, Supplier } from "../services/api";
+import { suppliersApi, Supplier, SupplierStep } from "../services/api";
+import { PDFViewerModal } from "../components/PDFViewerModal";
 
 const formatDuration = (start?: string, end?: string) => {
   if (!start || !end) return "—";
@@ -35,6 +36,16 @@ const SharedSupplier: React.FC = () => {
   const [supplier, setSupplier] = useState<Supplier | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [selectedStep, setSelectedStep] = useState<SupplierStep | null>(null);
+  const [materialVersion, setMaterialVersion] = useState(0);
+
+  const materialUrl =
+    shareToken && selectedStep
+      ? `${suppliersApi.getSharedStepMaterialUrl(
+          shareToken,
+          selectedStep.id
+        )}?v=${materialVersion}`
+      : null;
 
   useEffect(() => {
     if (!shareToken) return;
@@ -208,12 +219,71 @@ const SharedSupplier: React.FC = () => {
                         "Not started yet"
                       )}
                     </div>
+                    {step.has_material ? (
+                      <button
+                        className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700"
+                        onClick={() => {
+                          const isPdf =
+                            (step.material_mime_type || "").toLowerCase().includes("pdf") ||
+                            !step.material_mime_type;
+                          if (isPdf) {
+                            setSelectedStep(step);
+                            setMaterialVersion((prev) => prev + 1);
+                          } else if (shareToken) {
+                            window.open(
+                              `${suppliersApi.getSharedStepMaterialUrl(
+                                shareToken,
+                                step.id
+                              )}?v=${materialVersion + 1}`,
+                              "_blank"
+                            );
+                          }
+                        }}
+                      >
+                        View task materials
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                          />
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                          />
+                        </svg>
+                      </button>
+                    ) : (
+                      <p className="mt-2 text-xs text-gray-500">
+                        No materials uploaded yet.
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
             ))}
           </div>
         </div>
+
+        <PDFViewerModal
+          isOpen={Boolean(selectedStep && materialUrl)}
+          pdfUrl={materialUrl}
+          onClose={() => setSelectedStep(null)}
+          title={
+            selectedStep?.material_name ||
+            selectedStep?.material_original_filename ||
+            selectedStep?.title ||
+            "Task material"
+          }
+        />
 
         {/* Footer */}
         <div className="card p-6 text-center bg-gradient-to-r from-gray-50 to-gray-100">
