@@ -27,6 +27,7 @@ from app.database import (
     run_sql_migrations,
     ensure_project_group_schema,
     ensure_supplier_material_columns,
+    ensure_user_profile_image_column,
 )
 from app.routers import (
     auth,
@@ -54,6 +55,7 @@ print("✓ Base tables created", flush=True)
 run_sql_migrations()
 ensure_project_group_schema()
 ensure_supplier_material_columns()
+ensure_user_profile_image_column()
 print("=" * 60, flush=True)
 
 # Initialize FastAPI app

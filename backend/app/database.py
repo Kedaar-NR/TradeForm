@@ -247,6 +247,33 @@ def ensure_supplier_material_columns():
             "Unable to ensure supplier material columns on SQLite: %s", exc, exc_info=True
         )
 
+
+def ensure_user_profile_image_column():
+    """
+    Ensure users table has profile_image_url column when running on SQLite.
+    This keeps local development databases in sync with the ORM model.
+    """
+    if not DATABASE_URL.startswith("sqlite"):
+        return
+
+    try:
+        with engine.begin() as conn:
+            existing_columns = {
+                row[1]
+                for row in conn.execute(text("PRAGMA table_info(users)"))
+            }
+
+            if "profile_image_url" not in existing_columns:
+                conn.exec_driver_sql(
+                    "ALTER TABLE users ADD COLUMN profile_image_url TEXT"
+                )
+                logger.info("✓ Added profile_image_url column to users table (SQLite)")
+                print("✓ Added profile_image_url column to users table (SQLite)", flush=True)
+    except Exception as exc:
+        logger.warning(
+            "Unable to ensure profile_image_url column on SQLite: %s", exc, exc_info=True
+        )
+
 # Dependency to get DB session
 def get_db():
     db = SessionLocal()
