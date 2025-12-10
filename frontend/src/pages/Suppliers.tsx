@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { suppliersApi, Supplier, SupplierCreate, SupplierStep } from "../services/api";
 import { Send, ChevronDown, ChevronUp, Trash2, X } from "lucide-react";
 import { PDFViewerModal } from "../components/PDFViewerModal";
+import { PDFDocument } from "pdf-lib";
 
 const formatDuration = (start?: string, end?: string) => {
   if (!start || !end) return "—";
@@ -86,9 +87,25 @@ const Suppliers: React.FC = () => {
   const [isUploadingMaterial, setIsUploadingMaterial] = useState(false);
   const [materialVersion, setMaterialVersion] = useState(0);
   const [showPdfModal, setShowPdfModal] = useState(false);
+  const [isSigning, setIsSigning] = useState(false);
+  const [isDrawing, setIsDrawing] = useState(false);
+  const [hasSignatureStroke, setHasSignatureStroke] = useState(false);
+  const [isSavingSignature, setIsSavingSignature] = useState(false);
+  const signatureCanvasRef = useRef<HTMLCanvasElement | null>(null);
+  const previewContainerRef = useRef<HTMLDivElement | null>(null);
+  const prefillAttemptedRef = useRef<Set<string>>(new Set());
 
   const selectedStep = selectedStepContext?.step || null;
   const selectedSupplier = selectedStepContext?.supplier || null;
+  const TEMPLATE_MAP: Record<string, { path: string; filename: string }> = {
+    nda: { path: "/templates/nda-template.pdf", filename: "Mutual_NDA_Template.pdf" },
+    security: { path: "/templates/security-template.pdf", filename: "Security_Questionnaire.pdf" },
+    quality: { path: "/templates/quality-template.pdf", filename: "Quality_Package.pdf" },
+  };
+  const templateForStep =
+    selectedStep?.step_id && TEMPLATE_MAP[selectedStep.step_id]
+      ? TEMPLATE_MAP[selectedStep.step_id]
+      : null;
   const materialUrl =
     selectedStep && selectedSupplier && selectedStep.has_material
       ? `${suppliersApi.getStepMaterialUrl(
@@ -118,11 +135,114 @@ const Suppliers: React.FC = () => {
     }
   };
 
-  const closeStepModal = () => {
+  const updateStepInState = (updatedStep: SupplierStep, supplierId: string) => {
+    setSelectedStepContext((prev) =>
+      prev && prev.step.id === updatedStep.id
+        ? { ...prev, step: updatedStep }
+        : prev
+    );
+    setSuppliers((prev) =>
+      prev.map((s) =>
+        s.id === supplierId
+          ? { ...s, steps: s.steps.map((st) => (st.id === updatedStep.id ? updatedStep : st)) }
+          : s
+      )
+    );
+    setMaterialVersion((prev) => prev + 1);
+  };
+
+  const uploadMaterialFile = async (file: File) => {
+    if (!selectedStepContext) return null;
+    const response = await suppliersApi.uploadStepMaterial(
+      selectedStepContext.supplier.id,
+      selectedStepContext.step.id,
+      file
+    );
+    const updatedStep = response.data;
+    updateStepInState(updatedStep, selectedStepContext.supplier.id);
+    return updatedStep;
+  };
+
+  const saveSignatureIfNeeded = useCallback(async (): Promise<boolean> => {
+    if (
+      !hasSignatureStroke ||
+      !signatureCanvasRef.current ||
+      !materialUrl ||
+      !selectedStepContext
+    ) {
+      return false;
+    }
+
+    try {
+      setIsSavingSignature(true);
+      const canvas = signatureCanvasRef.current;
+      const dataUrl = canvas.toDataURL("image/png");
+      const base64 = dataUrl.split(",")[1];
+      const sigBytes = Uint8Array.from(atob(base64), (c) => c.charCodeAt(0));
+
+      const pdfBytes = new Uint8Array(await (await fetch(materialUrl)).arrayBuffer());
+      const pdfDoc = await PDFDocument.load(pdfBytes);
+      const pngImage = await pdfDoc.embedPng(sigBytes);
+      const page = pdfDoc.getPage(0);
+      const { width: pageWidth, height: pageHeight } = page.getSize();
+
+      page.drawImage(pngImage, {
+        x: 0,
+        y: 0,
+        width: pageWidth,
+        height: pageHeight,
+      });
+
+      const updatedPdf = await pdfDoc.save();
+      const filename =
+        selectedStep?.material_original_filename ||
+        `${selectedStep?.title || "task"}-signed.pdf`;
+      const arrayBuffer = new ArrayBuffer(updatedPdf.length);
+      new Uint8Array(arrayBuffer).set(updatedPdf);
+      const file = new File([arrayBuffer], filename, { type: "application/pdf" });
+      const response = await suppliersApi.uploadStepMaterial(
+        selectedStepContext.supplier.id,
+        selectedStepContext.step.id,
+        file,
+        {
+          name: selectedStep?.material_name,
+          description: selectedStep?.material_description,
+        }
+      );
+
+      updateStepInState(response.data, selectedStepContext.supplier.id);
+      setHasSignatureStroke(false);
+      setIsSigning(false);
+      return true;
+    } catch (err: any) {
+      console.error("Failed to save signature:", err);
+      setMaterialError(
+        err?.response?.data?.detail ||
+          err?.message ||
+          "Failed to save signature. Please try again."
+      );
+      return false;
+    } finally {
+      setIsSavingSignature(false);
+    }
+  }, [
+    hasSignatureStroke,
+    materialUrl,
+    selectedStep?.material_description,
+    selectedStep?.material_name,
+    selectedStep?.material_original_filename,
+    selectedStep?.title,
+    selectedStepContext,
+  ]);
+
+  const closeStepModal = useCallback(async () => {
+    await saveSignatureIfNeeded();
     setSelectedStepContext(null);
     setMaterialError(null);
     setShowPdfModal(false);
-  };
+    setIsSigning(false);
+    setHasSignatureStroke(false);
+  }, [saveSignatureIfNeeded]);
 
   const handleUploadMaterial = async (
     event: React.ChangeEvent<HTMLInputElement>
@@ -134,30 +254,7 @@ const Suppliers: React.FC = () => {
     setIsUploadingMaterial(true);
     setMaterialError(null);
     try {
-      const response = await suppliersApi.uploadStepMaterial(
-        selectedStepContext.supplier.id,
-        selectedStepContext.step.id,
-        file
-      );
-      const updatedStep = response.data;
-
-      // Update selected step context and supplier list for immediate UI refresh
-      setSelectedStepContext((prev) =>
-        prev ? { ...prev, step: updatedStep } : prev
-      );
-      setSuppliers((prev) =>
-        prev.map((s) =>
-          s.id === selectedStepContext.supplier.id
-            ? {
-                ...s,
-                steps: s.steps.map((st) =>
-                  st.id === updatedStep.id ? updatedStep : st
-                ),
-              }
-            : s
-        )
-      );
-      setMaterialVersion((prev) => prev + 1);
+      await uploadMaterialFile(file);
     } catch (err: any) {
       console.error("Failed to upload material:", err);
       setMaterialError(
@@ -169,6 +266,96 @@ const Suppliers: React.FC = () => {
       setIsUploadingMaterial(false);
       event.target.value = "";
     }
+  };
+
+  useEffect(() => {
+    // Pre-fill default template PDFs when a known step has no materials
+    const prefill = async () => {
+      if (!selectedStepContext || !templateForStep || selectedStep?.has_material) {
+        return;
+      }
+      const cacheKey = `${selectedSupplier?.id || ""}-${selectedStep?.id}`;
+      if (prefillAttemptedRef.current.has(cacheKey)) return;
+      prefillAttemptedRef.current.add(cacheKey);
+
+      try {
+        setIsUploadingMaterial(true);
+        const res = await fetch(templateForStep.path);
+        const blob = await res.blob();
+        const file = new File(
+          [blob],
+          templateForStep.filename || `${selectedStep?.title || "template"}.pdf`,
+          { type: blob.type || "application/pdf" }
+        );
+        await uploadMaterialFile(file);
+      } catch (err: any) {
+        console.error("Failed to prefill template:", err);
+      } finally {
+        setIsUploadingMaterial(false);
+      }
+    };
+
+    prefill();
+  }, [selectedStepContext, selectedStep, selectedSupplier, templateForStep]);
+
+  useEffect(() => {
+    if (!isSigning || !signatureCanvasRef.current || !previewContainerRef.current) return;
+    const canvas = signatureCanvasRef.current;
+    const rect = previewContainerRef.current.getBoundingClientRect();
+    canvas.width = rect.width;
+    canvas.height = rect.height;
+    const ctx = canvas.getContext("2d");
+    ctx?.clearRect(0, 0, canvas.width, canvas.height);
+    setHasSignatureStroke(false);
+  }, [isSigning, materialVersion]);
+
+  const getCanvasPoint = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    return {
+      x: event.clientX - rect.left,
+      y: event.clientY - rect.top,
+    };
+  };
+
+  const handlePointerDown = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isSigning || !signatureCanvasRef.current) return;
+    const point = getCanvasPoint(event);
+    if (!point) return;
+    const ctx = signatureCanvasRef.current.getContext("2d");
+    if (!ctx) return;
+    ctx.strokeStyle = "#0f172a";
+    ctx.lineWidth = 2.5;
+    ctx.lineCap = "round";
+    ctx.beginPath();
+    ctx.moveTo(point.x, point.y);
+    setIsDrawing(true);
+    setHasSignatureStroke(true);
+  };
+
+  const handlePointerMove = (event: React.PointerEvent<HTMLCanvasElement>) => {
+    if (!isSigning || !isDrawing || !signatureCanvasRef.current) return;
+    const point = getCanvasPoint(event);
+    if (!point) return;
+    const ctx = signatureCanvasRef.current.getContext("2d");
+    if (!ctx) return;
+    ctx.lineTo(point.x, point.y);
+    ctx.stroke();
+  };
+
+  const handlePointerUp = () => {
+    if (!isSigning) return;
+    setIsDrawing(false);
+  };
+
+  const handleClearSignature = () => {
+    const canvas = signatureCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    setHasSignatureStroke(false);
   };
 
   const handleAddSupplier = async (e: React.FormEvent) => {
@@ -711,7 +898,7 @@ const Suppliers: React.FC = () => {
                   <div>
                     <h3 className="font-semibold text-gray-900">Task Materials</h3>
                     <p className="text-sm text-gray-600">
-                      Preview and replace the file shown to both your team and the shared supplier link.
+                      Preview, replace, or sign the file shown to both your team and the shared supplier link.
                     </p>
                   </div>
                   <div className="flex flex-wrap items-center gap-2">
@@ -738,12 +925,29 @@ const Suppliers: React.FC = () => {
                           Download
                         </button>
                         {isPdfMaterial && (
-                          <button
-                            className="px-3 py-2 text-sm font-semibold rounded-lg bg-gray-900 text-white hover:bg-black"
-                            onClick={() => setShowPdfModal(true)}
-                          >
-                            Open fullscreen
-                          </button>
+                          <>
+                            <button
+                              className={`px-3 py-2 text-sm font-semibold rounded-lg ${isSigning ? "bg-black text-white" : "border border-gray-300 hover:bg-gray-100"}`}
+                              onClick={() => setIsSigning((prev) => !prev)}
+                              disabled={isSavingSignature}
+                            >
+                              {isSigning ? "Pen mode on" : "Sign (pen)"}
+                            </button>
+                            {isSigning && (
+                              <button
+                                className="px-3 py-2 text-sm font-semibold rounded-lg border border-gray-300 hover:bg-gray-100"
+                                onClick={handleClearSignature}
+                              >
+                                Clear strokes
+                              </button>
+                            )}
+                            <button
+                              className="px-3 py-2 text-sm font-semibold rounded-lg bg-gray-900 text-white hover:bg-black"
+                              onClick={() => setShowPdfModal(true)}
+                            >
+                              Open fullscreen
+                            </button>
+                          </>
                         )}
                       </>
                     )}
@@ -758,13 +962,31 @@ const Suppliers: React.FC = () => {
 
                 <div className="border border-gray-200 rounded-lg bg-gray-50 p-3">
                   {materialUrl && isPdfMaterial ? (
-                    <div className="rounded-lg bg-white shadow-sm overflow-hidden border border-gray-200">
+                    <div
+                      className="rounded-lg bg-white shadow-sm overflow-hidden border border-gray-200 relative"
+                      ref={previewContainerRef}
+                    >
                       <iframe
                         key={materialVersion}
                         src={`${materialUrl}#toolbar=0&navpanes=0`}
                         title="Task material preview"
-                        className="w-full h-[420px]"
+                        className={`w-full h-[420px] ${isSigning ? "pointer-events-none" : ""}`}
                       />
+                      {isSigning && (
+                        <canvas
+                          ref={signatureCanvasRef}
+                          className="absolute inset-0 z-10 cursor-crosshair"
+                          onPointerDown={handlePointerDown}
+                          onPointerMove={handlePointerMove}
+                          onPointerUp={handlePointerUp}
+                          onPointerLeave={handlePointerUp}
+                        />
+                      )}
+                      {isSigning && (
+                        <div className="absolute bottom-3 left-3 z-20 px-3 py-2 bg-black/80 text-white text-xs rounded">
+                          Pen mode — strokes auto-save on close
+                        </div>
+                      )}
                     </div>
                   ) : materialUrl ? (
                     <div className="flex items-center justify-between px-4 py-3 bg-white rounded-lg border border-gray-200">
@@ -827,6 +1049,9 @@ const Suppliers: React.FC = () => {
                     </span>
                   )}
                 </div>
+                {isSavingSignature && (
+                  <p className="mt-2 text-xs text-gray-500">Saving signature...</p>
+                )}
               </div>
             </div>
           </div>
