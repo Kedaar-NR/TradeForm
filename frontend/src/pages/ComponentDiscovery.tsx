@@ -140,8 +140,8 @@ const ComponentDiscovery: React.FC = () => {
         // Reload components - this adds to existing, doesn't replace
         await loadComponents();
 
-        const newComponents = data.components || [];
-        // Auto-import feature disabled - commented out unused variable
+        // Auto-import feature disabled - commented out unused variables
+        // const newComponents = data.components || [];
         // const normalizedComponents = newComponents.map(
         //   (comp: { id: string; datasheet_url?: string }) => ({
         //     id: comp.id,
