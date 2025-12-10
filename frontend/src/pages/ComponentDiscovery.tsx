@@ -148,9 +148,10 @@ const ComponentDiscovery: React.FC = () => {
           })
         );
 
-        const hasDatasheetUrls = normalizedComponents.some((comp) =>
-          Boolean(comp.datasheetUrl)
-        );
+        // Auto-import feature disabled - commented out unused variable
+        // const hasDatasheetUrls = normalizedComponents.some((comp) =>
+        //   Boolean(comp.datasheetUrl)
+        // );
 
         // Auto-import feature disabled - commented out unused datasheet status
         // let datasheetStatus = "";

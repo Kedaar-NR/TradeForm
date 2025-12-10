@@ -180,8 +180,8 @@ const DatasheetTab: React.FC<DatasheetTabProps> = ({
 
       console.log("Starting auto-upload from URL:", component.datasheetUrl);
       isAutoUploadingRef.current = true;
-      setIsAutoUploading(true);
-      setAutoUploadError(null);
+      // setIsAutoUploading(true);
+      // setAutoUploadError(null);
       try {
         console.log("Calling uploadDatasheetFromUrl with:", {
           componentId: component.id,
@@ -198,7 +198,7 @@ const DatasheetTab: React.FC<DatasheetTabProps> = ({
         const message =
           error?.message ||
           "Failed to auto-import datasheet from URL. The link may be invalid or the server couldn't download the PDF.";
-        setAutoUploadError(message);
+        // setAutoUploadError(message);
         console.error("Automatic datasheet upload failed:", {
           message,
           url: component.datasheetUrl,
@@ -210,7 +210,7 @@ const DatasheetTab: React.FC<DatasheetTabProps> = ({
         }
       } finally {
         isAutoUploadingRef.current = false;
-        setIsAutoUploading(false);
+        // setIsAutoUploading(false);
       }
     },
     [
