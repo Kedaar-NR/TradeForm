@@ -167,10 +167,10 @@ const ComponentDiscovery: React.FC = () => {
           }
         }
 
-        // Show single notification at the end
-        alert(
-          `✓ Successfully discovered ${data.discovered_count} components!${datasheetStatus}`
-        );
+        // Show single notification at the end - DISABLED per user request
+        // alert(
+        //   `✓ Successfully discovered ${data.discovered_count} components!${datasheetStatus}`
+        // );
       } else {
         alert(
           "No new components discovered. Try refining your project description or criteria."

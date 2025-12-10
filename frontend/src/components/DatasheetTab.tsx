@@ -275,12 +275,13 @@ const DatasheetTab: React.FC<DatasheetTabProps> = ({
                   onUploadSuccess={handleUploadSuccess}
                   testComponentId={component.id}
                   existingFilename={uploadedFilename}
-                  autoImportUrl={component.datasheetUrl}
-                  isAutoImporting={isAutoUploading}
-                  onAutoImport={
-                    component.datasheetUrl ? handleManualAutoImport : undefined
-                  }
-                  autoImportError={autoUploadError}
+                  // Auto-import feature disabled per user request
+                  // autoImportUrl={component.datasheetUrl}
+                  // isAutoImporting={isAutoUploading}
+                  // onAutoImport={
+                  //   component.datasheetUrl ? handleManualAutoImport : undefined
+                  // }
+                  // autoImportError={autoUploadError}
                   hasDatasheet={hasDatasheet}
                 />
               </div>
