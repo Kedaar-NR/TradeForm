@@ -1,4 +1,10 @@
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Navigate,
+  useLocation,
+} from "react-router-dom";
 import type { ReactNode } from "react";
 import { useEffect, useState } from "react";
 import Layout from "./components/Layout";
@@ -36,7 +42,7 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     let mounted = true;
-    
+
     const checkAuth = async () => {
       // FIRST: Check for OAuth token in URL hash (from Google login redirect)
       const hash = window.location.hash;
@@ -46,10 +52,14 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
           localStorage.setItem("authToken", token);
           localStorage.setItem("isAuthenticated", "true");
           // Clean up URL hash
-          window.history.replaceState(null, "", window.location.pathname + window.location.search);
+          window.history.replaceState(
+            null,
+            "",
+            window.location.pathname + window.location.search
+          );
         }
       }
-      
+
       // NOW check auth with the token
       try {
         await api.get("/api/auth/me");
@@ -58,7 +68,7 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
         if (mounted) setStatus("unauth");
       }
     };
-    
+
     checkAuth();
     return () => {
       mounted = false;
