@@ -1,21 +1,17 @@
 -- Migration to add suppliers and supplier_steps tables
 -- This migration handles the case where tables might already exist
 
--- Step 1: Create SupplierOnboardingStep enum if it doesn't exist
-DO $$
-BEGIN
-    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'supplieronboardingstep') THEN
-        CREATE TYPE SupplierOnboardingStep AS ENUM (
-            'nda',
-            'security',
-            'quality',
-            'sample',
-            'commercial',
-            'pilot',
-            'production'
-        );
-    END IF;
-END$$;
+-- Step 1: Drop and recreate the enum type to ensure it's correct
+DROP TYPE IF EXISTS supplieronboardingstep CASCADE;
+CREATE TYPE supplieronboardingstep AS ENUM (
+    'nda',
+    'security',
+    'quality',
+    'sample',
+    'commercial',
+    'pilot',
+    'production'
+);
 
 -- Step 2: Drop existing tables if they exist (to start fresh)
 DROP TABLE IF EXISTS supplier_steps CASCADE;
@@ -43,7 +39,7 @@ CREATE INDEX idx_suppliers_user_id ON suppliers(user_id);
 CREATE TABLE supplier_steps (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     supplier_id UUID NOT NULL REFERENCES suppliers(id) ON DELETE CASCADE,
-    step_id SupplierOnboardingStep NOT NULL,
+    step_id supplieronboardingstep NOT NULL,
     step_order INTEGER NOT NULL,
     title VARCHAR NOT NULL,
     description TEXT,
