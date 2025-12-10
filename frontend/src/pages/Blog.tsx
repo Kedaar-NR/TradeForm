@@ -11,6 +11,18 @@ const Blog: React.FC = () => {
     document.title = "Blog • TradeForm";
   }, []);
 
+  // Preload the hero blog image for faster render
+  useEffect(() => {
+    const link = document.createElement("link");
+    link.rel = "preload";
+    link.as = "image";
+    link.href = "/media/blog1.jpg";
+    document.head.appendChild(link);
+    return () => {
+      document.head.removeChild(link);
+    };
+  }, []);
+
   return (
     <div className="min-h-screen bg-white flex flex-col">
       {/* Navigation */}
@@ -84,77 +96,82 @@ const Blog: React.FC = () => {
         <div className="max-w-6xl mx-auto">
           {!showFullArticle ? (
             /* Blog Post Card - Preview */
-            <div className="bg-white rounded-lg shadow-lg overflow-hidden mb-8">
-              <div className="flex flex-col md:flex-row">
-                {/* Image */}
-                <div className="w-full md:w-1/2 flex-shrink-0 rounded-l-lg overflow-hidden">
-                  <img
-                    src="/media/blog1.jpg"
-                    alt="What is TradeForm"
-                    className="w-full h-full object-cover"
-                  />
+            <div className="mb-8">
+              <div className="flex flex-col md:flex-row gap-4">
+                {/* Image block */}
+                <div className="w-full md:w-1/2">
+                  <div className="bg-white rounded-xl shadow-lg overflow-hidden h-full">
+                    <img
+                      src="/media/blog1.jpg"
+                      alt="What is TradeForm"
+                      className="w-full h-full object-cover"
+                      loading="lazy"
+                    />
+                  </div>
                 </div>
 
-                {/* Content */}
-                <div className="w-full md:w-1/2 p-8 flex flex-col justify-between">
-                  <div>
-                    {/* Header with logo, author, category, date */}
-                    <div className="flex items-center gap-2 mb-4">
-                      <Logo
-                        textColor="dark"
-                        size="sm"
-                        showText={false}
-                        clickable={false}
-                      />
-                      <span className="text-sm text-gray-600">
-                        Kedaar Rentachintala • TradeForm •{" "}
-                        {new Date().toLocaleDateString("en-US", {
-                          month: "short",
-                          day: "numeric",
-                          year: "numeric",
-                        })}
-                      </span>
+                {/* Content block */}
+                <div className="w-full md:w-1/2">
+                  <div className="bg-white rounded-xl shadow-lg p-8 h-full flex flex-col justify-between">
+                    <div>
+                      {/* Header with logo, author, category, date */}
+                      <div className="flex items-center gap-2 mb-4">
+                        <Logo
+                          textColor="dark"
+                          size="sm"
+                          showText={false}
+                          clickable={false}
+                        />
+                        <span className="text-sm text-gray-600">
+                          Kedaar Rentachintala • TradeForm •{" "}
+                          {new Date().toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </span>
+                      </div>
+
+                      {/* Headline */}
+                      <h1
+                        className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4"
+                        style={{
+                          fontFamily:
+                            '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
+                        }}
+                      >
+                        What is TradeForm?
+                      </h1>
+
+                      {/* Body Text - Preview */}
+                      <p
+                        className="text-base text-gray-600 leading-relaxed mb-6"
+                        style={{
+                          fontFamily:
+                            '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
+                        }}
+                      >
+                        We're building the future of manufacturing. TradeForm is
+                        revolutionizing how engineers and manufacturers evaluate
+                        components, streamline trade studies, and make
+                        data-driven decisions that keep the defense industrial
+                        base moving forward.
+                      </p>
                     </div>
 
-                    {/* Headline */}
-                    <h1
-                      className="text-3xl sm:text-4xl font-bold text-gray-900 mb-4"
-                      style={{
-                        fontFamily:
-                          '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
-                      }}
-                    >
-                      What is TradeForm?
-                    </h1>
-
-                    {/* Body Text - Preview */}
-                    <p
-                      className="text-base text-gray-600 leading-relaxed mb-6"
-                      style={{
-                        fontFamily:
-                          '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
-                      }}
-                    >
-                      We're building the future of manufacturing. TradeForm is
-                      revolutionizing how engineers and manufacturers evaluate
-                      components, streamline trade studies, and make data-driven
-                      decisions that keep the defense industrial base moving
-                      forward.
-                    </p>
-                  </div>
-
-                  {/* Read article link */}
-                  <div>
-                    <button
-                      onClick={() => setShowFullArticle(!showFullArticle)}
-                      className="text-gray-600 hover:text-gray-900 transition-colors text-sm flex items-center gap-1"
-                      style={{
-                        fontFamily:
-                          '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
-                      }}
-                    >
-                      {showFullArticle ? "Show less" : "Read article →"}
-                    </button>
+                    {/* Read article link */}
+                    <div>
+                      <button
+                        onClick={() => setShowFullArticle(!showFullArticle)}
+                        className="text-gray-600 hover:text-gray-900 transition-colors text-sm flex items-center gap-1"
+                        style={{
+                          fontFamily:
+                            '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
+                        }}
+                      >
+                        {showFullArticle ? "Show less" : "Read article →"}
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -213,11 +230,12 @@ const Blog: React.FC = () => {
               </div>
 
               {/* Image */}
-              <div className="mb-8 rounded-lg overflow-hidden">
+              <div className="mb-8 rounded-xl overflow-hidden shadow-lg bg-white">
                 <img
                   src="/media/blog1.jpg"
                   alt="What is TradeForm"
                   className="w-full h-auto object-cover"
+                  loading="lazy"
                 />
               </div>
 

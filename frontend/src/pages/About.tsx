@@ -121,7 +121,7 @@ const About: React.FC = () => {
           {/* Made in California */}
           <div className="text-center mb-6 sm:mb-8">
             <span className="inline-block px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-full">
-              Made in California
+              🇺🇸 Made in California
             </span>
           </div>
           {/* Title */}
