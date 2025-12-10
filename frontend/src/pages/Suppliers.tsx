@@ -894,28 +894,29 @@ const Suppliers: React.FC = () => {
               <p className="text-sm text-gray-600">{selectedStep.description}</p>
 
               <div className="space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div>
-                    <h3 className="font-semibold text-gray-900">Task Materials</h3>
-                    <p className="text-sm text-gray-600">
-                      Preview, replace, or sign the file shown to both your team and the shared supplier link.
-                    </p>
-                  </div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <label className="cursor-pointer px-3 py-2 text-sm font-semibold border border-gray-300 rounded-lg hover:bg-gray-100">
-                      {isUploadingMaterial
-                        ? "Uploading..."
-                        : selectedStep.has_material
-                        ? "Replace file"
-                        : "Upload file"}
-                      <input
-                        type="file"
-                        className="hidden"
-                        accept=".pdf,.doc,.docx"
-                        onChange={handleUploadMaterial}
-                        disabled={isUploadingMaterial}
-                      />
-                    </label>
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                      <h3 className="font-semibold text-gray-900">Task Materials</h3>
+                      <p className="text-sm text-gray-600">
+                        Preview, replace, or sign the file shown to both your team and the shared supplier link.
+                      </p>
+                    </div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <label className="cursor-pointer px-3 py-2 text-sm font-semibold border border-gray-300 rounded-lg hover:bg-gray-100">
+                        {isUploadingMaterial
+                          ? "Uploading..."
+                          : selectedStep.has_material
+                          ? "Replace file"
+                          : "Upload file"}
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept=".pdf,.doc,.docx"
+                          onChange={handleUploadMaterial}
+                          disabled={isUploadingMaterial}
+                          onClick={(e) => e.stopPropagation()}
+                        />
+                      </label>
                     {materialUrl && (
                       <>
                         <button
