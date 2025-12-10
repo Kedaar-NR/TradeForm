@@ -29,7 +29,7 @@ const TermsOfService: React.FC = () => {
         </h1>
         <div className="prose prose-lg max-w-none">
           <p className="text-gray-600 mb-6">
-            Last updated: {new Date().toLocaleDateString()}
+            Last updated: December 8, 2025
           </p>
 
           <section className="mb-8">

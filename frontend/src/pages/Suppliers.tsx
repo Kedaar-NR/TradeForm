@@ -91,6 +91,9 @@ const Suppliers: React.FC = () => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [hasSignatureStroke, setHasSignatureStroke] = useState(false);
   const [isSavingSignature, setIsSavingSignature] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const [previewLoading, setPreviewLoading] = useState(false);
+  const [previewError, setPreviewError] = useState<string | null>(null);
   const signatureCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const previewContainerRef = useRef<HTMLDivElement | null>(null);
   const prefillAttemptedRef = useRef<Set<string>>(new Set());
@@ -120,6 +123,40 @@ const Suppliers: React.FC = () => {
   useEffect(() => {
     loadSuppliers();
   }, []);
+
+  // Load inline preview as blob URL to avoid auto-download behavior
+  useEffect(() => {
+    let revokeUrl: string | null = null;
+    const loadPreview = async () => {
+      if (!materialUrl || !isPdfMaterial) {
+        setPreviewUrl(null);
+        setPreviewError(null);
+        return;
+      }
+      try {
+        setPreviewLoading(true);
+        setPreviewError(null);
+        const response = await fetch(materialUrl);
+        const blob = await response.blob();
+        const objectUrl = URL.createObjectURL(blob);
+        revokeUrl = objectUrl;
+        setPreviewUrl(objectUrl);
+      } catch (err: any) {
+        console.error("Failed to load preview:", err);
+        setPreviewError("Preview unavailable. Use Download to view.");
+        setPreviewUrl(null);
+      } finally {
+        setPreviewLoading(false);
+      }
+    };
+    loadPreview();
+
+    return () => {
+      if (revokeUrl) {
+        URL.revokeObjectURL(revokeUrl);
+      }
+    };
+  }, [materialUrl, isPdfMaterial]);
 
   const loadSuppliers = async () => {
     try {
@@ -242,6 +279,9 @@ const Suppliers: React.FC = () => {
     setShowPdfModal(false);
     setIsSigning(false);
     setHasSignatureStroke(false);
+    setPreviewUrl(null);
+    setPreviewError(null);
+    setPreviewLoading(false);
   }, [saveSignatureIfNeeded]);
 
   const handleUploadMaterial = async (
@@ -967,12 +1007,22 @@ const Suppliers: React.FC = () => {
                       className="rounded-lg bg-white shadow-sm overflow-hidden border border-gray-200 relative"
                       ref={previewContainerRef}
                     >
-                      <iframe
-                        key={materialVersion}
-                        src={`${materialUrl}#toolbar=0&navpanes=0`}
-                        title="Task material preview"
-                        className={`w-full h-[420px] ${isSigning ? "pointer-events-none" : ""}`}
-                      />
+                      {previewLoading ? (
+                        <div className="w-full h-[420px] flex items-center justify-center text-sm text-gray-600">
+                          Loading preview...
+                        </div>
+                      ) : previewError ? (
+                        <div className="w-full h-[420px] flex items-center justify-center text-sm text-red-600">
+                          {previewError}
+                        </div>
+                      ) : (
+                        <iframe
+                          key={materialVersion}
+                          src={`${previewUrl || materialUrl}#toolbar=0&navpanes=0`}
+                          title="Task material preview"
+                          className={`w-full h-[420px] ${isSigning ? "pointer-events-none" : ""}`}
+                        />
+                      )}
                       {isSigning && (
                         <canvas
                           ref={signatureCanvasRef}
