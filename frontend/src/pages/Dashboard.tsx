@@ -24,6 +24,7 @@ import {
   hasAccessRecord,
   RECENT_GROUP_PREFIX,
   RECENT_STUDY_PREFIX,
+  markStudyAccess,
 } from "../utils/recentActivity";
 
 // Known template study names for filtering
@@ -562,7 +563,10 @@ const Dashboard: React.FC = () => {
                     study={study}
                     isDeleting={deletingProjectId === study.id}
                     isMoving={movingProjectId === study.id}
-                    onNavigate={(id) => navigate(`/project/${id}`)}
+                    onNavigate={(id) => {
+                      markStudyAccess(id);
+                      navigate(`/project/${id}`);
+                    }}
                     onDelete={handleDeleteStudy}
                     onMoveClick={(e, id) => {
                       e.stopPropagation();
