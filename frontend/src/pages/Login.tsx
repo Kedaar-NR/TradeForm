@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import Logo from '../components/Logo';
-import api from '../services/api';
-import { API_BASE_URL } from '../utils/apiHelpers';
-import { authApi } from '../services/api';
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import Logo from "../components/Logo";
+import api from "../services/api";
+import { API_BASE_URL } from "../utils/apiHelpers";
+import { authApi } from "../services/api";
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    email: '',
-    password: '',
+    email: "",
+    password: "",
   });
   // If already authenticated via cookie (e.g., Google OAuth), hydrate local state and redirect
   React.useEffect(() => {
@@ -17,14 +17,18 @@ const Login: React.FC = () => {
       try {
         const resp = await authApi.getCurrentUser();
         const user = resp.data;
-        localStorage.setItem('isAuthenticated', 'true');
-        localStorage.setItem('currentUser', JSON.stringify(user));
+        localStorage.setItem("isAuthenticated", "true");
+        localStorage.setItem("currentUser", JSON.stringify(user));
         // optional: keep authToken in sync if backend returns it elsewhere; here we rely on cookie
-        const onboardingStatus = (user as any).onboarding_status || (user as any).onboardingStatus;
-        if (onboardingStatus === 'not_started' || onboardingStatus === 'in_progress') {
-          navigate('/onboarding');
+        const onboardingStatus =
+          (user as any).onboarding_status || (user as any).onboardingStatus;
+        if (
+          onboardingStatus === "not_started" ||
+          onboardingStatus === "in_progress"
+        ) {
+          navigate("/onboarding");
         } else {
-          navigate('/dashboard');
+          navigate("/dashboard");
         }
       } catch {
         // not logged in via cookie; ignore
@@ -32,8 +36,8 @@ const Login: React.FC = () => {
     };
     hydrateFromSession();
   }, [navigate]);
-  const [emailError, setEmailError] = useState('');
-  const [formError, setFormError] = useState('');
+  const [emailError, setEmailError] = useState("");
+  const [formError, setFormError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const validateEmail = (email: string): boolean => {
@@ -46,51 +50,55 @@ const Login: React.FC = () => {
     setFormData({ ...formData, email });
 
     if (email && !validateEmail(email)) {
-      setEmailError('Please enter a valid email address');
+      setEmailError("Please enter a valid email address");
     } else {
-      setEmailError('');
+      setEmailError("");
     }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setFormError('');
+    setFormError("");
 
     // Validate email before submitting
     if (!validateEmail(formData.email)) {
-      setEmailError('Please enter a valid email address');
+      setEmailError("Please enter a valid email address");
       return;
     }
 
     try {
       setIsSubmitting(true);
       const payload = new URLSearchParams();
-      payload.append('username', formData.email);
-      payload.append('password', formData.password);
+      payload.append("username", formData.email);
+      payload.append("password", formData.password);
 
-      const response = await api.post('/api/auth/login', payload, {
+      const response = await api.post("/api/auth/login", payload, {
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          "Content-Type": "application/x-www-form-urlencoded",
         },
       });
 
       const data = response.data;
-      localStorage.setItem('isAuthenticated', 'true');
-      localStorage.setItem('authToken', data.access_token);
-      localStorage.setItem('currentUser', JSON.stringify(data.user));
-      
+      localStorage.setItem("isAuthenticated", "true");
+      localStorage.setItem("authToken", data.access_token);
+      localStorage.setItem("currentUser", JSON.stringify(data.user));
+
       // Check onboarding status and redirect appropriately
-      const onboardingStatus = data.user.onboarding_status || data.user.onboardingStatus;
-      if (onboardingStatus === 'not_started' || onboardingStatus === 'in_progress') {
-        navigate('/onboarding');
+      const onboardingStatus =
+        data.user.onboarding_status || data.user.onboardingStatus;
+      if (
+        onboardingStatus === "not_started" ||
+        onboardingStatus === "in_progress"
+      ) {
+        navigate("/onboarding");
       } else {
-        navigate('/dashboard');
+        navigate("/dashboard");
       }
     } catch (error: any) {
       const message =
         error?.response?.data?.detail ||
         error?.message ||
-        'Failed to log in. Please try again.';
+        "Failed to log in. Please try again.";
       setFormError(message);
     } finally {
       setIsSubmitting(false);
@@ -100,7 +108,7 @@ const Login: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <nav className="bg-white border-b border-gray-200">
+      <nav className="sticky top-0 z-40 bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo on left */}
@@ -159,9 +167,7 @@ const Login: React.FC = () => {
             <h1 className="text-3xl font-bold text-gray-900 mb-2">
               Welcome back
             </h1>
-            <p className="text-gray-600">
-              Log in to your TradeForm account
-            </p>
+            <p className="text-gray-600">Log in to your TradeForm account</p>
           </div>
 
           <div className="bg-white rounded-lg border border-gray-200 p-8">
@@ -169,8 +175,7 @@ const Login: React.FC = () => {
             <button
               type="button"
               onClick={() => {
-                const target =
-                  (API_BASE_URL || "") + "/api/auth/google/login";
+                const target = (API_BASE_URL || "") + "/api/auth/google/login";
                 window.location.href = target;
               }}
               className="w-full flex items-center justify-center gap-3 px-4 py-3 border border-gray-300 rounded-md bg-white hover:bg-gray-50 transition-colors mb-6"
@@ -193,7 +198,9 @@ const Login: React.FC = () => {
                   d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                 />
               </svg>
-              <span className="text-sm font-medium text-gray-700">Log in with Google</span>
+              <span className="text-sm font-medium text-gray-700">
+                Log in with Google
+              </span>
             </button>
 
             {/* Divider */}
@@ -202,7 +209,9 @@ const Login: React.FC = () => {
                 <div className="w-full border-t border-gray-300"></div>
               </div>
               <div className="relative flex justify-center text-sm">
-                <span className="px-2 bg-white text-gray-500">Or continue with email</span>
+                <span className="px-2 bg-white text-gray-500">
+                  Or continue with email
+                </span>
               </div>
             </div>
 
@@ -213,7 +222,9 @@ const Login: React.FC = () => {
                   type="email"
                   value={formData.email}
                   onChange={handleEmailChange}
-                  className={`input-field ${emailError ? 'border-red-500' : ''}`}
+                  className={`input-field ${
+                    emailError ? "border-red-500" : ""
+                  }`}
                   placeholder="you@example.com"
                   required
                 />
@@ -244,7 +255,10 @@ const Login: React.FC = () => {
                   />
                   <span className="ml-2 text-gray-700">Remember me</span>
                 </label>
-                <button type="button" className="text-black hover:text-gray-900">
+                <button
+                  type="button"
+                  className="text-black hover:text-gray-900"
+                >
                   Forgot password?
                 </button>
               </div>
@@ -254,18 +268,20 @@ const Login: React.FC = () => {
                 className="w-full btn-primary disabled:opacity-50"
                 disabled={isSubmitting}
               >
-                {isSubmitting ? 'Logging in...' : 'Log in'}
+                {isSubmitting ? "Logging in..." : "Log in"}
               </button>
             </form>
             {formError && (
-              <p className="mt-4 text-sm text-red-600 text-center">{formError}</p>
+              <p className="mt-4 text-sm text-red-600 text-center">
+                {formError}
+              </p>
             )}
 
             <div className="mt-6 text-center">
               <p className="text-sm text-gray-600">
-                Don't have an account?{' '}
+                Don't have an account?{" "}
                 <button
-                  onClick={() => navigate('/signup')}
+                  onClick={() => navigate("/signup")}
                   className="text-black hover:text-gray-900 font-medium"
                 >
                   Sign up
