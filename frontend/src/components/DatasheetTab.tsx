@@ -23,8 +23,9 @@ const DatasheetTab: React.FC<DatasheetTabProps> = ({
   const [uploadedFilename, setUploadedFilename] = useState<string | undefined>();
   const [criteria, setCriteria] = useState<Criterion[]>([]);
   const [showAllCriteria, setShowAllCriteria] = useState(false);
-  const [isAutoUploading, setIsAutoUploading] = useState(false);
-  const [autoUploadError, setAutoUploadError] = useState<string | null>(null);
+  // Auto-import feature disabled - commented out unused state
+  // const [isAutoUploading, setIsAutoUploading] = useState(false);
+  // const [autoUploadError, setAutoUploadError] = useState<string | null>(null);
   const [shouldPollStatus, setShouldPollStatus] = useState(true);
   const lastAutoUploadKeyRef = useRef<string | null>(null);
   const isAutoUploadingRef = useRef(false);
@@ -227,7 +228,8 @@ const DatasheetTab: React.FC<DatasheetTabProps> = ({
     }
   }, [attemptAutoUpload, autoUploadKey]);
 
-  const handleManualAutoImport = () => attemptAutoUpload(true);
+  // Auto-import feature disabled - commented out unused function
+  // const handleManualAutoImport = () => attemptAutoUpload(true);
 
   const handleUploadSuccess = () => {
     setRefreshTrigger((prev) => prev + 1);

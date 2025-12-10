@@ -152,20 +152,21 @@ const ComponentDiscovery: React.FC = () => {
           Boolean(comp.datasheetUrl)
         );
 
-        let datasheetStatus = "";
-        if (hasDatasheetUrls) {
-          try {
-            const { successCount, skippedCount, failedDetails } =
-              await uploadMultipleDatasheets(normalizedComponents);
-            await loadComponents();
+        // Auto-import feature disabled - commented out unused datasheet status
+        // let datasheetStatus = "";
+        // if (hasDatasheetUrls) {
+        //   try {
+        //     const { successCount, skippedCount, failedDetails } =
+        //       await uploadMultipleDatasheets(normalizedComponents);
+        //     await loadComponents();
 
-            const failedCount = failedDetails?.length || 0;
-            datasheetStatus = `\n• Datasheets uploaded: ${successCount}\n• Failed: ${failedCount}\n• Skipped (not PDFs): ${skippedCount}`;
-          } catch (err) {
-            console.error("Automatic datasheet uploads failed:", err);
-            datasheetStatus = "\n• Datasheets: Auto-upload failed, upload manually from component details";
-          }
-        }
+        //     const failedCount = failedDetails?.length || 0;
+        //     datasheetStatus = `\n• Datasheets uploaded: ${successCount}\n• Failed: ${failedCount}\n• Skipped (not PDFs): ${skippedCount}`;
+        //   } catch (err) {
+        //     console.error("Automatic datasheet uploads failed:", err);
+        //     datasheetStatus = "\n• Datasheets: Auto-upload failed, upload manually from component details";
+        //   }
+        // }
 
         // Show single notification at the end - DISABLED per user request
         // alert(
