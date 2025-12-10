@@ -86,7 +86,51 @@ const Signup: React.FC = () => {
       <nav className="bg-white border-b border-gray-200">
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
-            <Logo />
+            {/* Logo on left */}
+            <Logo textColor="dark" />
+
+            {/* Navigation links center */}
+            <div className="hidden md:flex items-center gap-6 lg:gap-8 absolute left-1/2 transform -translate-x-1/2">
+              <button
+                onClick={() => navigate("/")}
+                className="text-sm transition-colors font-medium text-gray-900 hover:text-black"
+              >
+                Home
+              </button>
+              <button
+                onClick={() => navigate("/about")}
+                className="text-sm transition-colors font-medium text-gray-900 hover:text-black"
+              >
+                About
+              </button>
+              <button
+                onClick={() => navigate("/careers")}
+                className="text-sm transition-colors font-medium text-gray-900 hover:text-black"
+              >
+                Careers
+              </button>
+              <button
+                onClick={() => navigate("/blog")}
+                className="text-sm transition-colors font-medium text-gray-900 hover:text-black"
+              >
+                Blog
+              </button>
+            </div>
+
+            {/* Right side: Book a demo */}
+            <div className="flex items-center gap-4 flex-shrink-0 ml-auto">
+              <button
+                onClick={() =>
+                  window.open(
+                    "https://calendly.com/team-trade-form/30min",
+                    "_blank"
+                  )
+                }
+                className="text-sm text-gray-900 hover:text-black font-medium px-4 sm:px-5 py-2 rounded-md bg-white border border-gray-300 hover:bg-gray-100 transition-all whitespace-nowrap shadow-sm"
+              >
+                Book a demo
+              </button>
+            </div>
           </div>
         </div>
       </nav>
