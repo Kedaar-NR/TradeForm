@@ -40,25 +40,41 @@ const About: React.FC = () => {
             <div className="hidden md:flex items-center gap-6 lg:gap-8 absolute left-1/2 transform -translate-x-1/2">
               <button
                 onClick={() => navigate("/")}
-                className="text-sm text-gray-700 hover:text-gray-900 transition-colors font-medium"
+                className={`text-sm transition-colors font-medium ${
+                  navBackground
+                    ? "text-black hover:text-gray-800"
+                    : "text-gray-700 hover:text-gray-900"
+                }`}
               >
                 Home
               </button>
               <button
                 onClick={() => navigate("/about")}
-                className="text-sm text-gray-700 hover:text-gray-900 transition-colors font-medium"
+                className={`text-sm transition-colors font-medium ${
+                  navBackground
+                    ? "text-black hover:text-gray-800"
+                    : "text-gray-700 hover:text-gray-900"
+                }`}
               >
                 About
               </button>
               <button
                 onClick={() => navigate("/careers")}
-                className="text-sm text-gray-700 hover:text-gray-900 transition-colors font-medium"
+                className={`text-sm transition-colors font-medium ${
+                  navBackground
+                    ? "text-black hover:text-gray-800"
+                    : "text-gray-700 hover:text-gray-900"
+                }`}
               >
                 Careers
               </button>
               <button
                 onClick={() => navigate("/blog")}
-                className="text-sm text-gray-700 hover:text-gray-900 transition-colors font-medium"
+                className={`text-sm transition-colors font-medium ${
+                  navBackground
+                    ? "text-black hover:text-gray-800"
+                    : "text-gray-700 hover:text-gray-900"
+                }`}
               >
                 Blog
               </button>
@@ -75,7 +91,11 @@ const About: React.FC = () => {
                     navigate("/login");
                   }
                 }}
-                className="text-sm text-gray-700 hover:text-gray-900 transition-colors font-medium"
+                className={`text-sm transition-colors font-medium ${
+                  navBackground
+                    ? "text-black hover:text-gray-800"
+                    : "text-gray-700 hover:text-gray-900"
+                }`}
               >
                 Sign in
               </button>
@@ -98,6 +118,12 @@ const About: React.FC = () => {
       {/* Hero Section */}
       <section className="relative pt-16 sm:pt-20 bg-white flex-1">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
+          {/* Made in California */}
+          <div className="text-center mb-6 sm:mb-8">
+            <span className="inline-block px-4 py-2 text-sm font-medium text-gray-600 bg-gray-100 rounded-full">
+              Made in California
+            </span>
+          </div>
           {/* Title */}
           <div className="text-center mb-12 sm:mb-16">
             <h1
