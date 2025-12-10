@@ -1,6 +1,6 @@
 """Authentication endpoints for user registration and login."""
 
-from fastapi import APIRouter, Depends, HTTPException, status, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request
 from fastapi.responses import RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import Session
@@ -165,15 +165,26 @@ def get_current_user_info(current_user: models.User = Depends(auth.get_current_u
 
 
 @router.get("/google/login")
-def google_login():
+def google_login(request: Request):
     """Start Google OAuth login flow"""
     if not (GOOGLE_CLIENT_ID and GOOGLE_REDIRECT_URI):
         raise HTTPException(status_code=500, detail="Google OAuth is not configured")
 
+    # Use dynamic redirect URI based on the request host
+    # This handles both www.trade-form.com and trade-form.com
+    host = request.headers.get("host", "")
+    if host:
+        # Build the redirect URI from the current host
+        scheme = "https" if request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https" else "http"
+        redirect_uri = f"{scheme}://{host}/api/auth/google/callback"
+    else:
+        # Fallback to env var if no host header
+        redirect_uri = GOOGLE_REDIRECT_URI
+
     state = _build_state_token()
     params = {
         "client_id": GOOGLE_CLIENT_ID,
-        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "redirect_uri": redirect_uri,
         "response_type": "code",
         "scope": "openid email profile",
         "access_type": "offline",
@@ -187,12 +198,20 @@ def google_login():
 
 
 @router.get("/google/callback")
-async def google_callback(code: str, state: str, db: Session = Depends(get_db)):
+async def google_callback(request: Request, code: str, state: str, db: Session = Depends(get_db)):
     """Handle Google OAuth callback, issue JWT, and set session cookie."""
     if not (GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET and GOOGLE_REDIRECT_URI):
         raise HTTPException(status_code=500, detail="Google OAuth is not configured")
 
     _verify_state_token(state)
+
+    # Use dynamic redirect URI based on the request host (must match what was sent to Google)
+    host = request.headers.get("host", "")
+    if host:
+        scheme = "https" if request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https" else "http"
+        redirect_uri = f"{scheme}://{host}/api/auth/google/callback"
+    else:
+        redirect_uri = GOOGLE_REDIRECT_URI
 
     # Exchange code for tokens
     token_url = "https://oauth2.googleapis.com/token"
@@ -200,7 +219,7 @@ async def google_callback(code: str, state: str, db: Session = Depends(get_db)):
         "code": code,
         "client_id": GOOGLE_CLIENT_ID,
         "client_secret": GOOGLE_CLIENT_SECRET,
-        "redirect_uri": GOOGLE_REDIRECT_URI,
+        "redirect_uri": redirect_uri,
         "grant_type": "authorization_code",
     }
 
@@ -257,6 +276,15 @@ async def google_callback(code: str, state: str, db: Session = Depends(get_db)):
         expires_delta=timedelta(minutes=auth.ACCESS_TOKEN_EXPIRE_MINUTES)
     )
 
-    response = RedirectResponse(FRONTEND_REDIRECT_URL or "/")
+    # Redirect to the frontend, preserving the same host (www or non-www)
+    host = request.headers.get("host", "")
+    if host and not FRONTEND_REDIRECT_URL:
+        # Build redirect URL with same host as request
+        scheme = "https" if request.url.scheme == "https" or request.headers.get("x-forwarded-proto") == "https" else "http"
+        frontend_url = f"{scheme}://{host}/dashboard"
+    else:
+        frontend_url = FRONTEND_REDIRECT_URL or "/dashboard"
+    
+    response = RedirectResponse(frontend_url)
     _set_auth_cookie(response, access_token)
     return response
