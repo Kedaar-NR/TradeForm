@@ -6,6 +6,7 @@ import Footer from "../components/Footer";
 const Blog: React.FC = () => {
   const navigate = useNavigate();
   const [showFullArticle, setShowFullArticle] = useState(false);
+  const POST_DATE = "Dec 8, 2025";
 
   useEffect(() => {
     document.title = "Blog • TradeForm";
@@ -123,12 +124,7 @@ const Blog: React.FC = () => {
                           clickable={false}
                         />
                         <span className="text-sm text-gray-600">
-                          Kedaar Rentachintala • TradeForm •{" "}
-                          {new Date().toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
+                          Kedaar Rentachintala • TradeForm • {POST_DATE}
                         </span>
                       </div>
 
@@ -210,12 +206,7 @@ const Blog: React.FC = () => {
                     clickable={false}
                   />
                   <span className="text-sm text-gray-600">
-                    Kedaar Rentachintala • TradeForm •{" "}
-                    {new Date().toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
+                    Kedaar Rentachintala • TradeForm • {POST_DATE}
                   </span>
                 </div>
                 <h1
