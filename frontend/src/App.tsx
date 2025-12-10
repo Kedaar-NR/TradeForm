@@ -62,7 +62,11 @@ const ProtectedRoute = ({ children }: { children: ReactNode }) => {
 
       // NOW check auth with the token
       try {
-        await api.get("/api/auth/me");
+        const response = await api.get("/api/auth/me");
+        // Store user data for profile pic and other info
+        if (response.data) {
+          localStorage.setItem("currentUser", JSON.stringify(response.data));
+        }
         if (mounted) setStatus("authed");
       } catch {
         if (mounted) setStatus("unauth");
