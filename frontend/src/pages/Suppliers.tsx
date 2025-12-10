@@ -144,7 +144,7 @@ const Suppliers: React.FC = () => {
       } catch (err: any) {
         console.error("Failed to load preview:", err);
         setPreviewError("Preview unavailable. Use Download to view.");
-        setPreviewUrl(null);
+        setPreviewUrl(materialUrl); // fallback to direct URL so embed still attempts render
       } finally {
         setPreviewLoading(false);
       }
@@ -910,7 +910,7 @@ const Suppliers: React.FC = () => {
           onClick={closeStepModal}
         >
           <div
-            className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[85vh] overflow-y-auto"
+          className="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
