@@ -980,10 +980,16 @@ const Suppliers: React.FC = () => {
                           <>
                             <button
                               className={`px-3 py-2 text-sm font-semibold rounded-lg ${isSigning ? "bg-black text-white" : "border border-gray-300 hover:bg-gray-100"}`}
-                              onClick={() => setIsSigning((prev) => !prev)}
+                              onClick={async () => {
+                                if (isSigning) {
+                                  // Turning off - save signature first
+                                  await saveSignatureIfNeeded();
+                                }
+                                setIsSigning((prev) => !prev);
+                              }}
                               disabled={isSavingSignature}
                             >
-                              {isSigning ? "Pen mode on" : "Sign (pen)"}
+                              {isSavingSignature ? "Saving..." : isSigning ? "Done signing" : "Sign document"}
                             </button>
                             {isSigning && (
                               <button
