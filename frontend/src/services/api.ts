@@ -428,6 +428,15 @@ export interface SupplierStep {
     completed: boolean;
     started_at?: string;
     completed_at?: string;
+    material_name?: string;
+    material_description?: string;
+    material_mime_type?: string;
+    material_original_filename?: string;
+    material_size_bytes?: number;
+    material_updated_at?: string;
+    material_download_url?: string;
+    material_share_url?: string;
+    has_material?: boolean;
 }
 
 export interface Supplier {
@@ -487,7 +496,30 @@ export const suppliersApi = {
         api.post<ShareLinkResponse>(`/api/suppliers/${supplierId}/share`),
     getSharedSupplier: (shareToken: string) =>
         api.get<Supplier>(`/api/suppliers/shared/${shareToken}`),
+    uploadStepMaterial: (
+        supplierId: string,
+        stepId: string,
+        file: File,
+        options?: { name?: string; description?: string }
+    ) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        if (options?.name) formData.append("name", options.name);
+        if (options?.description !== undefined) {
+            formData.append("description", options.description);
+        }
+        return api.post<SupplierStep>(
+            `/api/suppliers/${supplierId}/steps/${stepId}/material`,
+            formData,
+            {
+                headers: { "Content-Type": "multipart/form-data" },
+            }
+        );
+    },
+    getStepMaterialUrl: (supplierId: string, stepId: string) =>
+        `${API_BASE_URL || ""}/api/suppliers/${supplierId}/steps/${stepId}/material`,
+    getSharedStepMaterialUrl: (shareToken: string, stepId: string) =>
+        `${API_BASE_URL || ""}/api/suppliers/shared/${shareToken}/steps/${stepId}/material`,
 };
 
 export default api;
-

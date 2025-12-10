@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { suppliersApi, Supplier, SupplierCreate, SupplierStep } from "../services/api";
 import { Send, ChevronDown, ChevronUp, Trash2, X } from "lucide-react";
+import { PDFViewerModal } from "../components/PDFViewerModal";
 
 const formatDuration = (start?: string, end?: string) => {
   if (!start || !end) return "—";
@@ -77,7 +78,27 @@ const Suppliers: React.FC = () => {
     color: "#0ea5e9",
     notes: "",
   });
-  const [selectedStep, setSelectedStep] = useState<SupplierStep | null>(null);
+  const [selectedStepContext, setSelectedStepContext] = useState<{
+    step: SupplierStep;
+    supplier: Supplier;
+  } | null>(null);
+  const [materialError, setMaterialError] = useState<string | null>(null);
+  const [isUploadingMaterial, setIsUploadingMaterial] = useState(false);
+  const [materialVersion, setMaterialVersion] = useState(0);
+  const [showPdfModal, setShowPdfModal] = useState(false);
+
+  const selectedStep = selectedStepContext?.step || null;
+  const selectedSupplier = selectedStepContext?.supplier || null;
+  const materialUrl =
+    selectedStep && selectedSupplier && selectedStep.has_material
+      ? `${suppliersApi.getStepMaterialUrl(
+          selectedSupplier.id,
+          selectedStep.id
+        )}?v=${materialVersion}`
+      : null;
+  const isPdfMaterial =
+    (selectedStep?.material_mime_type?.toLowerCase() || "").includes("pdf") ||
+    (!selectedStep?.material_mime_type && Boolean(selectedStep?.has_material));
 
   useEffect(() => {
     loadSuppliers();
@@ -94,6 +115,59 @@ const Suppliers: React.FC = () => {
       setError("Failed to load suppliers. Please try again.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const closeStepModal = () => {
+    setSelectedStepContext(null);
+    setMaterialError(null);
+    setShowPdfModal(false);
+  };
+
+  const handleUploadMaterial = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    if (!selectedStepContext) return;
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingMaterial(true);
+    setMaterialError(null);
+    try {
+      const response = await suppliersApi.uploadStepMaterial(
+        selectedStepContext.supplier.id,
+        selectedStepContext.step.id,
+        file
+      );
+      const updatedStep = response.data;
+
+      // Update selected step context and supplier list for immediate UI refresh
+      setSelectedStepContext((prev) =>
+        prev ? { ...prev, step: updatedStep } : prev
+      );
+      setSuppliers((prev) =>
+        prev.map((s) =>
+          s.id === selectedStepContext.supplier.id
+            ? {
+                ...s,
+                steps: s.steps.map((st) =>
+                  st.id === updatedStep.id ? updatedStep : st
+                ),
+              }
+            : s
+        )
+      );
+      setMaterialVersion((prev) => prev + 1);
+    } catch (err: any) {
+      console.error("Failed to upload material:", err);
+      setMaterialError(
+        err?.response?.data?.detail ||
+          err?.message ||
+          "Failed to upload material. Please try again."
+      );
+    } finally {
+      setIsUploadingMaterial(false);
+      event.target.value = "";
     }
   };
 
@@ -569,7 +643,9 @@ const Suppliers: React.FC = () => {
                         />
                         <div
                           className="flex-1 min-w-0 cursor-pointer"
-                          onClick={() => setSelectedStep(step)}
+                          onClick={() =>
+                            setSelectedStepContext({ step, supplier })
+                          }
                         >
                           <div className="flex items-center gap-2">
                             <p className="font-medium text-gray-900">
@@ -601,108 +677,137 @@ const Suppliers: React.FC = () => {
       )}
 
       {/* Task Materials Modal */}
-      {selectedStep && (
+      {selectedStep && selectedSupplier && (
         <div
           className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4"
-          onClick={() => setSelectedStep(null)}
+          onClick={closeStepModal}
         >
           <div
-            className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+            className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[85vh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="sticky top-0 bg-white border-b border-gray-200 px-6 py-4 flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">
-                {selectedStep.title}
-              </h2>
+              <div>
+                <h2 className="text-xl font-semibold text-gray-900">
+                  {selectedStep.title}
+                </h2>
+                <p className="text-xs text-gray-500">
+                  Supplier: {selectedSupplier.name}
+                </p>
+              </div>
               <button
-                onClick={() => setSelectedStep(null)}
+                onClick={closeStepModal}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
               >
                 <X size={24} />
               </button>
             </div>
 
-            <div className="p-6">
-              <p className="text-sm text-gray-600 mb-6">
-                {selectedStep.description}
-              </p>
+            <div className="p-6 space-y-6">
+              <p className="text-sm text-gray-600">{selectedStep.description}</p>
 
               <div className="space-y-4">
-                <h3 className="font-semibold text-gray-900">Task Materials</h3>
-
-                {selectedStep.step_id === 'nda' && (
-                  <div className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <h3 className="font-semibold text-gray-900">Task Materials</h3>
                     <p className="text-sm text-gray-600">
-                      Download and review the mutual NDA template:
+                      Preview and replace the file shown to both your team and the shared supplier link.
                     </p>
-                    <a
-                      href="#"
-                      className="block p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-red-100 rounded flex items-center justify-center">
-                          <span className="text-red-600 font-semibold text-xs">PDF</span>
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">Mutual NDA Template</p>
-                          <p className="text-xs text-gray-500">Standard mutual non-disclosure agreement</p>
-                        </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <label className="cursor-pointer px-3 py-2 text-sm font-semibold border border-gray-300 rounded-lg hover:bg-gray-100">
+                      {isUploadingMaterial
+                        ? "Uploading..."
+                        : selectedStep.has_material
+                        ? "Replace file"
+                        : "Upload file"}
+                      <input
+                        type="file"
+                        className="hidden"
+                        accept=".pdf,.doc,.docx"
+                        onChange={handleUploadMaterial}
+                        disabled={isUploadingMaterial}
+                      />
+                    </label>
+                    {materialUrl && (
+                      <>
+                        <button
+                          className="px-3 py-2 text-sm font-semibold rounded-lg border border-gray-300 hover:bg-gray-100"
+                          onClick={() => window.open(materialUrl, "_blank")}
+                        >
+                          Download
+                        </button>
+                        {isPdfMaterial && (
+                          <button
+                            className="px-3 py-2 text-sm font-semibold rounded-lg bg-gray-900 text-white hover:bg-black"
+                            onClick={() => setShowPdfModal(true)}
+                          >
+                            Open fullscreen
+                          </button>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {materialError && (
+                  <div className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-md px-3 py-2">
+                    {materialError}
+                  </div>
+                )}
+
+                <div className="border border-gray-200 rounded-lg bg-gray-50 p-3">
+                  {materialUrl && isPdfMaterial ? (
+                    <div className="rounded-lg bg-white shadow-sm overflow-hidden border border-gray-200">
+                      <iframe
+                        key={materialVersion}
+                        src={`${materialUrl}#toolbar=0&navpanes=0`}
+                        title="Task material preview"
+                        className="w-full h-[420px]"
+                      />
+                    </div>
+                  ) : materialUrl ? (
+                    <div className="flex items-center justify-between px-4 py-3 bg-white rounded-lg border border-gray-200">
+                      <div>
+                        <p className="font-medium text-gray-900">
+                          {selectedStep.material_name ||
+                            selectedStep.material_original_filename ||
+                            "Task material"}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          Preview not available. Download to view or upload a PDF
+                          to preview inline.
+                        </p>
                       </div>
-                    </a>
-                  </div>
-                )}
-
-                {selectedStep.step_id === 'security' && (
-                  <div className="space-y-3">
-                    <p className="text-sm text-gray-600">
-                      Security and compliance documentation:
-                    </p>
-                    <a
-                      href="#"
-                      className="block p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-blue-100 rounded flex items-center justify-center">
-                          <span className="text-blue-600 font-semibold text-xs">PDF</span>
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">Security Questionnaire</p>
-                          <p className="text-xs text-gray-500">Standard security assessment form</p>
-                        </div>
+                      <button
+                        className="text-sm font-semibold text-blue-600 hover:text-blue-700"
+                        onClick={() => window.open(materialUrl, "_blank")}
+                      >
+                        Download
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3 text-sm text-gray-600 px-3 py-4 bg-white rounded-lg border border-dashed border-gray-300">
+                      <div className="w-10 h-10 bg-gray-100 text-gray-500 rounded flex items-center justify-center font-semibold">
+                        PDF
                       </div>
-                    </a>
-                  </div>
-                )}
-
-                {selectedStep.step_id === 'quality' && (
-                  <div className="space-y-3">
-                    <p className="text-sm text-gray-600">
-                      Quality management documentation:
-                    </p>
-                    <a
-                      href="#"
-                      className="block p-4 border border-gray-200 rounded-lg hover:border-blue-500 hover:bg-blue-50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 bg-green-100 rounded flex items-center justify-center">
-                          <span className="text-green-600 font-semibold text-xs">PDF</span>
-                        </div>
-                        <div>
-                          <p className="font-medium text-gray-900">Quality Requirements</p>
-                          <p className="text-xs text-gray-500">Process controls and certifications</p>
-                        </div>
+                      <div className="flex-1">
+                        <p className="font-semibold text-gray-900">
+                          No file uploaded yet
+                        </p>
+                        <p className="text-sm text-gray-600">
+                          Upload a PDF or DOCX to share it directly in this step.
+                        </p>
                       </div>
-                    </a>
-                  </div>
-                )}
-
-                {!['nda', 'security', 'quality'].includes(selectedStep.step_id) && (
-                  <div className="p-4 bg-gray-50 rounded-lg border border-gray-200">
-                    <p className="text-sm text-gray-600">
-                      No materials available for this step yet. Materials can be added as needed.
+                    </div>
+                  )}
+                  {selectedStep.material_updated_at && (
+                    <p className="text-xs text-gray-500 mt-2">
+                      Last updated{" "}
+                      {new Date(selectedStep.material_updated_at).toLocaleString()}
                     </p>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
               <div className="mt-6 pt-6 border-t border-gray-200">
@@ -727,6 +832,18 @@ const Suppliers: React.FC = () => {
           </div>
         </div>
       )}
+
+      <PDFViewerModal
+        isOpen={showPdfModal && Boolean(materialUrl)}
+        pdfUrl={materialUrl}
+        onClose={() => setShowPdfModal(false)}
+        title={
+          selectedStep?.material_name ||
+          selectedStep?.material_original_filename ||
+          selectedStep?.title ||
+          "Task material"
+        }
+      />
     </div>
   );
 };
