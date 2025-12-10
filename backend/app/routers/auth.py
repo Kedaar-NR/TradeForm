@@ -170,9 +170,14 @@ def google_login(request: Request):
     if not (GOOGLE_CLIENT_ID and GOOGLE_REDIRECT_URI):
         raise HTTPException(status_code=500, detail="Google OAuth is not configured")
 
+    # Log ALL headers for debugging
+    print(f"[GOOGLE LOGIN] All headers: {dict(request.headers)}")
+    
     # Use dynamic redirect URI based on the request host
     # Check for original host from proxy headers (Vercel sets x-forwarded-host)
-    host = request.headers.get("x-forwarded-host") or request.headers.get("host", "")
+    x_forwarded_host = request.headers.get("x-forwarded-host")
+    regular_host = request.headers.get("host", "")
+    host = x_forwarded_host or regular_host
     
     if host and not host.endswith(".railway.app"):
         # Build the redirect URI from the current host (not Railway internal host)
@@ -183,7 +188,7 @@ def google_login(request: Request):
         redirect_uri = GOOGLE_REDIRECT_URI
 
     # Log for debugging
-    print(f"[GOOGLE LOGIN] Host: {host}, X-Forwarded-Host: {request.headers.get('x-forwarded-host')}, Redirect URI: {redirect_uri}")
+    print(f"[GOOGLE LOGIN] X-Forwarded-Host: '{x_forwarded_host}', Host: '{regular_host}', Final host: '{host}', Redirect URI: {redirect_uri}")
 
     state = _build_state_token()
     params = {
