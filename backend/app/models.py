@@ -364,6 +364,13 @@ class SupplierStep(Base):
     completed = Column(Boolean, default=False)
     started_at = Column(DateTime(timezone=True))
     completed_at = Column(DateTime(timezone=True))
+    material_name = Column(String)
+    material_description = Column(Text)
+    material_file_path = Column(String)
+    material_mime_type = Column(String)
+    material_original_filename = Column(String)
+    material_size_bytes = Column(Integer)
+    material_updated_at = Column(DateTime(timezone=True))
 
     # Relationships
     supplier = relationship("Supplier", back_populates="steps")

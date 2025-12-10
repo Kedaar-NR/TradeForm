@@ -211,6 +211,42 @@ def ensure_project_group_schema():
         print(traceback.format_exc(), flush=True, file=sys.stderr)
         raise
 
+
+def ensure_supplier_material_columns():
+    """
+    Ensure supplier_steps has material columns when running on SQLite (where SQL migrations are skipped).
+    This keeps local development databases in sync with the ORM model.
+    """
+    if not DATABASE_URL.startswith("sqlite"):
+        return
+
+    required_columns = {
+        "material_name": "TEXT",
+        "material_description": "TEXT",
+        "material_file_path": "TEXT",
+        "material_mime_type": "TEXT",
+        "material_original_filename": "TEXT",
+        "material_size_bytes": "INTEGER",
+        "material_updated_at": "TIMESTAMP",
+    }
+
+    try:
+        with engine.begin() as conn:
+            existing_columns = {
+                row[1]
+                for row in conn.execute(text("PRAGMA table_info(supplier_steps)"))
+            }
+
+            for column_name, column_type in required_columns.items():
+                if column_name not in existing_columns:
+                    conn.exec_driver_sql(
+                        f"ALTER TABLE supplier_steps ADD COLUMN {column_name} {column_type}"
+                    )
+    except Exception as exc:
+        logger.warning(
+            "Unable to ensure supplier material columns on SQLite: %s", exc, exc_info=True
+        )
+
 # Dependency to get DB session
 def get_db():
     db = SessionLocal()
