@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import Logo from '../components/Logo';
 import api from '../services/api';
 import { API_BASE_URL } from '../utils/apiHelpers';
+import { authApi } from '../services/api';
 
 const Login: React.FC = () => {
   const navigate = useNavigate();
@@ -10,6 +11,27 @@ const Login: React.FC = () => {
     email: '',
     password: '',
   });
+  // If already authenticated via cookie (e.g., Google OAuth), hydrate local state and redirect
+  React.useEffect(() => {
+    const hydrateFromSession = async () => {
+      try {
+        const resp = await authApi.getCurrentUser();
+        const user = resp.data;
+        localStorage.setItem('isAuthenticated', 'true');
+        localStorage.setItem('currentUser', JSON.stringify(user));
+        // optional: keep authToken in sync if backend returns it elsewhere; here we rely on cookie
+        const onboardingStatus = (user as any).onboarding_status || (user as any).onboardingStatus;
+        if (onboardingStatus === 'not_started' || onboardingStatus === 'in_progress') {
+          navigate('/onboarding');
+        } else {
+          navigate('/dashboard');
+        }
+      } catch {
+        // not logged in via cookie; ignore
+      }
+    };
+    hydrateFromSession();
+  }, [navigate]);
   const [emailError, setEmailError] = useState('');
   const [formError, setFormError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);

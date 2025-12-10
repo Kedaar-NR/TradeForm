@@ -257,17 +257,32 @@ const Layout = ({ children }: LayoutProps) => {
                     e.stopPropagation();
                     setShowProfileMenu(!showProfileMenu);
                   }}
-                  className="w-9 h-9 rounded-full bg-gray-900 flex items-center justify-center text-white font-semibold text-sm hover:bg-gray-800 transition-all shadow-sm"
+                  className="w-9 h-9 rounded-full bg-gray-900 flex items-center justify-center text-white font-semibold text-sm hover:bg-gray-800 transition-all shadow-sm overflow-hidden"
                 >
                   {(() => {
                     const user = localStorage.getItem("currentUser");
                     if (user) {
                       try {
                         const parsed = JSON.parse(user);
+                        const avatar =
+                          parsed.photo_url ||
+                          parsed.photoUrl ||
+                          parsed.picture ||
+                          parsed.image ||
+                          parsed.avatar;
+                        if (avatar) {
+                          return (
+                            <img
+                              src={avatar}
+                              alt="Profile"
+                              className="w-full h-full object-cover"
+                            />
+                          );
+                        }
                         return (
-                          parsed.name?.[0] ||
-                          parsed.email?.[0] ||
-                          "U"
+                          (parsed.name?.[0] ||
+                            parsed.email?.[0] ||
+                            "U") as string
                         ).toUpperCase();
                       } catch {
                         return "U";
