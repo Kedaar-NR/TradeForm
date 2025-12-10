@@ -159,17 +159,13 @@ const Landing: React.FC = () => {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-14 sm:h-16 min-h-[44px]">
               {/* Logo on left */}
-              <Logo textColor={navScrolled ? "dark" : "white"} size="md" />
+              <Logo textColor="dark" size="md" />
 
               {/* Navigation Links in center */}
               <div className="hidden md:flex items-center gap-6 lg:gap-8 absolute left-1/2 transform -translate-x-1/2">
                 <button
                   onClick={() => navigate("/")}
-                  className={`text-sm transition-colors font-medium ${
-                    navScrolled
-                      ? "text-gray-900 hover:text-black"
-                      : "text-white/90 hover:text-white"
-                  }`}
+                  className="text-sm transition-colors font-medium text-gray-900 hover:text-black"
                   style={{
                     fontFamily:
                       '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
@@ -179,11 +175,7 @@ const Landing: React.FC = () => {
                 </button>
                 <button
                   onClick={() => navigate("/about")}
-                  className={`text-sm transition-colors font-medium ${
-                    navScrolled
-                      ? "text-gray-900 hover:text-black"
-                      : "text-white/90 hover:text-white"
-                  }`}
+                  className="text-sm transition-colors font-medium text-gray-900 hover:text-black"
                   style={{
                     fontFamily:
                       '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
@@ -193,11 +185,7 @@ const Landing: React.FC = () => {
                 </button>
                 <button
                   onClick={() => navigate("/careers")}
-                  className={`text-sm transition-colors font-medium ${
-                    navScrolled
-                      ? "text-gray-900 hover:text-black"
-                      : "text-white/90 hover:text-white"
-                  }`}
+                  className="text-sm transition-colors font-medium text-gray-900 hover:text-black"
                   style={{
                     fontFamily:
                       '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
@@ -207,11 +195,7 @@ const Landing: React.FC = () => {
                 </button>
                 <button
                   onClick={() => navigate("/blog")}
-                  className={`text-sm transition-colors font-medium ${
-                    navScrolled
-                      ? "text-gray-900 hover:text-black"
-                      : "text-white/90 hover:text-white"
-                  }`}
+                  className="text-sm transition-colors font-medium text-gray-900 hover:text-black"
                   style={{
                     fontFamily:
                       '-apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "SF Pro", "Helvetica Neue", "Helvetica", "Arial", sans-serif',
