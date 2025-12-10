@@ -38,9 +38,9 @@ const Landing: React.FC = () => {
   // Preload ALL videos on mount to prevent lag
   useEffect(() => {
     videos.forEach((videoUrl) => {
-      const link = document.createElement('link');
-      link.rel = 'preload';
-      link.as = 'video';
+      const link = document.createElement("link");
+      link.rel = "preload";
+      link.as = "video";
       link.href = videoUrl;
       document.head.appendChild(link);
     });
