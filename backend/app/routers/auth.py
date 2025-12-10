@@ -170,11 +170,17 @@ def google_login(request: Request):
     if not (GOOGLE_CLIENT_ID and GOOGLE_REDIRECT_URI):
         raise HTTPException(status_code=500, detail="Google OAuth is not configured")
 
-    # Use the env var GOOGLE_REDIRECT_URI from Railway
-    redirect_uri = GOOGLE_REDIRECT_URI
+    # Detect if request came from www or non-www and use matching redirect URI
+    # This prevents Google cache mismatches
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host", "")
+    
+    if "www." in host:
+        redirect_uri = "https://www.trade-form.com/api/auth/google/callback"
+    else:
+        redirect_uri = "https://trade-form.com/api/auth/google/callback"
     
     # Log for debugging
-    print(f"[GOOGLE LOGIN] Using redirect URI: {redirect_uri}")
+    print(f"[GOOGLE LOGIN] Host: {host}, Using redirect URI: {redirect_uri}")
 
     state = _build_state_token()
     params = {
@@ -200,8 +206,13 @@ async def google_callback(request: Request, code: str, state: str, db: Session =
 
     _verify_state_token(state)
 
-    # Use the same redirect URI as in the login flow (from env var)
-    redirect_uri = GOOGLE_REDIRECT_URI
+    # Use the same redirect URI logic as login (must match what was sent to Google)
+    host = request.headers.get("x-forwarded-host") or request.headers.get("host", "")
+    
+    if "www." in host:
+        redirect_uri = "https://www.trade-form.com/api/auth/google/callback"
+    else:
+        redirect_uri = "https://trade-form.com/api/auth/google/callback"
 
     # Exchange code for tokens
     token_url = "https://oauth2.googleapis.com/token"
@@ -277,10 +288,11 @@ async def google_callback(request: Request, code: str, state: str, db: Session =
     )
 
     # Redirect based on whether this is a new signup or existing user login
-    # Extract base domain from GOOGLE_REDIRECT_URI (e.g., https://trade-form.com)
-    from urllib.parse import urlparse
-    parsed = urlparse(GOOGLE_REDIRECT_URI)
-    base_domain = f"{parsed.scheme}://{parsed.netloc}"
+    # Use the same domain (www or non-www) that the user came from
+    if "www." in host:
+        base_domain = "https://www.trade-form.com"
+    else:
+        base_domain = "https://trade-form.com"
     
     # NEW users → onboarding, EXISTING users → dashboard
     if is_new_user:
