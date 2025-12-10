@@ -21,6 +21,17 @@ const CompanyLogoSlider: React.FC = () => {
     { name: "Qualcomm", logo: "/logos/qualcomm logo.png" },
   ];
 
+  // Preload all logo images on mount to prevent lag
+  useEffect(() => {
+    companies.forEach((company) => {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'image';
+      link.href = company.logo;
+      document.head.appendChild(link);
+    });
+  }, []);
+
   useEffect(() => {
     if (!scrollTrackRef.current) return;
 

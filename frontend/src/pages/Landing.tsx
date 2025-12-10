@@ -35,6 +35,17 @@ const Landing: React.FC = () => {
     []
   );
 
+  // Preload ALL videos on mount to prevent lag
+  useEffect(() => {
+    videos.forEach((videoUrl) => {
+      const link = document.createElement('link');
+      link.rel = 'preload';
+      link.as = 'video';
+      link.href = videoUrl;
+      document.head.appendChild(link);
+    });
+  }, [videos]);
+
   // Preload next video for instant switching
   useEffect(() => {
     const active = useA ? videoARef.current : videoBRef.current;
@@ -132,6 +143,7 @@ const Landing: React.FC = () => {
             muted
             playsInline
             loop={false}
+            preload="auto"
             className="absolute inset-0 w-full h-full object-cover"
             style={{ opacity: useA ? 1 : 0 }}
           />
@@ -141,6 +153,7 @@ const Landing: React.FC = () => {
             muted
             playsInline
             loop={false}
+            preload="auto"
             className="absolute inset-0 w-full h-full object-cover"
             style={{ opacity: useA ? 0 : 1 }}
           />
