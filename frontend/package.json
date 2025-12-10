@@ -16,6 +16,7 @@
     "@types/react-dom": "^19.2.2",
     "axios": "^1.13.2",
     "lucide-react": "^0.469.0",
+    "pdf-lib": "^1.17.1",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-markdown": "^9.0.1",
@@ -64,4 +65,3 @@
     "npm": ">=9.0.0"
   }
 }
-
