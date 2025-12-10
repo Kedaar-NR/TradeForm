@@ -73,14 +73,16 @@ def get_current_user(
     db: Session = Depends(get_db)
 ) -> Optional[models.User]:
     """Get the current authenticated user from JWT token (header or cookie)"""
-    if not token:
-        token = request.cookies.get("access_token")
-
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
+    if not token:
+        token = request.cookies.get("access_token")
+    if not token:
+        raise credentials_exception
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
