@@ -265,6 +265,8 @@ const Layout = ({ children }: LayoutProps) => {
                       try {
                         const parsed = JSON.parse(user);
                         const avatar =
+                          parsed.profile_image_url ||
+                          parsed.profileImageUrl ||
                           parsed.photo_url ||
                           parsed.photoUrl ||
                           parsed.picture ||

@@ -54,6 +54,7 @@ class User(Base):
     email = Column(String, unique=True, nullable=False, index=True)
     name = Column(String, nullable=False)
     password_hash = Column(String, nullable=False)
+    profile_image_url = Column(String, nullable=True)  # Google profile picture URL
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships

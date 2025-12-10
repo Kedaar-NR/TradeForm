@@ -28,6 +28,7 @@ class ComponentSource(str, Enum):
 class UserBase(BaseModel):
     email: EmailStr
     name: str
+    profile_image_url: Optional[str] = None
 
 class UserCreate(UserBase):
     password: str

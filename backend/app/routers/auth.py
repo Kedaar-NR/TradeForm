@@ -233,6 +233,7 @@ async def google_callback(request: Request, code: str, state: str, db: Session =
     email = id_info.get("email")
     email_verified = id_info.get("email_verified")
     name = id_info.get("name") or email
+    picture = id_info.get("picture")  # Google profile picture URL
 
     if aud != GOOGLE_CLIENT_ID or iss not in {"accounts.google.com", "https://accounts.google.com"}:
         raise HTTPException(status_code=400, detail="Invalid Google token payload")
@@ -247,7 +248,7 @@ async def google_callback(request: Request, code: str, state: str, db: Session =
         is_new_user = True
         random_password = secrets.token_urlsafe(16)
         hashed_password = auth.get_password_hash(random_password)
-        user = models.User(email=email, name=name, password_hash=hashed_password)
+        user = models.User(email=email, name=name, password_hash=hashed_password, profile_image_url=picture)
         db.add(user)
         db.commit()
         db.refresh(user)
@@ -259,9 +260,15 @@ async def google_callback(request: Request, code: str, state: str, db: Session =
         db.add(profile)
         db.commit()
     else:
-        # Update display name if missing
+        # Update display name and profile picture if missing or changed
+        updated = False
         if not user.name and name:
             user.name = name
+            updated = True
+        if picture and user.profile_image_url != picture:
+            user.profile_image_url = picture
+            updated = True
+        if updated:
             db.commit()
 
     access_token = auth.create_access_token(
