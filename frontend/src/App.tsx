@@ -1,5 +1,6 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
+import { useEffect, useState } from "react";
 import Layout from "./components/Layout";
 import Landing from "./pages/Landing";
 import About from "./pages/About";
@@ -24,20 +25,43 @@ import Onboarding from "./pages/Onboarding";
 import Suppliers from "./pages/Suppliers";
 import Scheduler from "./pages/Scheduler";
 import SharedSupplier from "./pages/SharedSupplier";
+import api from "./services/api";
 
 // Protected Route wrapper
-// TODO: TEMPORARILY BYPASSED FOR DEVELOPMENT - Re-enable auth check when fixing auth
 const ProtectedRoute = ({ children }: { children: ReactNode }) => {
-  // const hasWindow = typeof window !== "undefined";
-  // const token = hasWindow ? localStorage.getItem("authToken") : null;
-  // const isAuthenticated =
-  //   hasWindow && localStorage.getItem("isAuthenticated") === "true" && !!token;
+  const location = useLocation();
+  const [status, setStatus] = useState<"checking" | "authed" | "unauth">(
+    "checking"
+  );
 
-  // if (!isAuthenticated) {
-  //   return <Navigate to="/login" replace />;
-  // }
+  useEffect(() => {
+    let mounted = true;
+    const checkAuth = async () => {
+      try {
+        await api.get("/api/auth/me");
+        if (mounted) setStatus("authed");
+      } catch {
+        if (mounted) setStatus("unauth");
+      }
+    };
+    checkAuth();
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
-  // Temporarily allow all access for feature development
+  if (status === "checking") {
+    return (
+      <div className="min-h-screen flex items-center justify-center text-gray-600">
+        Checking your session...
+      </div>
+    );
+  }
+
+  if (status === "unauth") {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
   return <>{children}</>;
 };
 
