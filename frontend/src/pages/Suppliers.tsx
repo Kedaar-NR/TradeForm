@@ -2,8 +2,9 @@ import React, {
   useEffect,
   useMemo,
   useState,
+  useRef,
 } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   suppliersApi,
   Supplier,
@@ -75,6 +76,8 @@ const calculateSpeedGrade = (supplier: Supplier): number | null => {
 
 const Suppliers: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const supplierRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [showAddForm, setShowAddForm] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -93,6 +96,26 @@ const Suppliers: React.FC = () => {
   useEffect(() => {
     loadSuppliers();
   }, []);
+
+  // Handle expanding and scrolling to supplier from navigation state
+  useEffect(() => {
+    const state = location.state as { expandSupplierId?: string };
+    if (state?.expandSupplierId && suppliers.length > 0) {
+      // Expand the supplier
+      setExpandedSuppliers((prev) => new Set(prev).add(state.expandSupplierId));
+
+      // Scroll to the supplier after a short delay to ensure it's rendered
+      setTimeout(() => {
+        const element = supplierRefs.current[state.expandSupplierId];
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth", block: "start" });
+        }
+      }, 100);
+
+      // Clear the state to prevent re-triggering
+      navigate(location.pathname, { replace: true, state: {} });
+    }
+  }, [location.state, suppliers]);
 
   const loadSuppliers = async () => {
     try {
@@ -480,7 +503,11 @@ const Suppliers: React.FC = () => {
               const isExpanded = expandedSuppliers.has(supplier.id);
 
               return (
-                <div key={supplier.id} className="card p-5">
+                <div
+                  key={supplier.id}
+                  ref={(el) => (supplierRefs.current[supplier.id] = el)}
+                  className="card p-5"
+                >
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div className="flex items-center gap-3 min-w-0 flex-1">
                       <span

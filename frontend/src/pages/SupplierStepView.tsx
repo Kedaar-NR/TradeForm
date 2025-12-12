@@ -422,7 +422,7 @@ const SupplierStepView: React.FC = () => {
       {/* Header with back button */}
       <div className="flex items-center gap-4">
         <button
-          onClick={() => navigate("/suppliers")}
+          onClick={() => navigate("/suppliers", { state: { expandSupplierId: supplierId } })}
           className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
           title="Back to Suppliers"
         >
