@@ -249,11 +249,10 @@ const Dashboard: React.FC = () => {
         project.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  // Filter studies: only show projects the user has actually opened (study access)
-  // Never show untouched projects here.
+  // Filter studies: show all trade studies the user has actually opened (study access)
+  // This includes both grouped and ungrouped studies that have been accessed
   const filteredStudies = projects
     .filter((p) => hasAccessRecord(RECENT_STUDY_PREFIX, p.id))
-    .filter((p) => Boolean(p.projectGroupId)) // only studies that live inside a project
     .filter(
       (p) =>
         p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
