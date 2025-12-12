@@ -128,7 +128,16 @@ const Layout = ({ children }: LayoutProps) => {
     },
   ];
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      // Call backend logout endpoint to clear cookie
+      await api.post("/api/auth/logout");
+    } catch (error) {
+      console.error("Logout error:", error);
+      // Continue with logout even if backend call fails
+    }
+
+    // Clear local storage
     localStorage.removeItem("isAuthenticated");
     localStorage.removeItem("authToken");
     localStorage.removeItem("currentUser");
