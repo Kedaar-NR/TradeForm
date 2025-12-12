@@ -132,6 +132,11 @@ const Scheduler: React.FC = () => {
   const [fileName, setFileName] = useState<string | null>(null);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
   const [isParsing, setIsParsing] = useState(false);
+  const [savedModels, setSavedModels] = useState<Array<{
+    fileName: string;
+    items: BomItem[];
+    uploadedAt: string;
+  }>>([]);
 
   const handleParse = async () => {
     if (!uploadedFile) return;
@@ -165,8 +170,19 @@ const Scheduler: React.FC = () => {
       }
 
       const result = await response.json();
-      setItems(result.components);
+      const components = result.components;
+
+      // Save the model
+      const savedModel = {
+        fileName: uploadedFile.name,
+        items: components,
+        uploadedAt: new Date().toISOString(),
+      };
+      setSavedModels((prev) => [savedModel, ...prev]);
+      setItems(components);
       setError(null);
+      setUploadedFile(null);
+      setFileName(null);
     } catch (err: any) {
       console.error("Failed to analyze CAD file:", err);
       setError(
@@ -195,9 +211,20 @@ const Scheduler: React.FC = () => {
     if (file) {
       setUploadedFile(file);
       setFileName(file.name);
-      setItems([]);
       setError(null);
     }
+  };
+
+  const handleDeleteModel = (index: number) => {
+    setSavedModels((prev) => prev.filter((_, i) => i !== index));
+    // If deleting the currently displayed model, clear items
+    if (savedModels[index]?.items === items) {
+      setItems([]);
+    }
+  };
+
+  const handleLoadModel = (model: typeof savedModels[number]) => {
+    setItems(model.items);
   };
 
   const summary = useMemo(() => {
@@ -447,15 +474,74 @@ const Scheduler: React.FC = () => {
           </div>
         </div>
       ) : (
-        <div className="card p-10 text-center">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">
-            No CAD file loaded yet
-          </h3>
-          <p className="text-sm text-gray-600 max-w-xl mx-auto">
-            Upload an Excel or CSV CAD file to see procurement + build timing
-            per line item. We'll use default timing if your sheet doesn't
-            contain lead/build columns.
-          </p>
+        <div className="space-y-4">
+          {/* Saved Models Section */}
+          {savedModels.length > 0 && (
+            <div className="space-y-3">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Saved Models
+              </h3>
+              {savedModels.map((model, index) => (
+                <div
+                  key={index}
+                  className="bg-gray-100 rounded-lg p-4 border border-gray-200 hover:border-gray-300 transition-colors"
+                >
+                  <div className="flex items-center justify-between">
+                    <div
+                      className="flex-1 cursor-pointer"
+                      onClick={() => handleLoadModel(model)}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-gray-200 text-gray-600 rounded flex items-center justify-center font-semibold">
+                          3D
+                        </div>
+                        <div>
+                          <p className="font-semibold text-gray-900">
+                            {model.fileName}
+                          </p>
+                          <p className="text-xs text-gray-600">
+                            {model.items.length} components • Uploaded{" "}
+                            {new Date(model.uploadedAt).toLocaleString()}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteModel(index)}
+                      className="ml-4 p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                      title="Delete model"
+                    >
+                      <svg
+                        className="w-5 h-5"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* No CAD file loaded message */}
+          <div className="card p-10 text-center">
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              No CAD file loaded yet
+            </h3>
+            <p className="text-sm text-gray-600 max-w-xl mx-auto">
+              Upload an Excel or CSV CAD file to see procurement + build timing
+              per line item. We'll use default timing if your sheet doesn't
+              contain lead/build columns.
+            </p>
+          </div>
         </div>
       )}
     </div>
