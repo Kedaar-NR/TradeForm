@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { API_BASE_URL, getAuthToken } from "../utils/apiHelpers";
 
@@ -136,7 +136,23 @@ const Scheduler: React.FC = () => {
     fileName: string;
     items: BomItem[];
     uploadedAt: string;
-  }>>([]);
+  }>>(() => {
+    try {
+      const saved = localStorage.getItem('scheduler_saved_models');
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
+  });
+
+  // Persist savedModels to localStorage whenever they change
+  useEffect(() => {
+    try {
+      localStorage.setItem('scheduler_saved_models', JSON.stringify(savedModels));
+    } catch (error) {
+      console.error('Failed to save models to localStorage:', error);
+    }
+  }, [savedModels]);
 
   const handleParse = async () => {
     if (!uploadedFile) return;
