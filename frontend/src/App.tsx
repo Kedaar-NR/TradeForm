@@ -31,6 +31,7 @@ import Onboarding from "./pages/Onboarding";
 import Suppliers from "./pages/Suppliers";
 import Scheduler from "./pages/Scheduler";
 import SharedSupplier from "./pages/SharedSupplier";
+import SupplierStepView from "./pages/SupplierStepView";
 import api from "./services/api";
 
 // Protected Route wrapper
@@ -232,6 +233,16 @@ function App() {
             <ProtectedRoute>
               <Layout>
                 <Suppliers />
+              </Layout>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/suppliers/:supplierId/steps/:stepId"
+          element={
+            <ProtectedRoute>
+              <Layout>
+                <SupplierStepView />
               </Layout>
             </ProtectedRoute>
           }
