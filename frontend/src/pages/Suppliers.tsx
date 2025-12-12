@@ -101,12 +101,13 @@ const Suppliers: React.FC = () => {
   useEffect(() => {
     const state = location.state as { expandSupplierId?: string };
     if (state?.expandSupplierId && suppliers.length > 0) {
+      const supplierId = state.expandSupplierId;
       // Expand the supplier
-      setExpandedSuppliers((prev) => new Set(prev).add(state.expandSupplierId));
+      setExpandedSuppliers((prev) => new Set(prev).add(supplierId));
 
       // Scroll to the supplier after a short delay to ensure it's rendered
       setTimeout(() => {
-        const element = supplierRefs.current[state.expandSupplierId];
+        const element = supplierRefs.current[supplierId];
         if (element) {
           element.scrollIntoView({ behavior: "smooth", block: "start" });
         }
@@ -505,7 +506,9 @@ const Suppliers: React.FC = () => {
               return (
                 <div
                   key={supplier.id}
-                  ref={(el) => (supplierRefs.current[supplier.id] = el)}
+                  ref={(el) => {
+                    supplierRefs.current[supplier.id] = el;
+                  }}
                   className="card p-5"
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
