@@ -521,6 +521,29 @@ export const suppliersApi = {
         `${API_BASE_URL || ""}/api/suppliers/${supplierId}/steps/${stepId}/material`,
     getSharedStepMaterialUrl: (shareToken: string, stepId: string) =>
         `${API_BASE_URL || ""}/api/suppliers/shared/${shareToken}/steps/${stepId}/material`,
+    uploadSharedStepMaterial: (
+        shareToken: string,
+        stepId: string,
+        file: File,
+        options?: { name?: string; description?: string }
+    ) => {
+        const formData = new FormData();
+        formData.append("file", file);
+        if (options?.name) formData.append("name", options.name);
+        if (options?.description !== undefined) {
+            formData.append("description", options.description);
+        }
+        return api.post<SupplierStep>(
+            `/api/suppliers/shared/${shareToken}/steps/${stepId}/material`,
+            formData,
+            {
+                headers: { "Content-Type": "multipart/form-data" },
+            }
+        );
+    },
+    toggleSharedStep: (shareToken: string, stepId: string, toggle: StepToggle) =>
+        api.patch(`/api/suppliers/shared/${shareToken}/steps/${stepId}`, toggle),
+    get: (supplierId: string) => api.get<Supplier>(`/api/suppliers/${supplierId}`),
 };
 
 export default api;

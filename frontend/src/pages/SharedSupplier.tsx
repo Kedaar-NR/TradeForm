@@ -38,6 +38,8 @@ const SharedSupplier: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [selectedStep, setSelectedStep] = useState<SupplierStep | null>(null);
   const [materialVersion, setMaterialVersion] = useState(0);
+  const [isUploadingMaterial, setIsUploadingMaterial] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const materialUrl =
     shareToken && selectedStep
@@ -65,6 +67,97 @@ const SharedSupplier: React.FC = () => {
       setError("Failed to load supplier. The link may be invalid or expired.");
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleUploadMaterial = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+    step: SupplierStep
+  ) => {
+    if (!shareToken) return;
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setIsUploadingMaterial(true);
+    setUploadError(null);
+    try {
+      await suppliersApi.uploadSharedStepMaterial(shareToken, step.id, file);
+      await loadSupplier(); // Reload to get updated data
+      setMaterialVersion((prev) => prev + 1);
+    } catch (err: any) {
+      console.error("Failed to upload material:", err);
+      setUploadError(
+        err?.response?.data?.detail ||
+          err?.message ||
+          "Failed to upload material. Please try again."
+      );
+    } finally {
+      setIsUploadingMaterial(false);
+      event.target.value = "";
+    }
+  };
+
+  const handleToggleStep = async (step: SupplierStep) => {
+    if (!shareToken || !supplier) return;
+
+    const stepIndex = supplier.steps.findIndex((s) => s.id === step.id);
+    if (stepIndex === -1) return;
+
+    try {
+      const now = new Date().toISOString();
+      const completed = !step.completed;
+
+      let started_at = step.started_at;
+      let completed_at = completed ? now : undefined;
+
+      if (completed && !step.started_at) {
+        started_at =
+          stepIndex > 0
+            ? supplier.steps[stepIndex - 1].completed_at || supplier.created_at
+            : supplier.created_at;
+      }
+
+      await suppliersApi.toggleSharedStep(shareToken, step.id, {
+        step_id: step.id,
+        completed,
+        completed_at,
+        started_at,
+      });
+
+      // Update local state
+      setSupplier((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          steps: prev.steps.map((st, idx) => {
+            if (st.id === step.id) {
+              return {
+                ...st,
+                completed,
+                completed_at,
+                started_at: st.started_at || started_at,
+              };
+            }
+            // Start the next step if current was completed
+            if (
+              completed &&
+              idx === stepIndex + 1 &&
+              !st.started_at &&
+              !st.completed
+            ) {
+              return { ...st, started_at: now };
+            }
+            // Clear future steps if uncompleting
+            if (!completed && idx > stepIndex && !st.completed) {
+              return { ...st, started_at: undefined };
+            }
+            return st;
+          }),
+        };
+      });
+    } catch (err: any) {
+      console.error("Failed to toggle step:", err);
+      setError("Failed to update step. Please try again.");
     }
   };
 
@@ -165,23 +258,12 @@ const SharedSupplier: React.FC = () => {
                 }`}
               >
                 <div className="flex items-start gap-3">
-                  <div className="mt-0.5">
-                    {step.completed ? (
-                      <svg
-                        className="w-5 h-5 text-green-600"
-                        fill="currentColor"
-                        viewBox="0 0 20 20"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
-                    ) : (
-                      <div className="w-5 h-5 rounded-full border-2 border-gray-300" />
-                    )}
-                  </div>
+                  <input
+                    type="checkbox"
+                    checked={step.completed}
+                    onChange={() => handleToggleStep(step)}
+                    className="mt-1 h-4 w-4 rounded border-gray-300 text-black focus:ring-black cursor-pointer"
+                  />
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       <h3
@@ -200,7 +282,7 @@ const SharedSupplier: React.FC = () => {
                     <p className="text-sm text-gray-600 mb-2">
                       {step.description}
                     </p>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-gray-500 mb-2">
                       {step.completed ? (
                         <>
                           <span>
@@ -219,53 +301,61 @@ const SharedSupplier: React.FC = () => {
                         "Not started yet"
                       )}
                     </div>
-                    {step.has_material ? (
-                      <button
-                        className="mt-2 inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700"
-                        onClick={() => {
-                          const isPdf =
-                            (step.material_mime_type || "").toLowerCase().includes("pdf") ||
-                            !step.material_mime_type;
-                          if (isPdf) {
-                            setSelectedStep(step);
-                            setMaterialVersion((prev) => prev + 1);
-                          } else if (shareToken) {
-                            window.open(
-                              `${suppliersApi.getSharedStepMaterialUrl(
-                                shareToken,
-                                step.id
-                              )}?v=${materialVersion + 1}`,
-                              "_blank"
-                            );
-                          }
-                        }}
-                      >
-                        View task materials
-                        <svg
-                          className="w-4 h-4"
-                          fill="none"
-                          stroke="currentColor"
-                          viewBox="0 0 24 24"
+                    <div className="flex flex-wrap items-center gap-2">
+                      {step.has_material ? (
+                        <button
+                          className="inline-flex items-center gap-2 text-sm font-semibold text-blue-600 hover:text-blue-700"
+                          onClick={() => {
+                            const isPdf =
+                              (step.material_mime_type || "").toLowerCase().includes("pdf") ||
+                              !step.material_mime_type;
+                            if (isPdf) {
+                              setSelectedStep(step);
+                              setMaterialVersion((prev) => prev + 1);
+                            } else if (shareToken) {
+                              window.open(
+                                `${suppliersApi.getSharedStepMaterialUrl(
+                                  shareToken,
+                                  step.id
+                                )}?v=${materialVersion + 1}`,
+                                "_blank"
+                              );
+                            }
+                          }}
                         >
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-                          />
-                          <path
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            strokeWidth={2}
-                            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-                          />
-                        </svg>
-                      </button>
-                    ) : (
-                      <p className="mt-2 text-xs text-gray-500">
-                        No materials uploaded yet.
-                      </p>
-                    )}
+                          View materials
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                            />
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.477 0 8.268 2.943 9.542 7-1.274 4.057-5.065 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                            />
+                          </svg>
+                        </button>
+                      ) : null}
+                      <label className="cursor-pointer px-3 py-1.5 text-sm font-semibold border border-gray-300 rounded-lg hover:bg-gray-100">
+                        {isUploadingMaterial ? "Uploading..." : step.has_material ? "Replace file" : "Upload file"}
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept=".pdf,.doc,.docx"
+                          onChange={(e) => handleUploadMaterial(e, step)}
+                          disabled={isUploadingMaterial}
+                        />
+                      </label>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -285,13 +375,20 @@ const SharedSupplier: React.FC = () => {
           }
         />
 
+        {/* Upload Error */}
+        {uploadError && (
+          <div className="card p-4 bg-red-50 border border-red-200">
+            <p className="text-sm text-red-700">{uploadError}</p>
+          </div>
+        )}
+
         {/* Footer */}
         <div className="card p-6 text-center bg-gradient-to-r from-gray-50 to-gray-100">
           <p className="text-sm text-gray-600">
-            This is a read-only view of your onboarding progress.
+            You can upload materials and mark steps as complete using the controls above.
           </p>
           <p className="text-sm text-gray-600 mt-1">
-            For questions or updates, please contact your project manager.
+            Changes will be synced with your project manager in real-time.
           </p>
         </div>
       </div>
