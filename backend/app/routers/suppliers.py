@@ -496,3 +496,97 @@ def download_shared_step_material(
         raise HTTPException(status_code=404, detail="Step not found")
 
     return _build_material_response(step)
+
+
+@router.post("/shared/{share_token}/steps/{step_id}/material", response_model=SupplierStepResponse)
+async def upload_shared_step_material(
+    share_token: str,
+    step_id: UUID,
+    file: UploadFile = File(...),
+    name: Optional[str] = Form(None),
+    description: Optional[str] = Form(None),
+    db: Session = Depends(get_db),
+):
+    """Public endpoint to upload material via shared link."""
+    supplier = db.query(Supplier).filter(Supplier.share_token == share_token).first()
+    if not supplier:
+        raise HTTPException(status_code=404, detail="Supplier not found")
+
+    step = _get_step_for_supplier(db, supplier.id, step_id)
+
+    if not file.filename:
+        raise HTTPException(status_code=400, detail="No file provided")
+
+    contents = await file.read()
+    if len(contents) > MAX_MATERIAL_SIZE_BYTES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"File too large. Max size is {MAX_MATERIAL_SIZE_BYTES // (1024 * 1024)}MB",
+        )
+
+    file_ext = Path(file.filename).suffix.lower()
+    if file_ext not in ALLOWED_MATERIAL_EXTENSIONS:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Unsupported file type. Allowed: {', '.join(sorted(ALLOWED_MATERIAL_EXTENSIONS))}",
+        )
+
+    # Persist file to disk
+    material_dir = SUPPLIER_MATERIALS_DIR / str(supplier.user_id) / str(supplier.id)
+    material_dir.mkdir(parents=True, exist_ok=True)
+    material_path = material_dir / f"{step_id}{file_ext}"
+
+    with open(material_path, "wb") as f:
+        f.write(contents)
+
+    mime_type = (
+        mimetypes.guess_type(file.filename)[0]
+        or "application/octet-stream"
+    )
+
+    # Update step metadata
+    step.material_file_path = str(material_path)
+    step.material_mime_type = mime_type
+    step.material_original_filename = file.filename
+    if name:
+        step.material_name = name
+    elif not step.material_name:
+        step.material_name = file.filename
+
+    if description is not None:
+        step.material_description = description
+
+    step.material_size_bytes = len(contents)
+    step.material_updated_at = datetime.utcnow()
+
+    db.commit()
+    db.refresh(step)
+    step.has_material = True
+    step.material_download_url = f"/api/suppliers/{supplier.id}/steps/{step_id}/material"
+    step.material_share_url = f"/api/suppliers/shared/{share_token}/steps/{step_id}/material"
+    return step
+
+
+@router.patch("/shared/{share_token}/steps/{step_id}")
+def toggle_shared_step(
+    share_token: str,
+    step_id: UUID,
+    toggle_data: StepToggleRequest,
+    db: Session = Depends(get_db)
+):
+    """Toggle a step's completion status via shared link."""
+    supplier = db.query(Supplier).filter(Supplier.share_token == share_token).first()
+    if not supplier:
+        raise HTTPException(status_code=404, detail="Supplier not found")
+
+    step = _get_step_for_supplier(db, supplier.id, step_id)
+
+    step.completed = toggle_data.completed
+    step.completed_at = toggle_data.completed_at
+
+    if toggle_data.started_at is not None:
+        step.started_at = toggle_data.started_at
+
+    db.commit()
+    db.refresh(step)
+    return step
