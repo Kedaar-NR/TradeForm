@@ -374,6 +374,27 @@ const Scheduler: React.FC = () => {
 
       {items.length > 0 ? (
         <div className="space-y-4">
+          {savedModels.length > 0 && (
+            <button
+              onClick={() => setItems([])}
+              className="flex items-center gap-2 text-sm text-gray-600 hover:text-gray-900 transition-colors"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M10 19l-7-7m0 0l7-7m-7 7h18"
+                />
+              </svg>
+              Back to saved models
+            </button>
+          )}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
             <div className="card p-4">
               <p className="text-xs text-gray-500 mb-1">Lines parsed</p>
