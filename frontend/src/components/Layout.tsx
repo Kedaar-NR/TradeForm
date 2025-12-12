@@ -3,7 +3,7 @@ import { useState, useEffect, useRef, type ReactNode } from "react";
 import Logo from "./Logo";
 import FloatingAIAssistant from "./FloatingAIAssistant";
 import GlobalSearch from "./GlobalSearch";
-import { projectGroupsApi } from "../services/api";
+import { projectGroupsApi, api } from "../services/api";
 
 interface LayoutProps {
   children: ReactNode;
