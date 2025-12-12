@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from typing import Optional
+from uuid import UUID
 from jose import JWTError, jwt
 import bcrypt
 from fastapi import Depends, HTTPException, status
@@ -86,8 +87,13 @@ def get_current_user(
 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: Optional[str] = payload.get("sub")
-        if user_id is None:
+        user_id_str: Optional[str] = payload.get("sub")
+        if user_id_str is None:
+            raise credentials_exception
+        # Convert string UUID to UUID object for database query
+        try:
+            user_id = UUID(user_id_str)
+        except (ValueError, AttributeError):
             raise credentials_exception
     except JWTError:
         raise credentials_exception

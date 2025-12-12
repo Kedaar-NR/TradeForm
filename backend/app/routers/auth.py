@@ -25,12 +25,15 @@ COOKIE_DOMAIN = os.getenv("COOKIE_DOMAIN")  # Set to ".trade-form.com" in produc
 
 
 def _set_auth_cookie(response: Response, token: str):
+    # In local development (no COOKIE_DOMAIN set), use secure=False to allow HTTP cookies
+    is_production = bool(COOKIE_DOMAIN)
+
     cookie_params = {
         "key": ACCESS_COOKIE_NAME,
         "value": token,
         "max_age": 60 * 60 * 24 * 30,
         "httponly": True,
-        "secure": True,
+        "secure": is_production,  # Only require HTTPS in production
         "samesite": "lax",
         "path": "/",
     }
@@ -162,6 +165,26 @@ def login(
 def get_current_user_info(current_user: models.User = Depends(auth.get_current_user_required)):
     """Get current user information"""
     return current_user
+
+
+@router.post("/logout")
+def logout(response: Response):
+    """Logout by clearing the auth cookie"""
+    # Clear the cookie by setting it to empty with immediate expiry
+    is_production = bool(COOKIE_DOMAIN)
+    cookie_params = {
+        "key": ACCESS_COOKIE_NAME,
+        "value": "",
+        "max_age": 0,
+        "httponly": True,
+        "secure": is_production,
+        "samesite": "lax",
+        "path": "/",
+    }
+    if COOKIE_DOMAIN:
+        cookie_params["domain"] = COOKIE_DOMAIN
+    response.delete_cookie(**cookie_params)
+    return {"message": "Logged out successfully"}
 
 
 @router.get("/google/login")
