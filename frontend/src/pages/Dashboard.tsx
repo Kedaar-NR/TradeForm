@@ -14,17 +14,13 @@ import { transformProjectGroups } from "../utils/apiTransformers";
 import { extractErrorMessage } from "../utils/errorHelpers";
 import {
   ProjectCard,
-  StudyCard,
   CreateProjectModal,
   MoveStudyContextMenu,
 } from "../components/Dashboard";
 import type { ApiProjectGroup } from "../types/api";
 import {
   getAccessedAt,
-  hasAccessRecord,
   RECENT_GROUP_PREFIX,
-  RECENT_STUDY_PREFIX,
-  markStudyAccess,
 } from "../utils/recentActivity";
 
 // Known template study names for filtering
@@ -74,7 +70,6 @@ const Dashboard: React.FC = () => {
     projectGroups,
     setProjectGroups,
     searchTerm,
-    projects,
     setProjects,
     updateProject,
   } = useStore();
@@ -96,11 +91,7 @@ const Dashboard: React.FC = () => {
     x: number;
     y: number;
   } | null>(null);
-  const [activeSection, setActiveSection] = useState<"projects" | "studies">(
-    "projects"
-  );
   const projectsSectionRef = useRef<HTMLDivElement>(null);
-  const studiesSectionRef = useRef<HTMLDivElement>(null);
 
   // Handle OAuth token from URL hash (Google login redirect)
   useEffect(() => {
@@ -174,7 +165,6 @@ const Dashboard: React.FC = () => {
           typeof window !== "undefined"
             ? localStorage.getItem(`template_project_${p.id}`) === "grouped"
             : false,
-        lastAccessedAt: getAccessedAt(RECENT_STUDY_PREFIX, p.id, p.updated_at),
       }));
 
       // Auto-mark legacy ungrouped template studies
@@ -199,12 +189,9 @@ const Dashboard: React.FC = () => {
 
       // Sort by most recent
       transformedProjects.sort(
-        (
-          a: { lastAccessedAt?: string | null; updatedAt: string },
-          b: { lastAccessedAt?: string | null; updatedAt: string }
-        ) =>
-          new Date((b.lastAccessedAt || b.updatedAt) ?? "").getTime() -
-          new Date((a.lastAccessedAt || a.updatedAt) ?? "").getTime()
+        (a: { updatedAt: string }, b: { updatedAt: string }) =>
+          new Date(b.updatedAt ?? "").getTime() -
+          new Date(a.updatedAt ?? "").getTime()
       );
       setProjects(transformedProjects);
     } catch (error) {
@@ -235,12 +222,6 @@ const Dashboard: React.FC = () => {
     return () => window.removeEventListener("click", closeMenu);
   }, []);
 
-  // Update active section based on scroll position
-  // Keep Projects as the default tab; no automatic switching on scroll
-  useEffect(() => {
-    setActiveSection("projects");
-  }, []);
-
   // Filter project groups by search
   const filteredProjects = projectGroups.filter(
     (project) =>
@@ -249,64 +230,34 @@ const Dashboard: React.FC = () => {
         project.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  // Filter studies: show all trade studies the user has actually opened (study access)
-  // This includes both grouped and ungrouped studies that have been accessed
-  const filteredStudies = projects
-    .filter((p) => hasAccessRecord(RECENT_STUDY_PREFIX, p.id))
-    .filter(
-      (p) =>
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.description &&
-          p.description.toLowerCase().includes(searchTerm.toLowerCase()))
-    )
-    .filter((p) => !p.createdViaTemplateGroup);
-
-  // Navigation Tabs
-  const NavigationTabs = () => (
+  // Navigation header with action buttons
+  const NavigationHeader = () => (
     <div className="border-b border-gray-200 mb-6">
-      <div className="flex gap-6">
-        <button
-          onClick={() => {
-            setActiveSection("projects");
-            projectsSectionRef.current?.scrollIntoView({
-              behavior: "smooth",
-              block: "start",
-            });
-          }}
-          className={`pb-3 px-1 border-b-2 font-medium text-sm transition-colors ${
-            activeSection === "projects"
-              ? "border-black text-gray-900"
-              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-          }`}
-        >
-          Recent Projects
-          {filteredProjects.length > 0 && (
-            <span className="ml-2 text-gray-500 font-normal">
-              ({filteredProjects.length})
-            </span>
-          )}
-        </button>
-        <button
-          onClick={() => {
-            setActiveSection("studies");
-            studiesSectionRef.current?.scrollIntoView({
-              behavior: "smooth",
-              block: "start",
-            });
-          }}
-          className={`pb-3 px-1 border-b-2 font-medium text-sm transition-colors ${
-            activeSection === "studies"
-              ? "border-black text-gray-900"
-              : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-          }`}
-        >
-          Recent Studies
-          {filteredStudies.length > 0 && (
-            <span className="ml-2 text-gray-500 font-normal">
-              ({filteredStudies.length})
-            </span>
-          )}
-        </button>
+      <div className="flex items-center justify-between pb-3">
+        <div className="flex gap-6">
+          <div className="pb-0 px-1 border-b-2 border-black font-medium text-sm text-gray-900">
+            Recent
+            {filteredProjects.length > 0 && (
+              <span className="ml-2 text-gray-500 font-normal">
+                ({filteredProjects.length})
+              </span>
+            )}
+          </div>
+        </div>
+        <div className="flex gap-3">
+          <button
+            onClick={() => setShowCreateModal(true)}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            New Project
+          </button>
+          <button
+            onClick={() => navigate("/templates")}
+            className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 transition-colors"
+          >
+            New Study
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -396,7 +347,6 @@ const Dashboard: React.FC = () => {
       setDeletingProjectId(projectId);
       await projectGroupsApi.delete(projectId);
       await loadProjectGroups();
-      setActiveSection("projects");
     } catch (error) {
       console.error("Failed to delete project:", error);
       alert(`Failed to delete project: ${extractErrorMessage(error)}`);
@@ -405,21 +355,6 @@ const Dashboard: React.FC = () => {
     }
   };
 
-  const handleDeleteStudy = async (studyId: string, studyName: string) => {
-    if (!window.confirm(`Delete "${studyName}"? This cannot be undone.`))
-      return;
-    try {
-      setDeletingProjectId(studyId);
-      await projectsApi.delete(studyId);
-      await loadProjects();
-      setActiveSection("projects");
-    } catch (error) {
-      console.error("Failed to delete study:", error);
-      alert(`Failed to delete study: ${extractErrorMessage(error)}`);
-    } finally {
-      setDeletingProjectId(null);
-    }
-  };
 
   const closeModal = () => {
     setShowCreateModal(false);
@@ -450,14 +385,14 @@ const Dashboard: React.FC = () => {
         </button>
       </div>
 
-      {/* Navigation Tabs */}
-      <NavigationTabs />
+      {/* Navigation Header */}
+      <NavigationHeader />
 
       {/* Projects List */}
       <div ref={projectsSectionRef}>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold text-gray-900">
-            Recent Projects
+            Recent
             {filteredProjects.length > 0 && (
               <span className="ml-2 text-gray-500 text-base font-normal">
                 ({filteredProjects.length})
@@ -494,19 +429,11 @@ const Dashboard: React.FC = () => {
             <h3 className="text-lg font-semibold text-gray-900 mb-2">
               No projects found
             </h3>
-            <p className="text-sm text-gray-600 mb-6 max-w-sm mx-auto">
+            <p className="text-sm text-gray-600 max-w-sm mx-auto">
               {searchTerm
                 ? "Try adjusting your search criteria"
-                : "Get started by creating your first project"}
+                : "Get started by clicking the 'New Project' button above"}
             </p>
-            {!searchTerm && (
-              <button
-                onClick={() => setShowCreateModal(true)}
-                className="btn-primary"
-              >
-                Create Your First Project
-              </button>
-            )}
           </div>
         ) : (
           <div className="space-y-3">
@@ -535,80 +462,6 @@ const Dashboard: React.FC = () => {
         )}
       </div>
 
-      {/* Recent Studies (Ungrouped) */}
-      <div ref={studiesSectionRef}>
-        {filteredStudies.length > 0 && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-xl font-semibold text-gray-900">
-                Recent Studies
-                <span className="ml-2 text-gray-500 text-base font-normal">
-                  ({filteredStudies.length})
-                </span>
-              </h2>
-              <p className="text-sm text-gray-500">
-                Drag onto a project to organize
-              </p>
-            </div>
-
-            <div
-              className={`${
-                dragOverTarget === "ungrouped"
-                  ? "border-2 border-dashed border-black rounded-lg p-3"
-                  : ""
-              }`}
-              onDragOver={(e) => {
-                if (!draggingProjectId) return;
-                e.preventDefault();
-                setDragOverTarget("ungrouped");
-              }}
-              onDragLeave={() => setDragOverTarget(null)}
-              onDrop={(e) => {
-                if (!draggingProjectId) return;
-                e.preventDefault();
-                handleMoveStudy(draggingProjectId, null);
-              }}
-            >
-              <div className="space-y-3">
-                {filteredStudies.map((study) => (
-                  <StudyCard
-                    key={study.id}
-                    study={study}
-                    isDeleting={deletingProjectId === study.id}
-                    isMoving={movingProjectId === study.id}
-                    onNavigate={(id) => {
-                      markStudyAccess(id);
-                      navigate(`/project/${id}`);
-                    }}
-                    onDelete={handleDeleteStudy}
-                    onMoveClick={(e, id) => {
-                      e.stopPropagation();
-                      setContextMenu({
-                        projectId: id,
-                        x: e.clientX,
-                        y: e.clientY,
-                      });
-                    }}
-                    onContextMenu={(e, id) => {
-                      e.preventDefault();
-                      setContextMenu({
-                        projectId: id,
-                        x: e.clientX,
-                        y: e.clientY,
-                      });
-                    }}
-                    onDragStart={(id) => setDraggingProjectId(id)}
-                    onDragEnd={() => {
-                      setDraggingProjectId(null);
-                      setDragOverTarget(null);
-                    }}
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-      </div>
 
       {/* Context Menu */}
       <MoveStudyContextMenu
