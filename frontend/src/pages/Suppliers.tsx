@@ -599,15 +599,20 @@ const Suppliers: React.FC = () => {
                           key={step.id}
                           className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-300 transition-colors"
                         >
-                          <input
-                            type="checkbox"
-                            checked={step.completed}
-                            onChange={(e) => {
-                              e.stopPropagation();
-                              toggleStep(supplier.id, step.id);
-                            }}
-                            className="mt-1 h-4 w-4 rounded border-gray-300 text-black focus:ring-black cursor-pointer"
-                          />
+                          <div
+                            onClick={(e) => e.stopPropagation()}
+                            className="flex-shrink-0"
+                          >
+                            <input
+                              type="checkbox"
+                              checked={step.completed}
+                              onChange={(e) => {
+                                e.stopPropagation();
+                                toggleStep(supplier.id, step.id);
+                              }}
+                              className="mt-1 h-4 w-4 rounded border-gray-300 text-black focus:ring-black cursor-pointer"
+                            />
+                          </div>
                           <div
                             className="flex-1 min-w-0 cursor-pointer"
                             onClick={() =>
