@@ -145,8 +145,11 @@ const SupplierStepView: React.FC = () => {
         setPreviewUrl(objectUrl);
       } catch (err: any) {
         console.error("Failed to load preview:", err);
-        setPreviewError("Preview unavailable. Use Download to view.");
-        setPreviewUrl(materialUrl);
+        const errorMsg = err?.message || "Unknown error";
+        setPreviewError(
+          `Preview failed: ${errorMsg}. Use Download button to view the file.`
+        );
+        setPreviewUrl(null);
       } finally {
         setPreviewLoading(false);
       }
@@ -513,16 +516,14 @@ const SupplierStepView: React.FC = () => {
                   <div className="w-full h-[560px] flex items-center justify-center text-sm text-gray-600">
                     Loading preview...
                   </div>
-                ) : previewError ? (
+                ) : previewError || !previewUrl ? (
                   <div className="w-full h-[560px] flex items-center justify-center text-sm text-red-600">
-                    {previewError}
+                    {previewError || "Preview unavailable. Use Download to view."}
                   </div>
                 ) : (
                   <iframe
                     key={materialVersion}
-                    src={`${
-                      previewUrl || materialUrl
-                    }#toolbar=0&navpanes=0`}
+                    src={`${previewUrl}#toolbar=0&navpanes=0`}
                     title="Task material preview"
                     className={`w-full h-[560px] ${
                       isSigning ? "pointer-events-none" : ""
