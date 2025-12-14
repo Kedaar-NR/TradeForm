@@ -513,6 +513,17 @@ const Suppliers: React.FC = () => {
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                     <div className="flex items-center gap-3 min-w-0 flex-1">
+                      <button
+                        onClick={() => toggleSupplierExpanded(supplier.id)}
+                        className="flex-shrink-0 p-1 hover:bg-gray-100 rounded transition-colors"
+                        title={isExpanded ? "Collapse" : "Expand"}
+                      >
+                        {isExpanded ? (
+                          <ChevronUp size={20} className="text-gray-600" />
+                        ) : (
+                          <ChevronDown size={20} className="text-gray-600" />
+                        )}
+                      </button>
                       <span
                         className="h-12 w-1.5 rounded-full flex-shrink-0"
                         style={{ backgroundColor: supplier.color }}
@@ -532,23 +543,6 @@ const Suppliers: React.FC = () => {
                           {supplier.contact_email || "No email yet"}
                         </p>
                       </div>
-                      <button
-                        onClick={() => toggleSupplierExpanded(supplier.id)}
-                        className="btn-secondary text-sm flex items-center gap-1"
-                        title={isExpanded ? "Collapse" : "Expand"}
-                      >
-                        {isExpanded ? (
-                          <>
-                            <ChevronUp size={16} />
-                            Collapse
-                          </>
-                        ) : (
-                          <>
-                            <ChevronDown size={16} />
-                            Expand
-                          </>
-                        )}
-                      </button>
                     </div>
                     <div className="flex items-center gap-3 flex-wrap">
                       <div className="flex items-center gap-2 text-sm text-gray-700">
@@ -599,16 +593,17 @@ const Suppliers: React.FC = () => {
                           key={step.id}
                           className="flex items-start gap-3 p-3 rounded-lg border border-gray-100 hover:border-gray-300 transition-colors"
                         >
-                          <div
-                            onClick={(e) => e.stopPropagation()}
-                            className="flex-shrink-0"
-                          >
+                          <div className="flex-shrink-0">
                             <input
                               type="checkbox"
                               checked={step.completed}
                               onChange={(e) => {
                                 e.stopPropagation();
+                                e.preventDefault();
                                 toggleStep(supplier.id, step.id);
+                              }}
+                              onClick={(e) => {
+                                e.stopPropagation();
                               }}
                               className="mt-1 h-4 w-4 rounded border-gray-300 text-black focus:ring-black cursor-pointer"
                             />

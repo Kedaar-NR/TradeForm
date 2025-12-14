@@ -230,37 +230,6 @@ const Dashboard: React.FC = () => {
         project.description.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
-  // Navigation header with action buttons
-  const NavigationHeader = () => (
-    <div className="border-b border-gray-200 mb-6">
-      <div className="flex items-center justify-between pb-3">
-        <div className="flex gap-6">
-          <div className="pb-0 px-1 border-b-2 border-black font-medium text-sm text-gray-900">
-            Recent
-            {filteredProjects.length > 0 && (
-              <span className="ml-2 text-gray-500 font-normal">
-                ({filteredProjects.length})
-              </span>
-            )}
-          </div>
-        </div>
-        <div className="flex gap-3">
-          <button
-            onClick={() => setShowCreateModal(true)}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-          >
-            New Project
-          </button>
-          <button
-            onClick={() => navigate("/templates")}
-            className="px-4 py-2 text-sm font-medium text-white bg-black rounded-md hover:bg-gray-800 transition-colors"
-          >
-            New Study
-          </button>
-        </div>
-      </div>
-    </div>
-  );
 
   const handleMoveStudy = async (
     projectId: string,
@@ -385,9 +354,6 @@ const Dashboard: React.FC = () => {
         </button>
       </div>
 
-      {/* Navigation Header */}
-      <NavigationHeader />
-
       {/* Projects List */}
       <div ref={projectsSectionRef}>
         <div className="flex items-center justify-between mb-4">
@@ -399,29 +365,43 @@ const Dashboard: React.FC = () => {
               </span>
             )}
           </h2>
-          <button
-            onClick={() => {
-              loadProjects();
-              loadProjectGroups();
-            }}
-            className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-2"
-            title="Refresh projects list"
-          >
-            <svg
-              className="w-4 h-4"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                loadProjects();
+                loadProjectGroups();
+              }}
+              className="text-sm text-gray-600 hover:text-gray-900 flex items-center gap-2"
+              title="Refresh projects list"
             >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
-              />
-            </svg>
-            Refresh
-          </button>
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"
+                />
+              </svg>
+              Refresh
+            </button>
+            <button
+              onClick={() => setShowCreateModal(true)}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            >
+              New Project
+            </button>
+            <button
+              onClick={() => navigate("/templates")}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+            >
+              New Study
+            </button>
+          </div>
         </div>
 
         {filteredProjects.length === 0 ? (

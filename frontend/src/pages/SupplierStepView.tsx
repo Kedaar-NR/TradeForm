@@ -137,7 +137,8 @@ const SupplierStepView: React.FC = () => {
           credentials: "include",
         });
         if (!response.ok) {
-          throw new Error(`Failed to load preview: ${response.statusText}`);
+          const statusText = response.statusText || `HTTP ${response.status}`;
+          throw new Error(`Failed to load file (${statusText})`);
         }
         const blob = await response.blob();
         const objectUrl = URL.createObjectURL(blob);
@@ -145,9 +146,9 @@ const SupplierStepView: React.FC = () => {
         setPreviewUrl(objectUrl);
       } catch (err: any) {
         console.error("Failed to load preview:", err);
-        const errorMsg = err?.message || "Unknown error";
+        const errorMsg = err?.message || "Unable to load file";
         setPreviewError(
-          `Preview failed: ${errorMsg}. Use Download button to view the file.`
+          `Preview unavailable: ${errorMsg}. Use Download button to view the file.`
         );
         setPreviewUrl(null);
       } finally {
